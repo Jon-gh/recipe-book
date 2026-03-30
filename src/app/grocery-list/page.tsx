@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { GroceryItem } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -10,15 +11,17 @@ export default function GroceryListPage() {
   const [items, setItems] = useState<GroceryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
+    router.refresh(); // Invalidate Next.js Router Cache so we always get fresh data
     fetch("/api/grocery-list", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         setItems(data);
         setLoading(false);
       });
-  }, []);
+  }, [router]);
 
   function formatItem(item: GroceryItem): string {
     const qty = item.quantity % 1 === 0 ? item.quantity.toString() : item.quantity.toFixed(1);
