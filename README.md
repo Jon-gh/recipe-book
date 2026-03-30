@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Recipe Book
+
+A web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import from text, URL, or image via the Claude API.
+
+## Features
+
+- Browse, search, and filter recipes (by name, tag, ingredient, or favourite)
+- Add and edit recipes manually or import via AI (paste text, URL, or photo)
+- Mark recipes as favourites
+- Duplicate recipes
+- Build a weekly meal plan with custom serving sizes
+- Generate a scaled, aggregated grocery list from your meal plan
+
+## Tech Stack
+
+- **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
+- **Prisma 5** + **Neon Postgres** (serverless)
+- **Anthropic SDK** (`claude-haiku-4-5-20251001`) for AI recipe extraction
+- **Vitest** for unit testing
 
 ## Getting Started
 
-First, run the development server:
+### 1. Install dependencies
+
+```bash
+npm install
+```
+
+### 2. Set up environment variables
+
+Create a `.env` file in the project root:
+
+```
+DATABASE_URL=your_neon_postgres_connection_string
+ANTHROPIC_API_KEY=your_anthropic_api_key
+```
+
+- Get a free Postgres database at [neon.tech](https://neon.tech)
+- Get an API key at [console.anthropic.com](https://console.anthropic.com)
+
+### 3. Set up the database
+
+```bash
+npx prisma generate
+npx prisma db push
+```
+
+### 4. Run the dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Build for production |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run unit tests |
+| `npm run test:watch` | Run tests in watch mode |
+| `npx tsc --noEmit` | Type check |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+  app/
+    api/          # REST API routes (recipes, meal-plan, grocery-list)
+    recipes/      # Recipe list, detail, new, and edit pages
+  components/
+    RecipeForm.tsx  # Shared add/edit form with AI import
+    ui/             # shadcn/ui components
+  lib/
+    prisma.ts       # Prisma client singleton
+    grocery-list.ts # Ingredient aggregation logic
+    extract-recipe.ts # Claude API extraction helpers
+    url-import.ts   # URL + JSON-LD parsing helpers
+  types.ts          # Shared TypeScript types
+prisma/
+  schema.prisma     # Database schema
+tests/
+  api/              # API route tests (Prisma mocked)
+  lib/              # Pure function unit tests
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Deploy to [Vercel](https://vercel.com) with one click. Set `DATABASE_URL` and `ANTHROPIC_API_KEY` in the Vercel environment variables dashboard.
