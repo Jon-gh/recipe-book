@@ -1,59 +1,107 @@
 # Recipe Book — CLAUDE.md
 
 ## Purpose
-CLI app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (image, URL, pasted text) via the Claude API.
+Web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (image, URL, pasted text) via the Claude API.
 
 ## Tech Stack
-- **Python 3.10** · **Click** (CLI) · **Anthropic SDK** (vision & text extraction)
-- **inflect** (plural normalisation) · **requests + BeautifulSoup4** (URL import)
-- **pytest + pytest-cov** (testing) · **python-dotenv** (env vars)
+- **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
+- **Prisma 5** (ORM) · **Neon Postgres** (serverless database, AWS eu-west-2)
+- **Anthropic SDK** (`claude-haiku-4-5-20251001`) · **Vitest** (unit tests)
 
 ## Key Directories
 
 | Path | Purpose |
 |------|---------|
-| `src/models.py` | Dataclasses: `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem` |
-| `src/database.py` | JSON file persistence; CRUD + search for recipes and meal plan |
-| `src/cli.py` | All Click commands: `recipe`, `plan`, `grocery` groups |
-| `src/grocery_list.py` | Ingredient aggregation with scaling and plural normalisation |
-| `src/image_import.py` | Claude API calls for image and text recipe extraction |
-| `src/url_import.py` | URL fetch → JSON-LD parse → Claude fallback |
-| `data/` | `recipes.json` and `meal_plan.json` (runtime data, not committed) |
-| `tests/` | Pytest suite; `conftest.py` holds shared fixtures and mock recipes |
+| `src/types.ts` | Shared TypeScript types: `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
+| `src/lib/prisma.ts` | Prisma client singleton (prevents too-many-connections in dev) |
+| `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales and aggregates ingredients across meal plan entries |
+| `src/lib/extract-recipe.ts` | `extractRecipeFromText()` and `extractRecipeFromImage()` — Claude API calls |
+| `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL recipe parsing |
+| `src/app/api/recipes/` | REST endpoints: list/create, get/update/delete, duplicate, import (text/url/image) |
+| `src/app/api/meal-plan/` | REST endpoints: list, add entry, delete entry |
+| `src/app/api/grocery-list/` | GET — aggregated grocery list from current meal plan |
+| `src/app/recipes/` | Recipe list page (search + favourite filter) |
+| `src/app/recipes/[id]/` | Recipe detail page (view, delete, duplicate, add to plan) |
+| `src/app/recipes/[id]/edit/` | Edit recipe page |
+| `src/app/recipes/new/` | New recipe page |
+| `src/components/RecipeForm.tsx` | Shared form used by new + edit pages; includes AI import panel |
+| `src/components/ui/` | shadcn/ui components (button, card, badge, input, etc.) |
+| `prisma/schema.prisma` | Database schema: `Recipe`, `RecipeIngredient`, `MealPlanEntry` |
+| `tests/` | Vitest suite: `tests/lib/` (pure functions), `tests/api/` (route handlers with mocked Prisma) |
 
 ## Essential Commands
 
 ```bash
 # Install dependencies
-pip install -r requirements.txt
+npm install
 
-# Run the app
-python main.py --help
-python main.py recipe list
-python main.py grocery list --output shopping.txt
-
-# Seed demo data
-python seed.py
+# Run dev server
+npm run dev
 
 # Run all tests
-python -m pytest
+npm test
 
-# Run tests with coverage
-python -m pytest --cov=src
+# Run tests in watch mode
+npm run test:watch
+
+# Lint
+npm run lint
+
+# Type check
+npx tsc --noEmit
+
+# Regenerate Prisma client after schema changes
+npx prisma generate
+
+# Push schema changes to database
+npx prisma db push
 ```
 
 ## Environment
-`ANTHROPIC_API_KEY` must be set (in `.env` or shell) for AI import commands.
-`main.py:1-3` loads `.env` automatically via `python-dotenv`.
+Copy `.env.example` to `.env` and fill in:
+```
+DATABASE_URL=          # Neon Postgres connection string
+ANTHROPIC_API_KEY=     # Required for AI import features
+```
+
+## API Routes
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/recipes` | List recipes; query params: `q` (search), `favourite=true` |
+| POST | `/api/recipes` | Create recipe |
+| GET | `/api/recipes/[id]` | Get recipe by id |
+| PUT | `/api/recipes/[id]` | Update recipe (replaces ingredients) |
+| DELETE | `/api/recipes/[id]` | Delete recipe (cascades to ingredients + meal plan) |
+| POST | `/api/recipes/[id]/duplicate` | Duplicate recipe with "(copy)" suffix |
+| POST | `/api/recipes/import/text` | Extract recipe from pasted text via Claude |
+| POST | `/api/recipes/import/url` | Extract recipe from URL (JSON-LD → Claude fallback) |
+| POST | `/api/recipes/import/image` | Extract recipe from image via Claude vision |
+| GET | `/api/meal-plan` | List meal plan entries (with recipe + ingredients) |
+| POST | `/api/meal-plan` | Add recipe to meal plan |
+| DELETE | `/api/meal-plan/[id]` | Remove meal plan entry |
+| GET | `/api/grocery-list` | Aggregated grocery list from current meal plan |
+
+## Testing Policy
+- **Always write unit tests** for new logic, especially pure functions in `src/lib/` and API route handlers.
+- **Run tests after every meaningful set of changes** — do not wait until a feature is fully complete.
+- Tests live in `tests/lib/` (pure functions) and `tests/api/` (route handlers with Prisma mocked via `vi.mock`).
+- A passing test suite is required before committing or opening a PR.
+
+```bash
+npm test           # run once
+npm run test:watch # run in watch mode during development
+```
 
 ## Data Flow
 ```
-CLI → Database (JSON files)
-    → Extractors (image_import / url_import) → Claude API
-    → grocery_list (aggregate + scale ingredients)
+Browser → Next.js pages (App Router, client components)
+        → API routes → Prisma → Neon Postgres
+        → AI import routes → Claude API (Haiku)
+        → grocery-list lib (aggregate + scale ingredients)
 ```
 
-## Additional Documentation
-Check these files when working on the relevant area:
-
-- `.claude/docs/architectural_patterns.md` — design decisions and conventions (serialisation, two-tier extraction, ingredient normalisation, CLI structure)
+## Database Schema (key decisions)
+- `RecipeIngredient.preparation` is a separate field (not part of `name`) so grocery aggregation groups by `name + unit` only
+- Cascade deletes: deleting a `Recipe` removes its `RecipeIngredient` and `MealPlanEntry` rows
+- Prisma client output is `src/generated/prisma` (not committed to git)
