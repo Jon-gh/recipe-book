@@ -1,12 +1,13 @@
 # Recipe Book — CLAUDE.md
 
 ## Purpose
-Web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (image, URL, pasted text) via the Claude API.
+Mobile-friendly web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (image, URL, pasted text) via the Claude API. Installable as a PWA on iPhone and Android.
 
 ## Tech Stack
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
 - **Prisma 5** (ORM) · **Neon Postgres** (serverless database, AWS eu-west-2)
-- **Anthropic SDK** (`claude-haiku-4-5-20251001`) · **Vitest** (unit tests)
+- **Anthropic SDK** (`claude-haiku-4-5-20251001`) · **Vitest** + **React Testing Library** (unit + component tests)
+- **Vercel** (deployment) · **PWA** (manifest + Apple meta tags for home screen install)
 
 ## Key Directories
 
@@ -24,10 +25,14 @@ Web app for managing recipes, meal planning, and grocery list generation. Suppor
 | `src/app/recipes/[id]/` | Recipe detail page (view, delete, duplicate, add to plan) |
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
+| `src/app/meal-plan/` | Meal plan page (add recipes with servings, remove entries) |
+| `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt) |
+| `src/app/manifest.ts` | PWA web app manifest |
 | `src/components/RecipeForm.tsx` | Shared form used by new + edit pages; includes AI import panel |
 | `src/components/ui/` | shadcn/ui components (button, card, badge, input, etc.) |
 | `prisma/schema.prisma` | Database schema: `Recipe`, `RecipeIngredient`, `MealPlanEntry` |
-| `tests/` | Vitest suite: `tests/lib/` (pure functions), `tests/api/` (route handlers with mocked Prisma) |
+| `public/icon.svg` | PWA home screen icon |
+| `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
 
 ## Essential Commands
 
@@ -60,7 +65,8 @@ npx prisma db push
 ## Environment
 Copy `.env.example` to `.env` and fill in:
 ```
-DATABASE_URL=          # Neon Postgres connection string
+DATABASE_URL=          # Neon Postgres pooled connection string (?pgbouncer=true&connection_limit=1)
+DIRECT_URL=            # Neon Postgres direct connection string (for Prisma migrations)
 ANTHROPIC_API_KEY=     # Required for AI import features
 ```
 
@@ -84,8 +90,9 @@ ANTHROPIC_API_KEY=     # Required for AI import features
 
 ## Testing Policy
 - **Always write unit tests** for new logic, especially pure functions in `src/lib/` and API route handlers.
+- **Always write component tests** for new UI pages and components using React Testing Library.
 - **Run tests after every meaningful set of changes** — do not wait until a feature is fully complete.
-- Tests live in `tests/lib/` (pure functions) and `tests/api/` (route handlers with Prisma mocked via `vi.mock`).
+- Tests live in `tests/lib/` (pure functions), `tests/api/` (route handlers with Prisma mocked via `vi.mock`), and `tests/components/` (React components with `// @vitest-environment jsdom` docblock).
 - A passing test suite is required before committing or opening a PR.
 
 ```bash
@@ -117,3 +124,4 @@ Browser → Next.js pages (App Router, client components)
 - `RecipeIngredient.preparation` is a separate field (not part of `name`) so grocery aggregation groups by `name + unit` only
 - Cascade deletes: deleting a `Recipe` removes its `RecipeIngredient` and `MealPlanEntry` rows
 - Prisma client output is `src/generated/prisma` (not committed to git)
+- `datasource db` uses both `url` (pooled, for queries) and `directUrl` (direct, for migrations) to support Neon on Vercel serverless
