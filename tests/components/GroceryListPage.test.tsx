@@ -4,6 +4,12 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import GroceryListPage from "@/app/grocery-list/page";
 
+const mockRefresh = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: mockRefresh }),
+}));
+
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
     <a href={href}>{children}</a>
@@ -21,6 +27,7 @@ const mockItems = [
 
 beforeEach(() => {
   mockFetch.mockClear();
+  mockRefresh.mockClear();
 });
 
 describe("GroceryListPage", () => {
@@ -46,6 +53,20 @@ describe("GroceryListPage", () => {
       expect(screen.getByText("Eggs")).toBeInTheDocument();
       expect(screen.getByText("Flour")).toBeInTheDocument();
     });
+  });
+
+  it("calls router.refresh() on mount to invalidate router cache", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(mockRefresh).toHaveBeenCalled();
+  });
+
+  it("fetches with cache: no-store to always get fresh data", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(mockFetch).toHaveBeenCalledWith("/api/grocery-list", { cache: "no-store" });
   });
 
   it("shows item count", async () => {
