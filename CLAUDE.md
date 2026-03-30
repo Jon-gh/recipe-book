@@ -20,13 +20,13 @@ Mobile-friendly web app for managing recipes, meal planning, and grocery list ge
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL recipe parsing |
 | `src/app/api/recipes/` | REST endpoints: list/create, get/update/delete, duplicate, import (text/url/image) |
 | `src/app/api/meal-plan/` | REST endpoints: list, add entry, delete entry |
-| `src/app/api/grocery-list/` | GET — aggregated grocery list from current meal plan |
+| `src/app/api/grocery-list/` | GET — aggregated grocery list; `export const dynamic = "force-dynamic"` to bypass Next.js cache |
 | `src/app/recipes/` | Recipe list page (search + favourite filter) |
 | `src/app/recipes/[id]/` | Recipe detail page (view, delete, duplicate, add to plan) |
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with servings, remove entries) |
-| `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt) |
+| `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt); uses `router.refresh()` on mount to bust Router Cache |
 | `src/app/manifest.ts` | PWA web app manifest |
 | `src/components/RecipeForm.tsx` | Shared form used by new + edit pages; includes AI import panel |
 | `src/components/ui/` | shadcn/ui components (button, card, badge, input, etc.) |
@@ -100,17 +100,25 @@ npm test           # run once
 npm run test:watch # run in watch mode during development
 ```
 
-## Git Workflow
+## Git & Deployment Workflow
 - **Never commit or push directly to `dev` or `main`.**
-- All work happens on a feature branch (e.g. `feat/my-feature`).
-- Branch → PR → `dev` → PR → `main`.
+- All work happens on a feature branch (e.g. `feat/my-feature`, `fix/my-bug`).
 - **Creating a PR does not require approval** — do it freely.
-- **Merging a PR always requires explicit user approval** — ask before merging, whether merging into `dev` or `main`.
+- **Merging a PR always requires explicit user approval** — ask before merging, whether into `dev` or `main`.
+- **For bugs requiring iteration**: deploy the preview directly from the feature branch (`vercel` without `--prod`) and wait for user confirmation before merging to `dev`. This avoids multiple PRs for the same fix.
 
 ```
-feature branch → PR → dev    (ask for approval before merging)
-dev            → PR → main   (ask for approval before merging)
+feature branch  →  deploy preview  →  user tests  →  PR  →  dev  →  PR  →  main
+                   (vercel)            (confirm ok)      (approval)       (approval)
 ```
+
+## Known Caching Gotchas
+Next.js has multiple caching layers that can cause stale data. The grocery list is the most cache-sensitive page:
+- **Router Cache** (client-side): `router.refresh()` on mount in the grocery list page clears it
+- **Data Cache** (server-side): `export const dynamic = "force-dynamic"` on the grocery-list route handler
+- **Browser Cache**: `cache: "no-store"` on the client `fetch()` call
+
+When adding new pages that fetch live data, apply the same pattern.
 
 ## Data Flow
 ```
