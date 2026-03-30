@@ -93,6 +93,18 @@ npm test           # run once
 npm run test:watch # run in watch mode during development
 ```
 
+## Git Workflow
+- **Never commit or push directly to `dev` or `main`.**
+- All work happens on a feature branch (e.g. `feat/my-feature`).
+- Branch → PR → `dev` → PR → `main`.
+- **Creating a PR does not require approval** — do it freely.
+- **Merging a PR always requires explicit user approval** — ask before merging, whether merging into `dev` or `main`.
+
+```
+feature branch → PR → dev    (ask for approval before merging)
+dev            → PR → main   (ask for approval before merging)
+```
+
 ## Data Flow
 ```
 Browser → Next.js pages (App Router, client components)
