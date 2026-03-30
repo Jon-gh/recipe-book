@@ -1,6 +1,6 @@
 # Recipe Book
 
-A web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import from text, URL, or image via the Claude API.
+A mobile-friendly web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import from text, URL, or image via the Claude API. Installable as a PWA on iPhone and Android.
 
 ## Features
 
@@ -8,15 +8,17 @@ A web app for managing recipes, meal planning, and grocery list generation. Supp
 - Add and edit recipes manually or import via AI (paste text, URL, or photo)
 - Mark recipes as favourites
 - Duplicate recipes
-- Build a weekly meal plan with custom serving sizes
-- Generate a scaled, aggregated grocery list from your meal plan
+- Build a meal plan with custom serving sizes per recipe
+- Generate a scaled, aggregated grocery list from your meal plan — copy to clipboard or download as `.txt`
+- Install to iPhone/Android home screen (PWA — opens fullscreen, no browser UI)
 
 ## Tech Stack
 
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
-- **Prisma 5** + **Neon Postgres** (serverless)
+- **Prisma 5** + **Neon Postgres** (serverless, AWS eu-west-2)
 - **Anthropic SDK** (`claude-haiku-4-5-20251001`) for AI recipe extraction
-- **Vitest** for unit testing
+- **Vitest** + **React Testing Library** for unit and component tests
+- **Vercel** for deployment
 
 ## Getting Started
 
@@ -28,15 +30,19 @@ npm install
 
 ### 2. Set up environment variables
 
-Create a `.env` file in the project root:
+Copy `.env.example` to `.env` and fill in the values:
 
-```
-DATABASE_URL=your_neon_postgres_connection_string
-ANTHROPIC_API_KEY=your_anthropic_api_key
+```bash
+cp .env.example .env
 ```
 
-- Get a free Postgres database at [neon.tech](https://neon.tech)
-- Get an API key at [console.anthropic.com](https://console.anthropic.com)
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | Neon Postgres **pooled** connection string (`?pgbouncer=true&connection_limit=1`) |
+| `DIRECT_URL` | Neon Postgres **direct** connection string (used by Prisma migrations) |
+| `ANTHROPIC_API_KEY` | Required for AI import features |
+
+Get a free Postgres database at [neon.tech](https://neon.tech) and an API key at [console.anthropic.com](https://console.anthropic.com).
 
 ### 3. Set up the database
 
@@ -58,35 +64,68 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start development server |
-| `npm run build` | Build for production |
+| `npm run build` | Build for production (`prisma generate` runs first) |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run unit tests |
+| `npm test` | Run all unit and component tests |
 | `npm run test:watch` | Run tests in watch mode |
 | `npx tsc --noEmit` | Type check |
+| `npx prisma generate` | Regenerate Prisma client after schema changes |
+| `npx prisma db push` | Push schema changes to database |
 
 ## Project Structure
 
 ```
 src/
   app/
-    api/          # REST API routes (recipes, meal-plan, grocery-list)
-    recipes/      # Recipe list, detail, new, and edit pages
+    api/              # REST API routes
+      recipes/        # CRUD, duplicate, import (text/url/image)
+      meal-plan/      # Add/list/delete meal plan entries
+      grocery-list/   # Aggregated grocery list
+    recipes/          # Recipe list, detail, new, edit pages
+    meal-plan/        # Meal plan page
+    grocery-list/     # Grocery list page
+    manifest.ts       # PWA manifest
   components/
-    RecipeForm.tsx  # Shared add/edit form with AI import
-    ui/             # shadcn/ui components
+    RecipeForm.tsx    # Shared add/edit form with AI import panel
+    ui/               # shadcn/ui components
   lib/
-    prisma.ts       # Prisma client singleton
-    grocery-list.ts # Ingredient aggregation logic
+    prisma.ts         # Prisma client singleton
+    grocery-list.ts   # Ingredient scaling and aggregation
     extract-recipe.ts # Claude API extraction helpers
-    url-import.ts   # URL + JSON-LD parsing helpers
-  types.ts          # Shared TypeScript types
+    url-import.ts     # URL + JSON-LD parsing helpers
+  types.ts            # Shared TypeScript types
 prisma/
-  schema.prisma     # Database schema
+  schema.prisma       # Database schema (Recipe, RecipeIngredient, MealPlanEntry)
 tests/
-  api/              # API route tests (Prisma mocked)
-  lib/              # Pure function unit tests
+  api/                # API route tests (Prisma mocked)
+  lib/                # Pure function unit tests
+  components/         # React component tests (jsdom)
+public/
+  icon.svg            # PWA home screen icon
 ```
 
 ## Deployment
 
-Deploy to [Vercel](https://vercel.com) with one click. Set `DATABASE_URL` and `ANTHROPIC_API_KEY` in the Vercel environment variables dashboard.
+Deployed on Vercel. Set the following environment variables in the Vercel dashboard:
+
+- `DATABASE_URL` — pooled Neon connection string
+- `DIRECT_URL` — direct Neon connection string
+- `ANTHROPIC_API_KEY` — Anthropic API key
+
+The build command (`prisma generate && next build`) runs automatically on deploy.
+
+## Installing on iPhone
+
+1. Open the app in **Safari**
+2. Tap the **Share** button
+3. Tap **"Add to Home Screen"**
+4. Tap **"Add"**
+
+The app opens fullscreen without the Safari browser UI.
+
+## Git Workflow
+
+```
+feature branch → PR → dev    (requires approval before merge)
+dev            → PR → main   (requires approval before merge)
+```
