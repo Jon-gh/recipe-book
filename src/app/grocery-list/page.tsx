@@ -12,7 +12,7 @@ export default function GroceryListPage() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    fetch("/api/grocery-list")
+    fetch("/api/grocery-list", { cache: "no-store" })
       .then((r) => r.json())
       .then((data) => {
         setItems(data);

@@ -48,6 +48,13 @@ describe("GroceryListPage", () => {
     });
   });
 
+  it("fetches with cache: no-store to always get fresh data", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(mockFetch).toHaveBeenCalledWith("/api/grocery-list", { cache: "no-store" });
+  });
+
   it("shows item count", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockItems });
     render(<GroceryListPage />);
