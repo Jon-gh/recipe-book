@@ -1,135 +1,87 @@
 # Recipe Book — CLAUDE.md
 
-## Purpose
-Mobile-friendly web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (image, URL, pasted text) via the Claude API. Installable as a PWA on iPhone and Android.
+## What
+Mobile-friendly PWA for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import (text, URL, image) via the Claude API. Installable on iPhone and Android.
+
+## Why
+Replaces scattered recipe bookmarks with a single structured tool. The core value is automatic ingredient scaling across a meal plan and consolidation into a single grocery list — removing manual calculation.
 
 ## Tech Stack
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
-- **Prisma 5** (ORM) · **Neon Postgres** (serverless database, AWS eu-west-2)
-- **Anthropic SDK** (`claude-haiku-4-5-20251001`) · **Vitest** + **React Testing Library** (unit + component tests)
-- **Vercel** (deployment) · **PWA** (manifest + Apple meta tags for home screen install)
+- **Prisma 5** + **Neon Postgres** (serverless, AWS eu-west-2)
+- **Anthropic SDK** (`claude-haiku-4-5-20251001`) — AI recipe extraction
+- **Vitest** + **React Testing Library** — unit, API, and component tests
+- **Vercel** — deployment and preview environments
 
-## Key Directories
-
-| Path | Purpose |
-|------|---------|
-| `src/types.ts` | Shared TypeScript types: `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
-| `src/lib/prisma.ts` | Prisma client singleton (prevents too-many-connections in dev) |
-| `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales and aggregates ingredients across meal plan entries |
-| `src/lib/extract-recipe.ts` | `extractRecipeFromText()` and `extractRecipeFromImage()` — Claude API calls |
-| `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL recipe parsing |
-| `src/app/api/recipes/` | REST endpoints: list/create, get/update/delete, duplicate, import (text/url/image) |
-| `src/app/api/meal-plan/` | REST endpoints: list, add entry, delete entry |
-| `src/app/api/grocery-list/` | GET — aggregated grocery list; `export const dynamic = "force-dynamic"` to bypass Next.js cache |
-| `src/app/recipes/` | Recipe list page (search + favourite filter) |
-| `src/app/recipes/[id]/` | Recipe detail page (view, delete, duplicate, add to plan) |
-| `src/app/recipes/[id]/edit/` | Edit recipe page |
-| `src/app/recipes/new/` | New recipe page |
-| `src/app/meal-plan/` | Meal plan page (add recipes with servings, remove entries) |
-| `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt); uses `router.refresh()` on mount to bust Router Cache |
-| `src/app/manifest.ts` | PWA web app manifest |
-| `src/components/RecipeForm.tsx` | Shared form used by new + edit pages; includes AI import panel |
-| `src/components/ui/` | shadcn/ui components (button, card, badge, input, etc.) |
-| `prisma/schema.prisma` | Database schema: `Recipe`, `RecipeIngredient`, `MealPlanEntry` |
-| `public/icon.svg` | PWA home screen icon |
-| `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
-
-## Essential Commands
-
+## Commands
 ```bash
-# Install dependencies
-npm install
-
-# Run dev server
-npm run dev
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Lint
-npm run lint
-
-# Type check
-npx tsc --noEmit
-
-# Regenerate Prisma client after schema changes
-npx prisma generate
-
-# Push schema changes to database
-npx prisma db push
+npm run dev           # start dev server
+npm test              # run all tests (must pass before every commit)
+npm run test:watch    # watch mode during development
+npm run lint          # ESLint
+npx tsc --noEmit      # type check (no output = clean)
+npx prisma generate   # regenerate client after schema changes
+npx prisma db push    # push schema to Neon (non-destructive)
 ```
 
 ## Environment
-Copy `.env.example` to `.env` and fill in:
+Copy `.env.example` to `.env`:
 ```
-DATABASE_URL=          # Neon Postgres pooled connection string (?pgbouncer=true&connection_limit=1)
-DIRECT_URL=            # Neon Postgres direct connection string (for Prisma migrations)
-ANTHROPIC_API_KEY=     # Required for AI import features
-```
-
-## API Routes
-
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/recipes` | List recipes; query params: `q` (search), `favourite=true` |
-| POST | `/api/recipes` | Create recipe |
-| GET | `/api/recipes/[id]` | Get recipe by id |
-| PUT | `/api/recipes/[id]` | Update recipe (replaces ingredients) |
-| DELETE | `/api/recipes/[id]` | Delete recipe (cascades to ingredients + meal plan) |
-| POST | `/api/recipes/[id]/duplicate` | Duplicate recipe with "(copy)" suffix |
-| POST | `/api/recipes/import/text` | Extract recipe from pasted text via Claude |
-| POST | `/api/recipes/import/url` | Extract recipe from URL (JSON-LD → Claude fallback) |
-| POST | `/api/recipes/import/image` | Extract recipe from image via Claude vision |
-| GET | `/api/meal-plan` | List meal plan entries (with recipe + ingredients) |
-| POST | `/api/meal-plan` | Add recipe to meal plan |
-| DELETE | `/api/meal-plan/[id]` | Remove meal plan entry |
-| GET | `/api/grocery-list` | Aggregated grocery list from current meal plan |
-
-## Testing Policy
-- **Always write unit tests** for new logic, especially pure functions in `src/lib/` and API route handlers.
-- **Always write component tests** for new UI pages and components using React Testing Library.
-- **Run tests after every meaningful set of changes** — do not wait until a feature is fully complete.
-- Tests live in `tests/lib/` (pure functions), `tests/api/` (route handlers with Prisma mocked via `vi.mock`), and `tests/components/` (React components with `// @vitest-environment jsdom` docblock).
-- A passing test suite is required before committing or opening a PR.
-
-```bash
-npm test           # run once
-npm run test:watch # run in watch mode during development
+DATABASE_URL=      # Neon pooled (?pgbouncer=true&connection_limit=1) — runtime queries
+DIRECT_URL=        # Neon direct — Prisma migrations only
+ANTHROPIC_API_KEY= # Required for AI import features
 ```
 
-## Git & Deployment Workflow
-- **Never commit or push directly to `dev` or `main`.**
-- All work happens on a feature branch (e.g. `feat/my-feature`, `fix/my-bug`).
-- **Creating a PR does not require approval** — do it freely.
-- **Merging a PR always requires explicit user approval** — ask before merging, whether into `dev` or `main`.
-- **For bugs requiring iteration**: deploy the preview directly from the feature branch (`vercel` without `--prod`) and wait for user confirmation before merging to `dev`. This avoids multiple PRs for the same fix.
+## Rules for Claude
 
-```
-feature branch  →  deploy preview  →  user tests  →  PR  →  dev  →  PR  →  main
-                   (vercel)            (confirm ok)      (approval)       (approval)
-```
+### Code
+- **Default to Server Components** — only add `'use client'` when interactivity or browser APIs are required
+- **Do not add features, refactors, or improvements beyond what was asked** — scope creep makes PRs harder to review and introduces unintended side-effects
+- **Do not add error handling for scenarios that cannot happen** — trust internal code and framework guarantees; only validate at system boundaries
 
-## Known Caching Gotchas
-Next.js has multiple caching layers that can cause stale data. The grocery list is the most cache-sensitive page:
-- **Router Cache** (client-side): `router.refresh()` on mount in the grocery list page clears it
-- **Data Cache** (server-side): `export const dynamic = "force-dynamic"` on the grocery-list route handler
-- **Browser Cache**: `cache: "no-store"` on the client `fetch()` call
+### Testing
+- **Always write tests alongside implementation** — never as a follow-up; untested code is not done
+- **Tests must pass before every commit or PR** — a failing suite blocks the merge
+- See @docs/testing.md for patterns, mocking examples, and known gotchas
 
-When adding new pages that fetch live data, apply the same pattern.
+### Git & PRs
+- **Never commit or push directly to `dev` or `main`** — always use a feature branch (`feat/`, `fix/`)
+- **Creating a PR does not require approval** — open PRs freely with `gh pr create`
+- **Merging always requires explicit user approval** — ask before every `gh pr merge`, whether into `dev` or `main`
+- **For iterative bugs**: deploy a preview first (`vercel`), wait for user confirmation the fix works, then create the PR — never merge before the user confirms
+- See @docs/deployment.md for the full branching and deploy workflow
+
+### Design Decisions
+- **Present options with tradeoffs** before any major architectural or library choice — do not pick unilaterally
+- **Provide a summary and next steps** at natural breakpoints in multi-step tasks
 
 ## Data Flow
 ```
-Browser → Next.js pages (App Router, client components)
-        → API routes → Prisma → Neon Postgres
-        → AI import routes → Claude API (Haiku)
-        → grocery-list lib (aggregate + scale ingredients)
+Browser
+  → Next.js pages (App Router — mostly client components for interactivity)
+  → /api/* route handlers → Prisma ORM → Neon Postgres
+  → /api/recipes/import/* → Anthropic SDK → Claude Haiku (AI extraction)
+  → /api/grocery-list → src/lib/grocery-list.ts (scale + aggregate ingredients)
 ```
 
-## Database Schema (key decisions)
-- `RecipeIngredient.preparation` is a separate field (not part of `name`) so grocery aggregation groups by `name + unit` only
-- Cascade deletes: deleting a `Recipe` removes its `RecipeIngredient` and `MealPlanEntry` rows
-- Prisma client output is `src/generated/prisma` (not committed to git)
-- `datasource db` uses both `url` (pooled, for queries) and `directUrl` (direct, for migrations) to support Neon on Vercel serverless
+## Key Gotchas
+
+### Next.js Caching — live data pages
+Three independent cache layers exist. Missing any one causes stale data for the user:
+
+| Layer | Scope | Fix |
+|-------|-------|-----|
+| Router Cache | Client-side navigation cache | `router.refresh()` in `useEffect` on mount |
+| Data Cache | Server-side route handler cache | `export const dynamic = "force-dynamic"` in route file |
+| Browser Cache | HTTP response cache | `fetch(url, { cache: "no-store" })` in client component |
+
+**Apply all three to any new page that fetches live data.** The grocery list page is the reference implementation.
+
+### Prisma Client
+Generated into `src/generated/prisma` — not committed to git. Run `npx prisma generate` after any schema change. Vercel rebuilds this automatically via `prisma generate && next build` in `package.json`.
+
+## Reference
+- @docs/architecture.md — directory map, DB schema decisions, caching detail
+- @docs/api.md — full REST endpoint reference
+- @docs/testing.md — test patterns, mocking, gotchas
+- @docs/deployment.md — git workflow, Vercel deploy, environment variables
