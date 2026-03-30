@@ -82,6 +82,17 @@ ANTHROPIC_API_KEY=     # Required for AI import features
 | DELETE | `/api/meal-plan/[id]` | Remove meal plan entry |
 | GET | `/api/grocery-list` | Aggregated grocery list from current meal plan |
 
+## Testing Policy
+- **Always write unit tests** for new logic, especially pure functions in `src/lib/` and API route handlers.
+- **Run tests after every meaningful set of changes** — do not wait until a feature is fully complete.
+- Tests live in `tests/lib/` (pure functions) and `tests/api/` (route handlers with Prisma mocked via `vi.mock`).
+- A passing test suite is required before committing or opening a PR.
+
+```bash
+npm test           # run once
+npm run test:watch # run in watch mode during development
+```
+
 ## Data Flow
 ```
 Browser → Next.js pages (App Router, client components)
