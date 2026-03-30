@@ -17,7 +17,7 @@ A mobile-friendly web app for managing recipes, meal planning, and grocery list 
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
 - **Prisma 5** + **Neon Postgres** (serverless, AWS eu-west-2)
 - **Anthropic SDK** (`claude-haiku-4-5-20251001`) for AI recipe extraction
-- **Vitest** + **React Testing Library** for unit and component tests
+- **Vitest** + **React Testing Library** — 106 tests across unit, API, and component suites
 - **Vercel** for deployment
 
 ## Getting Started
@@ -80,7 +80,7 @@ src/
     api/              # REST API routes
       recipes/        # CRUD, duplicate, import (text/url/image)
       meal-plan/      # Add/list/delete meal plan entries
-      grocery-list/   # Aggregated grocery list
+      grocery-list/   # Aggregated grocery list (force-dynamic)
     recipes/          # Recipe list, detail, new, edit pages
     meal-plan/        # Meal plan page
     grocery-list/     # Grocery list page
@@ -126,6 +126,9 @@ The app opens fullscreen without the Safari browser UI.
 ## Git Workflow
 
 ```
-feature branch → PR → dev    (requires approval before merge)
-dev            → PR → main   (requires approval before merge)
+feature branch → preview deploy → user tests → PR → dev → PR → main
 ```
+
+- All work on feature branches — never commit directly to `dev` or `main`
+- PRs require explicit approval before merging
+- Preview deployments are used to verify fixes before merging
