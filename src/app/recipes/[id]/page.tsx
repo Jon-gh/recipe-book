@@ -72,12 +72,12 @@ export default function RecipeDetailPage() {
         </div>
         <div className="flex gap-2 shrink-0">
           <Link href={`/recipes/${id}/edit`}>
-            <Button variant="outline" size="sm">Edit</Button>
+            <Button variant="outline" size="sm" className="min-h-[44px] active:scale-95 transition-transform">Edit</Button>
           </Link>
-          <Button variant="outline" size="sm" onClick={handleDuplicate}>
+          <Button variant="outline" size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleDuplicate}>
             Duplicate
           </Button>
-          <Button variant="destructive" size="sm" onClick={handleDelete} disabled={deleting}>
+          <Button variant="destructive" size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleDelete} disabled={deleting}>
             {deleting ? "Deleting…" : "Delete"}
           </Button>
         </div>
@@ -134,18 +134,18 @@ export default function RecipeDetailPage() {
               min={1}
               value={planServings}
               onChange={(e) => setPlanServings(e.target.value)}
-              className="w-20 border rounded px-2 py-1 text-sm"
+              className="w-20 border rounded px-2 py-1 text-sm min-h-[44px]"
             />
             <span className="text-sm text-muted-foreground">servings</span>
-            <Button size="sm" onClick={handleAddToPlan} disabled={addingToPlan}>
+            <Button size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleAddToPlan} disabled={addingToPlan}>
               {addingToPlan ? "Adding…" : "Confirm"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowPlanInput(false)}>
+            <Button size="sm" variant="ghost" className="min-h-[44px] active:scale-95 transition-transform" onClick={() => setShowPlanInput(false)}>
               Cancel
             </Button>
           </div>
         ) : (
-          <Button variant="outline" onClick={() => setShowPlanInput(true)}>
+          <Button variant="outline" className="min-h-[44px] active:scale-95 transition-transform" onClick={() => setShowPlanInput(true)}>
             Add to Meal Plan
           </Button>
         )}

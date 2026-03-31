@@ -6,7 +6,24 @@ import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, List } from "lucide-react";
+
+const CARD_COLORS = [
+  "border-l-green-500",
+  "border-l-blue-500",
+  "border-l-orange-400",
+  "border-l-purple-500",
+  "border-l-rose-500",
+  "border-l-amber-500",
+];
+
+function cardColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  }
+  return CARD_COLORS[hash % CARD_COLORS.length];
+}
 
 export default function RecipesPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -32,14 +49,14 @@ export default function RecipesPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold">Recipes</h1>
         <Link href="/recipes/new">
-          <Button>+ Add Recipe</Button>
+          <Button className="active:scale-95 transition-transform">+ Add Recipe</Button>
         </Link>
       </div>
 
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-3 mb-5">
         <Input
           placeholder="Search by name, tag or ingredient…"
           value={search}
@@ -49,6 +66,7 @@ export default function RecipesPage() {
         <Button
           variant={filterFavourite ? "default" : "outline"}
           onClick={() => setFilterFavourite((f) => !f)}
+          className="active:scale-95 transition-transform shrink-0"
         >
           ★ Favourites
         </Button>
@@ -66,19 +84,31 @@ export default function RecipesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {recipes.map((recipe) => (
-            <Link key={recipe.id} href={`/recipes/${recipe.id}`}>
-              <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-start justify-between gap-2">
-                    <span>{recipe.name}</span>
-                    {recipe.favourite && <span className="text-yellow-400 shrink-0">★</span>}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""} ·{" "}
-                    {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? "s" : ""}
-                  </p>
+            <Link
+              key={recipe.id}
+              href={`/recipes/${recipe.id}`}
+              className="active:scale-[0.98] transition-transform block"
+            >
+              <div
+                className={`h-full rounded-lg border bg-card shadow-sm border-l-4 ${cardColor(recipe.name)} p-5 flex flex-col gap-3`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="text-lg font-semibold leading-tight">{recipe.name}</h2>
+                  {recipe.favourite && (
+                    <span className="text-yellow-400 shrink-0 text-xl leading-none">★</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1">
+                    <Users size={14} />
+                    {`${recipe.servings} serving${recipe.servings !== 1 ? "s" : ""}`}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <List size={14} />
+                    {`${recipe.ingredients.length} ingredient${recipe.ingredients.length !== 1 ? "s" : ""}`}
+                  </span>
+                </div>
+                {recipe.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1">
                     {recipe.tags.map((tag) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
@@ -86,8 +116,8 @@ export default function RecipesPage() {
                       </Badge>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             </Link>
           ))}
         </div>

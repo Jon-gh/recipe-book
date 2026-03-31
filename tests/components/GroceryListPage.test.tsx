@@ -122,3 +122,71 @@ describe("GroceryListPage", () => {
     expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
   });
 });
+
+describe("GroceryListPage — shopping mode", () => {
+  it("shows Start Shopping button when items are loaded, not while loading or empty", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    // Not visible while loading
+    expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
+    // Visible after load
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
+    });
+  });
+
+  it("does not show Start Shopping button when list is empty", async () => {
+    mockFetch.mockResolvedValue({ json: async () => [] });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByText(/No items yet/)).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
+  });
+
+  it("entering shopping mode shows Done and hides copy/download buttons", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Copy to clipboard" })).not.toBeInTheDocument();
+  });
+
+  it("tapping an item moves it to In Trolley with strikethrough", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    expect(screen.getByText("In Trolley")).toBeInTheDocument();
+    expect(screen.getByText("Pasta").className).toContain("line-through");
+  });
+
+  it("tapping a checked item unchecks it and removes In Trolley section", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    expect(screen.getByText("In Trolley")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+  });
+
+  it("clicking Done exits shopping mode and resets checked items", async () => {
+    mockFetch.mockResolvedValue({ json: async () => mockItems });
+    render(<GroceryListPage />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    expect(screen.getByText("In Trolley")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
+    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+  });
+});
