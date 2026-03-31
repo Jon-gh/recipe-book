@@ -31,8 +31,10 @@ Browser
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
 | `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt); calls `router.refresh()` on mount |
-| `src/app/manifest.ts` | PWA web app manifest (name, icons, theme) |
-| `src/components/RecipeForm.tsx` | Shared form used by new and edit pages; includes AI import panel |
+| `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
+| `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
+| `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Meal Plan / Grocery List); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
+| `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
 | `prisma/schema.prisma` | DB schema: `Recipe`, `RecipeIngredient`, `MealPlanEntry` |
 | `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
