@@ -44,7 +44,6 @@ export default function RecipeForm({ initial }: Props) {
   const [saving, setSaving] = useState(false);
 
   // Import state
-  const [showActionSheet, setShowActionSheet] = useState(!isEdit);
   const [urlMode, setUrlMode] = useState(false);
   const [importValue, setImportValue] = useState("");
   const [importing, setImporting] = useState(false);
@@ -133,7 +132,6 @@ export default function RecipeForm({ initial }: Props) {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setShowActionSheet(false);
     handleImageFile(file);
     e.target.value = "";
   }
@@ -159,7 +157,7 @@ export default function RecipeForm({ initial }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
-      {/* Hidden file inputs triggered by action sheet */}
+      {/* Hidden file inputs */}
       <input
         ref={cameraRef}
         type="file"
@@ -178,81 +176,8 @@ export default function RecipeForm({ initial }: Props) {
         aria-hidden="true"
       />
 
-      {/* Action sheet overlay */}
-      {showActionSheet && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={() => setShowActionSheet(false)}
-          />
-          <div className="relative bg-white rounded-t-2xl pb-[env(safe-area-inset-bottom)]">
-            <div className="w-10 h-1 bg-gray-300 rounded-full mx-auto mt-3 mb-2" />
-            <div className="px-4 pb-4 space-y-1">
-              <button
-                type="button"
-                onClick={() => cameraRef.current?.click()}
-                className="flex items-center gap-3 w-full px-4 py-4 rounded-xl text-left text-base active:bg-muted transition-colors min-h-[44px]"
-              >
-                <Camera size={20} className="text-green-600 shrink-0" />
-                <span>Take Photo</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => galleryRef.current?.click()}
-                className="flex items-center gap-3 w-full px-4 py-4 rounded-xl text-left text-base active:bg-muted transition-colors min-h-[44px]"
-              >
-                <ImageIcon size={20} className="text-green-600 shrink-0" />
-                <span>Choose from Library</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUrlMode(true);
-                  setShowActionSheet(false);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-4 rounded-xl text-left text-base active:bg-muted transition-colors min-h-[44px]"
-              >
-                <Link2 size={20} className="text-green-600 shrink-0" />
-                <span>Import from URL</span>
-              </button>
-              <div className="my-1 border-t" />
-              <button
-                type="button"
-                onClick={() => {
-                  setShowManualForm(true);
-                  setShowActionSheet(false);
-                }}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-left text-sm text-muted-foreground active:bg-muted transition-colors min-h-[44px]"
-              >
-                <Pencil size={16} className="shrink-0" />
-                <span>Type manually</span>
-              </button>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-2"
-                onClick={() => setShowActionSheet(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{isEdit ? "Edit Recipe" : "New Recipe"}</h1>
-        {!isEdit && (
-          <Button
-            type="button"
-            onClick={() => setShowActionSheet(true)}
-            disabled={importing}
-          >
-            {importing ? "Importing…" : "Import Recipe"}
-          </Button>
-        )}
-      </div>
+      <h1 className="text-2xl font-bold">{isEdit ? "Edit Recipe" : "New Recipe"}</h1>
 
       {/* URL import inline panel */}
       {urlMode && (
@@ -284,10 +209,6 @@ export default function RecipeForm({ initial }: Props) {
         </div>
       )}
 
-      {/* Image import error (outside URL panel) */}
-      {importError && !urlMode && (
-        <p className="text-sm text-destructive">{importError}</p>
-      )}
 
       {/* Manual form fields */}
       {showManualForm && (
@@ -346,64 +267,52 @@ export default function RecipeForm({ initial }: Props) {
               </Button>
             </div>
             {form.ingredients.map((ing, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_80px_1fr_auto] gap-2 items-end">
-                <div className="space-y-1">
-                  {i === 0 && (
-                    <Label className="text-xs text-muted-foreground">Name</Label>
-                  )}
+              <div key={i} className="rounded-xl border bg-muted/30 p-3 space-y-2">
+                <div className="flex gap-2 items-center">
                   <Input
                     required
-                    placeholder="Flour"
+                    placeholder="Ingredient name"
                     value={ing.name}
                     onChange={(e) => setIngredient(i, "name", e.target.value)}
+                    className="flex-1"
                   />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => removeIngredient(i)}
+                    disabled={form.ingredients.length === 1}
+                    className="shrink-0 text-muted-foreground"
+                  >
+                    ✕
+                  </Button>
                 </div>
-                <div className="space-y-1">
-                  {i === 0 && (
-                    <Label className="text-xs text-muted-foreground">Qty</Label>
-                  )}
+                <div className="flex gap-2">
                   <Input
                     type="number"
                     min={0}
                     step="any"
                     required
-                    placeholder="1"
+                    placeholder="Qty"
                     value={ing.quantity || ""}
                     onChange={(e) =>
                       setIngredient(i, "quantity", parseFloat(e.target.value) || 0)
                     }
+                    className="w-16"
                   />
-                </div>
-                <div className="space-y-1">
-                  {i === 0 && (
-                    <Label className="text-xs text-muted-foreground">Unit</Label>
-                  )}
                   <Input
-                    placeholder="cup"
+                    placeholder="Unit"
                     value={ing.unit}
                     onChange={(e) => setIngredient(i, "unit", e.target.value)}
+                    className="w-24"
                   />
-                </div>
-                <div className="space-y-1">
-                  {i === 0 && (
-                    <Label className="text-xs text-muted-foreground">Prep</Label>
-                  )}
                   <Input
-                    placeholder="chopped"
+                    placeholder="Prep (optional)"
                     value={ing.preparation}
                     onChange={(e) => setIngredient(i, "preparation", e.target.value)}
+                    className="flex-1"
                   />
                 </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={i === 0 ? "mt-5" : ""}
-                  onClick={() => removeIngredient(i)}
-                  disabled={form.ingredients.length === 1}
-                >
-                  ✕
-                </Button>
               </div>
             ))}
           </div>
@@ -444,22 +353,69 @@ export default function RecipeForm({ initial }: Props) {
         </>
       )}
 
-      {/* Prompt when manual form is hidden (new recipe only) */}
-      {!showManualForm && !isEdit && !urlMode && !showActionSheet && (
-        <div className="text-center py-10 space-y-4">
-          <p className="text-muted-foreground">Import a recipe above, or enter it manually.</p>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setShowManualForm(true)}
-          >
-            Enter manually
-          </Button>
-          <div>
-            <Button type="button" variant="ghost" onClick={() => router.back()}>
-              Cancel
-            </Button>
-          </div>
+      {/* Inline import selection (new recipe only, before any method is chosen) */}
+      {!showManualForm && !isEdit && !urlMode && (
+        <div className="space-y-2 pt-2">
+          {importing && (
+            <p className="text-sm text-muted-foreground text-center py-4">Importing…</p>
+          )}
+          {importError && <p className="text-sm text-destructive">{importError}</p>}
+          {!importing && (
+            <>
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+              >
+                <Camera size={22} className="text-green-600 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Take Photo</p>
+                  <p className="text-xs text-muted-foreground">Scan a recipe with your camera</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryRef.current?.click()}
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+              >
+                <ImageIcon size={22} className="text-green-600 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Choose from Library</p>
+                  <p className="text-xs text-muted-foreground">Import from a saved photo</p>
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setUrlMode(true)}
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+              >
+                <Link2 size={22} className="text-green-600 shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Import from URL</p>
+                  <p className="text-xs text-muted-foreground">Paste a link to any recipe page</p>
+                </div>
+              </button>
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 border-t" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <div className="flex-1 border-t" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowManualForm(true)}
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl border text-left active:bg-muted transition-colors min-h-[56px]"
+              >
+                <Pencil size={20} className="text-muted-foreground shrink-0" />
+                <div>
+                  <p className="font-medium text-sm">Type manually</p>
+                  <p className="text-xs text-muted-foreground">Enter the recipe yourself</p>
+                </div>
+              </button>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => router.back()}>
+                Cancel
+              </Button>
+            </>
+          )}
         </div>
       )}
     </form>

@@ -51,7 +51,7 @@ describe("RecipeForm — new recipe", () => {
     await userEvent.click(screen.getByText("Type manually"));
     const addBtn = screen.getByRole("button", { name: "+ Add" });
     await userEvent.click(addBtn);
-    const qtyInputs = screen.getAllByPlaceholderText("1");
+    const qtyInputs = screen.getAllByPlaceholderText("Qty");
     expect(qtyInputs).toHaveLength(2);
   });
 
@@ -62,7 +62,7 @@ describe("RecipeForm — new recipe", () => {
     const removeButtons = screen.getAllByRole("button", { name: "✕" });
     expect(removeButtons).toHaveLength(2);
     await userEvent.click(removeButtons[1]);
-    expect(screen.getAllByPlaceholderText("1")).toHaveLength(1);
+    expect(screen.getAllByPlaceholderText("Qty")).toHaveLength(1);
   });
 
   it("disables ✕ button when only one ingredient row remains", async () => {
@@ -82,9 +82,9 @@ describe("RecipeForm — new recipe", () => {
     await userEvent.type(screen.getByLabelText("Name"), "My Recipe");
     await userEvent.type(screen.getByLabelText("Instructions"), "Step 1");
 
-    const nameInputs = screen.getAllByPlaceholderText("Flour");
+    const nameInputs = screen.getAllByPlaceholderText("Ingredient name");
     await userEvent.type(nameInputs[0], "Sugar");
-    const qtyInputs = screen.getAllByPlaceholderText("1");
+    const qtyInputs = screen.getAllByPlaceholderText("Qty");
     await userEvent.type(qtyInputs[0], "100");
 
     await userEvent.click(screen.getByRole("button", { name: "Create Recipe" }));
@@ -114,7 +114,7 @@ describe("RecipeForm — edit recipe", () => {
 
   it("renders all ingredient rows from initial data", () => {
     render(<RecipeForm initial={mockRecipe} />);
-    const nameInputs = screen.getAllByPlaceholderText("Flour");
+    const nameInputs = screen.getAllByPlaceholderText("Ingredient name");
     expect(nameInputs).toHaveLength(2);
     expect(nameInputs[0]).toHaveValue("Pasta");
     expect(nameInputs[1]).toHaveValue("Eggs");
@@ -152,11 +152,11 @@ describe("RecipeForm — AI import panel", () => {
     expect(screen.getByPlaceholderText("https://…")).toBeInTheDocument();
   });
 
-  it("closes action sheet when Cancel is clicked", async () => {
+  it("navigates back when Cancel is clicked on import selection", async () => {
     render(<RecipeForm />);
     expect(screen.getByText("Take Photo")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByText("Take Photo")).not.toBeInTheDocument();
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("hides URL input when clicking Cancel in URL panel", async () => {
