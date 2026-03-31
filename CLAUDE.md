@@ -77,7 +77,7 @@ Browser
 ## Key Gotchas
 
 ### WSL2 — HMR requires polling
-`inotify` filesystem watchers do not fire for files on `/mnt/` (Windows filesystem). Without polling, Next.js HMR never detects file changes and the dev server serves stale code until restarted. Fixed by `--experimental-polling` in the `dev` script (`package.json`). This flag is already set — do not remove it.
+`inotify` filesystem watchers do not fire for files on `/mnt/` (Windows filesystem). Without polling, Next.js HMR never detects file changes and the dev server serves stale code until restarted. Fixed by `CHOKIDAR_USEPOLLING=true` env var in the `dev` script (`package.json`). This is already set — do not remove it.
 
 ### Next.js Caching — live data pages
 Three independent cache layers exist. Missing any one causes stale data for the user:
