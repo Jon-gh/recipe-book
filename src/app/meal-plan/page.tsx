@@ -84,7 +84,7 @@ export default function MealPlanPage() {
                 filtered.map((r) => (
                   <button
                     key={r.id}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors ${
+                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted active:bg-muted transition-colors min-h-[44px] ${
                       selectedRecipeId === r.id ? "bg-muted font-medium" : ""
                     }`}
                     onClick={() => {
@@ -111,7 +111,7 @@ export default function MealPlanPage() {
               onChange={(e) => setServings(Number(e.target.value))}
               className="w-20"
             />
-            <Button onClick={addEntry} disabled={!selectedRecipeId || adding}>
+            <Button onClick={addEntry} disabled={!selectedRecipeId || adding} className="active:scale-95 transition-transform">
               {adding ? "Adding…" : "Add to Plan"}
             </Button>
           </div>

@@ -60,3 +60,19 @@ The app is installable as a Progressive Web App:
 - **Android**: Chrome → menu → Add to Home Screen
 
 PWA config lives in `src/app/manifest.ts` and the Apple-specific meta tags are in `src/app/layout.tsx`.
+
+### Generating PNG icons (required for iOS home screen)
+
+iOS cannot render SVG PWA icons — it needs a PNG `apple-touch-icon`. A temporary edge route at `src/app/api/generate-icon/route.tsx` generates these. Run once after setting up the project locally, then delete the route:
+
+```bash
+npm run dev   # start dev server
+
+curl "http://localhost:3000/api/generate-icon?size=180" -o public/apple-touch-icon.png
+curl "http://localhost:3000/api/generate-icon?size=512" -o public/icon-512.png
+
+# then delete the route
+rm -rf src/app/api/generate-icon/
+```
+
+Commit the generated PNGs to git — they are referenced by `manifest.ts` and the `apple-touch-icon` meta tag in `layout.tsx`.
