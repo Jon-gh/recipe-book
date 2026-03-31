@@ -56,6 +56,10 @@ ANTHROPIC_API_KEY= # Required for AI import features
 - **Present options with tradeoffs** before any major architectural or library choice — do not pick unilaterally
 - **Provide a summary and next steps** at natural breakpoints in multi-step tasks
 
+### Docs & README
+- **Keep CLAUDE.md current throughout development** — update it immediately when a new gotcha, rule, or non-obvious decision is discovered; don't wait for the PR
+- **When updating CLAUDE.md, also update README.md** — CLAUDE.md is for AI agents, README.md is for humans; they should stay in sync on project purpose, stack, and setup steps
+
 ### Token Efficiency
 - **Grep before launching an Explore agent** — use Grep/Read directly for targeted searches; agents are for open-ended exploration only
 - **Skip plan mode for changes under ~5 lines** — small fixes do not need a plan
