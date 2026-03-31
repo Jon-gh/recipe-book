@@ -46,6 +46,7 @@ ANTHROPIC_API_KEY= # Required for AI import features
 
 ### Git & PRs
 - **Never commit or push directly to `dev` or `main`** — always use a feature branch (`feat/`, `fix/`)
+- **Always branch from an up-to-date `dev`** — run `git checkout dev && git pull origin dev` before creating any new branch, to avoid missing recent commits
 - **Creating a PR does not require approval** — open PRs freely with `gh pr create`
 - **Merging always requires explicit user approval** — ask before every `gh pr merge`, whether into `dev` or `main`
 - **For iterative bugs**: deploy a preview first (`vercel`), wait for user confirmation the fix works, then create the PR — never merge before the user confirms
