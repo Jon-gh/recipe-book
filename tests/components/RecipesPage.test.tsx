@@ -81,8 +81,10 @@ describe("RecipesPage", () => {
     render(<RecipesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/4 servings · 2 ingredients/)).toBeInTheDocument();
-      expect(screen.getByText(/2 servings · 3 ingredients/)).toBeInTheDocument();
+      expect(screen.getByText("4 servings")).toBeInTheDocument();
+      expect(screen.getByText("2 ingredients")).toBeInTheDocument();
+      expect(screen.getByText("2 servings")).toBeInTheDocument();
+      expect(screen.getByText("3 ingredients")).toBeInTheDocument();
     });
   });
 

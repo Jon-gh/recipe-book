@@ -46,6 +46,7 @@ ANTHROPIC_API_KEY= # Required for AI import features
 
 ### Git & PRs
 - **Never commit or push directly to `dev` or `main`** — always use a feature branch (`feat/`, `fix/`)
+- **Always branch from an up-to-date `dev`** — run `git checkout dev && git pull origin dev` before creating any new branch, to avoid missing recent commits
 - **Creating a PR does not require approval** — open PRs freely with `gh pr create`
 - **Merging always requires explicit user approval** — ask before every `gh pr merge`, whether into `dev` or `main`
 - **For iterative bugs**: deploy a preview first (`vercel`), wait for user confirmation the fix works, then create the PR — never merge before the user confirms
@@ -54,6 +55,15 @@ ANTHROPIC_API_KEY= # Required for AI import features
 ### Design Decisions
 - **Present options with tradeoffs** before any major architectural or library choice — do not pick unilaterally
 - **Provide a summary and next steps** at natural breakpoints in multi-step tasks
+
+### Docs & README
+- **Keep CLAUDE.md current throughout development** — update it immediately when a new gotcha, rule, or non-obvious decision is discovered; don't wait for the PR
+- **When updating CLAUDE.md, also update README.md** — CLAUDE.md is for AI agents, README.md is for humans; they should stay in sync on project purpose, stack, and setup steps
+
+### Token Efficiency
+- **Grep before launching an Explore agent** — use Grep/Read directly for targeted searches; agents are for open-ended exploration only
+- **Skip plan mode for changes under ~5 lines** — small fixes do not need a plan
+- **Don't use Explore agents when a direct Read would suffice** — if the file path is known, just read it
 
 ## Data Flow
 ```
@@ -65,6 +75,9 @@ Browser
 ```
 
 ## Key Gotchas
+
+### WSL2 — HMR requires polling
+`inotify` filesystem watchers do not fire for files on `/mnt/` (Windows filesystem). Without polling, Next.js HMR never detects file changes and the dev server serves stale code until restarted. Fixed by `CHOKIDAR_USEPOLLING=true` env var in the `dev` script (`package.json`). This is already set — do not remove it.
 
 ### Next.js Caching — live data pages
 Three independent cache layers exist. Missing any one causes stale data for the user:

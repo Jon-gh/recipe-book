@@ -75,6 +75,28 @@ expect(mockRefresh).toHaveBeenCalled();
 expect(mockRefresh).toHaveBeenCalledOnce();
 ```
 
+### `useRouter()` mock must not use unstable object references
+If a component's `useEffect` depends on `router` (e.g. `[router]`), and the mock returns a new object on every call, each render will see a changed dependency and re-run the effect — causing an **infinite fetch/re-render loop** that OOMs the test runner.
+
+**Fix in the component:** use `[]` as the dependency array when the intent is "run once on mount". `router.refresh()` is a mount-time side effect, not something that should re-run whenever the router reference changes.
+
+```ts
+// ✗ causes infinite loop when mock returns a new object each render
+}, [router]);
+
+// ✓ correct — runs once on mount
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+```
+
+**Fix in the mock (if you can't change the component):** return a stable reference.
+```ts
+const mockRouter = { push: vi.fn(), refresh: vi.fn() };
+vi.mock("next/navigation", () => ({
+  useRouter: () => mockRouter,  // same object every call
+}));
+```
+
 ### `waitFor` is required for async state
 After rendering a component that fires a `fetch` or `useEffect`, assertions on the resulting state must be wrapped in `waitFor`:
 
