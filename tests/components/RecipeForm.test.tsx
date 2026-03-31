@@ -41,14 +41,14 @@ describe("RecipeForm — new recipe", () => {
   it("renders empty form with one ingredient row after entering manually", async () => {
     render(<RecipeForm />);
     expect(screen.getByText("New Recipe")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Enter manually" }));
+    await userEvent.click(screen.getByText("Type manually"));
     expect(screen.getByLabelText("Name")).toHaveValue("");
     expect(screen.getByLabelText("Servings")).toHaveValue(2);
   });
 
   it("adds an ingredient row when clicking + Add", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Enter manually" }));
+    await userEvent.click(screen.getByText("Type manually"));
     const addBtn = screen.getByRole("button", { name: "+ Add" });
     await userEvent.click(addBtn);
     const qtyInputs = screen.getAllByPlaceholderText("1");
@@ -57,7 +57,7 @@ describe("RecipeForm — new recipe", () => {
 
   it("removes an ingredient row when clicking ✕", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Enter manually" }));
+    await userEvent.click(screen.getByText("Type manually"));
     await userEvent.click(screen.getByRole("button", { name: "+ Add" }));
     const removeButtons = screen.getAllByRole("button", { name: "✕" });
     expect(removeButtons).toHaveLength(2);
@@ -67,7 +67,7 @@ describe("RecipeForm — new recipe", () => {
 
   it("disables ✕ button when only one ingredient row remains", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Enter manually" }));
+    await userEvent.click(screen.getByText("Type manually"));
     const removeBtn = screen.getByRole("button", { name: "✕" });
     expect(removeBtn).toBeDisabled();
   });
@@ -78,7 +78,7 @@ describe("RecipeForm — new recipe", () => {
     });
 
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Enter manually" }));
+    await userEvent.click(screen.getByText("Type manually"));
     await userEvent.type(screen.getByLabelText("Name"), "My Recipe");
     await userEvent.type(screen.getByLabelText("Instructions"), "Step 1");
 
@@ -97,6 +97,7 @@ describe("RecipeForm — new recipe", () => {
 
   it("calls router.back() when Cancel is clicked", async () => {
     render(<RecipeForm />);
+    await userEvent.click(screen.getByText("Type manually"));
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(mockBack).toHaveBeenCalled();
   });
@@ -137,9 +138,8 @@ describe("RecipeForm — edit recipe", () => {
 });
 
 describe("RecipeForm — AI import panel", () => {
-  it("shows action sheet when clicking Import Recipe", async () => {
+  it("shows action sheet immediately for new recipes", () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     expect(screen.getByText("Take Photo")).toBeInTheDocument();
     expect(screen.getByText("Choose from Library")).toBeInTheDocument();
     expect(screen.getByText("Import from URL")).toBeInTheDocument();
@@ -148,14 +148,12 @@ describe("RecipeForm — AI import panel", () => {
 
   it("shows URL input when Import from URL is selected", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     await userEvent.click(screen.getByText("Import from URL"));
     expect(screen.getByPlaceholderText("https://…")).toBeInTheDocument();
   });
 
   it("closes action sheet when Cancel is clicked", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     expect(screen.getByText("Take Photo")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("Take Photo")).not.toBeInTheDocument();
@@ -163,7 +161,6 @@ describe("RecipeForm — AI import panel", () => {
 
   it("hides URL input when clicking Cancel in URL panel", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     await userEvent.click(screen.getByText("Import from URL"));
     expect(screen.getByPlaceholderText("https://…")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -172,7 +169,6 @@ describe("RecipeForm — AI import panel", () => {
 
   it("reveals manual form when Type manually is selected", async () => {
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     await userEvent.click(screen.getByText("Type manually"));
     expect(screen.getByLabelText("Name")).toBeInTheDocument();
   });
@@ -184,7 +180,6 @@ describe("RecipeForm — AI import panel", () => {
     });
 
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     await userEvent.click(screen.getByText("Import from URL"));
     await userEvent.type(screen.getByPlaceholderText("https://…"), "https://example.com");
     await userEvent.click(screen.getByRole("button", { name: "Import" }));
@@ -209,7 +204,6 @@ describe("RecipeForm — AI import panel", () => {
     });
 
     render(<RecipeForm />);
-    await userEvent.click(screen.getByRole("button", { name: "Import Recipe" }));
     await userEvent.click(screen.getByText("Import from URL"));
     await userEvent.type(screen.getByPlaceholderText("https://…"), "https://example.com");
     await userEvent.click(screen.getByRole("button", { name: "Import" }));

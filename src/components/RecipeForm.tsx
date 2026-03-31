@@ -44,7 +44,7 @@ export default function RecipeForm({ initial }: Props) {
   const [saving, setSaving] = useState(false);
 
   // Import state
-  const [showActionSheet, setShowActionSheet] = useState(false);
+  const [showActionSheet, setShowActionSheet] = useState(!isEdit);
   const [urlMode, setUrlMode] = useState(false);
   const [importValue, setImportValue] = useState("");
   const [importing, setImporting] = useState(false);
