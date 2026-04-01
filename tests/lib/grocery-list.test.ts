@@ -4,17 +4,17 @@ import { aggregateGroceryList } from "@/lib/grocery-list";
 const spaghetti = {
   servings: 4,
   ingredients: [
-    { name: "spaghetti", quantity: 400, unit: "g" },
-    { name: "minced beef", quantity: 500, unit: "g" },
-    { name: "parmesan", quantity: 50, unit: "g" },
+    { name: "spaghetti", quantity: 400, unit: "g", category: "grains & pulses" },
+    { name: "minced beef", quantity: 500, unit: "g", category: "meat & fish" },
+    { name: "parmesan", quantity: 50, unit: "g", category: "dairy & eggs" },
   ],
 };
 
 const chicken = {
   servings: 2,
   ingredients: [
-    { name: "chicken breast", quantity: 300, unit: "g" },
-    { name: "parmesan", quantity: 30, unit: "g" },
+    { name: "chicken breast", quantity: 300, unit: "g", category: "meat & fish" },
+    { name: "parmesan", quantity: 30, unit: "g", category: "dairy & eggs" },
   ],
 };
 
@@ -52,8 +52,8 @@ describe("aggregateGroceryList", () => {
 
   it("same ingredient with different units kept separate", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 200, unit: "ml" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 1, unit: "cup" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 200, unit: "ml", category: "dairy & eggs" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 1, unit: "cup", category: "dairy & eggs" }] } },
     ]);
     expect(result).toHaveLength(2);
   });
@@ -66,7 +66,7 @@ describe("aggregateGroceryList", () => {
 
   it("scaling with fractional servings rounds correctly", () => {
     const result = aggregateGroceryList([
-      { targetServings: 3, recipe: { servings: 4, ingredients: [{ name: "flour", quantity: 400, unit: "g" }] } },
+      { targetServings: 3, recipe: { servings: 4, ingredients: [{ name: "flour", quantity: 400, unit: "g", category: "grains & pulses" }] } },
     ]);
     const flour = result.find((i) => i.name === "flour");
     expect(flour?.quantity).toBe(300);
@@ -90,10 +90,16 @@ describe("aggregateGroceryList", () => {
     expect(pasta?.unit).toBe("g");
   });
 
+  it("preserves ingredient category in output", () => {
+    const result = aggregateGroceryList([{ targetServings: 4, recipe: spaghetti }]);
+    const pasta = result.find((i) => i.name === "spaghetti");
+    expect(pasta?.category).toBe("grains & pulses");
+  });
+
   it("ingredient aggregation is case-insensitive on name and unit", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "Garlic", quantity: 2, unit: "cloves" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 3, unit: "cloves" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "Garlic", quantity: 2, unit: "cloves", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 3, unit: "cloves", category: "produce" }] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(5);

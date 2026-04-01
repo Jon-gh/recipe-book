@@ -26,8 +26,8 @@ const mockRecipe = {
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
   ingredients: [
-    { id: 1, name: "Pasta", quantity: 400, unit: "g", preparation: "", recipeId: "recipe-1" },
-    { id: 2, name: "Eggs", quantity: 4, unit: "", preparation: "beaten", recipeId: "recipe-1" },
+    { id: 1, name: "Pasta", quantity: 400, unit: "g", preparation: "", category: "grains & pulses", recipeId: "recipe-1" },
+    { id: 2, name: "Eggs", quantity: 4, unit: "", preparation: "beaten", category: "dairy & eggs", recipeId: "recipe-1" },
   ],
 };
 
@@ -120,6 +120,14 @@ describe("RecipeForm — edit recipe", () => {
     expect(nameInputs[1]).toHaveValue("Eggs");
   });
 
+  it("renders category dropdown for each ingredient", () => {
+    render(<RecipeForm initial={mockRecipe} />);
+    const selects = screen.getAllByRole("combobox");
+    expect(selects).toHaveLength(2);
+    expect(selects[0]).toHaveValue("grains & pulses");
+    expect(selects[1]).toHaveValue("dairy & eggs");
+  });
+
   it("submits PUT request with recipe id", async () => {
     mockFetch.mockResolvedValue({
       json: async () => ({ id: "recipe-1" }),
@@ -199,7 +207,7 @@ describe("RecipeForm — AI import panel", () => {
         tags: ["easy"],
         favourite: false,
         notes: "",
-        ingredients: [{ name: "Flour", quantity: 200, unit: "g", preparation: "" }],
+        ingredients: [{ name: "Flour", quantity: 200, unit: "g", preparation: "", category: "grains & pulses" }],
       }),
     });
 
