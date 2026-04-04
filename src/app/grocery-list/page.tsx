@@ -36,11 +36,11 @@ function groupByCategory(
     if (map.has(name)) ordered.push({ category: name, isStaple, items: map.get(name)! });
   }
   // any unknown categories at the end
-  for (const [cat, catItems] of map) {
+  Array.from(map.entries()).forEach(([cat, catItems]) => {
     if (!CATEGORIES.find((c) => c.name === cat)) {
       ordered.push({ category: cat, isStaple: false, items: catItems });
     }
-  }
+  });
   return ordered;
 }
 
@@ -88,7 +88,7 @@ export default function GroceryListPage() {
       return;
     }
     const state: PersistedState = {
-      checkedKeys: [...checkedKeys],
+      checkedKeys: Array.from(checkedKeys),
       customItems,
       shoppingMode,
       showStaples,
