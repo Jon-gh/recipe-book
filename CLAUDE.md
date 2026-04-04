@@ -96,20 +96,6 @@ Three independent cache layers exist. Missing any one causes stale data for the 
 ### Prisma Client
 Generated into `src/generated/prisma` — not committed to git. Run `npx prisma generate` after any schema change. Vercel rebuilds this automatically via `prisma generate && next build` in `package.json`.
 
-### TypeScript — `Map` and `Set` iteration
-The tsconfig target does not enable downlevel iteration. `for..of Map`, `[...set]`, and `[...map.entries()]` all produce a TS2802 compile error that **breaks the build**.
-
-Use `Array.from()` instead:
-```ts
-// ✗ breaks build
-for (const [k, v] of myMap) { ... }
-const keys = [...mySet];
-
-// ✓ correct
-Array.from(myMap.entries()).forEach(([k, v]) => { ... });
-const keys = Array.from(mySet);
-```
-
 ## Reference
 - @docs/architecture.md — directory map, DB schema decisions, caching detail
 - @docs/api.md — full REST endpoint reference
