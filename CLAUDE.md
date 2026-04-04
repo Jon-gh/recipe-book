@@ -44,16 +44,19 @@ ANTHROPIC_API_KEY= # Required for AI import features
 - **Tests must pass before every commit or PR** — a failing suite blocks the merge
 - See @docs/testing.md for patterns, mocking examples, and known gotchas
 
-### Git & PRs
-- **Never commit or push directly to `dev` or `main`** — always use a feature branch (`feat/`, `fix/`)
-- **Always branch from an up-to-date `dev`** — run `git checkout dev && git pull origin dev` before creating any new branch, to avoid missing recent commits
+### Git & PRs — Continuous Integration
+- **Never commit or push directly to `main`** — always use a short-lived feature branch (`feat/`, `fix/`)
+- **All branches merge directly into `main`** — there is no `dev` integration branch; trunk-based development means `main` is always the integration point
+- **Keep branches small and short-lived** — a branch should represent one logical change and be merged within a day or two; long-running branches cause merge conflicts and slow feedback
+- **Always branch from an up-to-date `main`** — run `git checkout main && git pull origin main` before creating any new branch
 - **Always push a new branch to remote immediately after creating it** — run `git push -u origin <branch>` right after `git checkout -b`; this ensures the branch exists on GitHub and prevents the "stale remote-tracking ref" problem
 - **Always push after every commit** — run `git push` immediately after `git commit`; keeps remote in sync and avoids diverged branches
 - **Always pull when switching to an existing branch** — run `git pull` after every `git checkout <existing-branch>`; ensures local is up to date before any new work
-- **After merging dev → main, sync main back into dev** — run `git checkout dev && git pull && git merge origin/main && git push`; GitHub's merge commits on main diverge from dev and cause conflicts on the next PR if not reconciled
+- **Tests must pass before opening a PR** — run `npm test` locally; a red suite must not be pushed
 - **Creating a PR does not require approval** — open PRs freely with `gh pr create`
-- **Merging always requires explicit user approval** — ask before every `gh pr merge`, whether into `dev` or `main`
+- **Merging always requires explicit user approval** — ask before every `gh pr merge`
 - **For iterative bugs**: deploy a preview first (`vercel`), wait for user confirmation the fix works, then create the PR — never merge before the user confirms
+- **Prefer small, focused PRs over large ones** — one PR per feature/fix makes review faster and reduces integration risk; split unrelated changes into separate PRs
 - See @docs/deployment.md for the full branching and deploy workflow
 
 ### Design Decisions

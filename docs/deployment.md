@@ -1,11 +1,11 @@
 # Deployment
 
 ## What
-The app deploys to Vercel from the `main` branch. All feature work goes through a feature branch → preview deploy → PR → `dev` → PR → `main` pipeline.
+The app deploys to Vercel from the `main` branch. All feature work goes through a short-lived feature branch → preview deploy → PR → `main` pipeline (trunk-based development).
 
 ## Why
 - Preview deployments let the user verify a fix actually works in a production-like environment before it's merged — this is especially important for caching bugs that only appear on Vercel, not in `npm run dev`
-- The `dev` → `main` two-stage pipeline provides a buffer: `dev` is the integration branch; `main` is production
+- Merging directly to `main` keeps the integration point simple and ensures the deployed branch always reflects the latest merged work
 
 ## Git Workflow
 
@@ -13,12 +13,12 @@ The app deploys to Vercel from the `main` branch. All feature work goes through 
 feature branch
   → vercel (preview deploy)
     → user confirms fix
-      → PR → dev   (requires user approval to merge)
-        → PR → main  (requires user approval to merge)
+      → PR → main  (requires user approval to merge)
 ```
 
 ### Rules
-- **Never commit or push directly to `dev` or `main`** — use `feat/my-feature` or `fix/my-bug` branches
+- **Never commit or push directly to `main`** — use `feat/my-feature` or `fix/my-bug` branches
+- **All branches target `main`** — there is no `dev` integration branch
 - **Creating a PR does not require approval** — open PRs freely with `gh pr create`
 - **Merging always requires explicit user approval** — ask before every `gh pr merge`
 - **For iterative bug fixes**: deploy a preview, confirm with the user it works, then create the PR — avoid opening a PR before the fix is verified
