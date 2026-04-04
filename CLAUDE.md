@@ -50,6 +50,7 @@ ANTHROPIC_API_KEY= # Required for AI import features
 - **Always push a new branch to remote immediately after creating it** — run `git push -u origin <branch>` right after `git checkout -b`; this ensures the branch exists on GitHub and prevents the "stale remote-tracking ref" problem
 - **Always push after every commit** — run `git push` immediately after `git commit`; keeps remote in sync and avoids diverged branches
 - **Always pull when switching to an existing branch** — run `git pull` after every `git checkout <existing-branch>`; ensures local is up to date before any new work
+- **After merging dev → main, sync main back into dev** — run `git checkout dev && git pull && git merge origin/main && git push`; GitHub's merge commits on main diverge from dev and cause conflicts on the next PR if not reconciled
 - **Creating a PR does not require approval** — open PRs freely with `gh pr create`
 - **Merging always requires explicit user approval** — ask before every `gh pr merge`, whether into `dev` or `main`
 - **For iterative bugs**: deploy a preview first (`vercel`), wait for user confirmation the fix works, then create the PR — never merge before the user confirms
