@@ -3,17 +3,17 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const name = searchParams.get("name");
-  const tag = searchParams.get("tag");
-  const ingredient = searchParams.get("ingredient");
+  const q = searchParams.get("q");
   const favourite = searchParams.get("favourite");
 
   const recipes = await prisma.recipe.findMany({
     where: {
-      ...(name && { name: { contains: name, mode: "insensitive" } }),
-      ...(tag && { tags: { has: tag } }),
-      ...(ingredient && {
-        ingredients: { some: { name: { contains: ingredient, mode: "insensitive" } } },
+      ...(q && {
+        OR: [
+          { name: { contains: q, mode: "insensitive" } },
+          { tags: { has: q } },
+          { ingredients: { some: { name: { contains: q, mode: "insensitive" } } } },
+        ],
       }),
       ...(favourite === "true" && { favourite: true }),
     },

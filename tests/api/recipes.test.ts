@@ -54,21 +54,20 @@ describe("GET /api/recipes", () => {
     expect(await res.json()).toEqual([]);
   });
 
-  it("passes name filter to prisma", async () => {
+  it("passes q filter as OR across name, tags, and ingredients", async () => {
     vi.mocked(prisma.recipe.findMany).mockResolvedValue([] as never);
-    const req = new NextRequest("http://localhost/api/recipes?name=pasta");
+    const req = new NextRequest("http://localhost/api/recipes?q=pasta");
     await GET(req);
     expect(prisma.recipe.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ name: expect.anything() }) })
-    );
-  });
-
-  it("passes tag filter to prisma", async () => {
-    vi.mocked(prisma.recipe.findMany).mockResolvedValue([] as never);
-    const req = new NextRequest("http://localhost/api/recipes?tag=italian");
-    await GET(req);
-    expect(prisma.recipe.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ tags: { has: "italian" } }) })
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [
+            { name: { contains: "pasta", mode: "insensitive" } },
+            { tags: { has: "pasta" } },
+            { ingredients: { some: { name: { contains: "pasta", mode: "insensitive" } } } },
+          ],
+        }),
+      })
     );
   });
 
@@ -81,12 +80,12 @@ describe("GET /api/recipes", () => {
     );
   });
 
-  it("passes ingredient filter to prisma", async () => {
+  it("omits OR clause when q is not provided", async () => {
     vi.mocked(prisma.recipe.findMany).mockResolvedValue([] as never);
-    const req = new NextRequest("http://localhost/api/recipes?ingredient=garlic");
+    const req = new NextRequest("http://localhost/api/recipes");
     await GET(req);
     expect(prisma.recipe.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: expect.objectContaining({ ingredients: expect.anything() }) })
+      expect.objectContaining({ where: expect.not.objectContaining({ OR: expect.anything() }) })
     );
   });
 });
