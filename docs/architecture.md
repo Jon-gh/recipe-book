@@ -20,6 +20,7 @@ Browser
 | `src/types.ts` | Shared TypeScript types: `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
 | `src/lib/prisma.ts` | Prisma client singleton — prevents too-many-connections in dev/serverless |
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
+| `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper |
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
 | `src/app/api/recipes/` | REST: list/create, get/update/delete, duplicate, import (text/url/image) |
@@ -30,7 +31,7 @@ Browser
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
-| `src/app/grocery-list/` | Grocery list page (copy to clipboard, download .txt); calls `router.refresh()` on mount |
+| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category, staple toggle, shopping mode with localStorage persistence and custom item add |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Meal Plan / Grocery List); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
@@ -43,6 +44,12 @@ Browser
 
 ### `RecipeIngredient.preparation` is a separate field
 **Why:** Grocery list aggregation groups by `name + unit` only. If preparation ("diced", "sliced") were part of `name`, the same ingredient with different preps would not merge — resulting in duplicate line items on the grocery list.
+
+### `RecipeIngredient.category` — supermarket aisle grouping
+**Why:** Ingredients are grouped by category on the grocery list so users can shop efficiently by aisle (all produce together, all meat together, etc.). Categories are defined in `src/lib/categories.ts`. Two categories (`spices & herbs`, `condiments & sauces`) are flagged `isStaple: true` and hidden by default on the grocery list — they're things you likely already have.
+- Claude assigns categories automatically on AI import (prompt includes the valid list)
+- Manual entry gets a dropdown in the ingredient form
+- `category` defaults to `"other"` in the DB so existing records are unaffected
 
 ### Cascade deletes on `Recipe`
 **Why:** Removing a recipe should clean up all dependent rows automatically. Orphaned `RecipeIngredient` and `MealPlanEntry` rows would silently corrupt the grocery list and meal plan.

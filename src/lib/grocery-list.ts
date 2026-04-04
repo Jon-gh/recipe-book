@@ -1,10 +1,10 @@
-export type GroceryItem = { name: string; quantity: number; unit: string };
+export type GroceryItem = { name: string; quantity: number; unit: string; category: string };
 
 export type MealPlanEntryWithRecipe = {
   targetServings: number;
   recipe: {
     servings: number;
-    ingredients: { name: string; quantity: number; unit: string }[];
+    ingredients: { name: string; quantity: number; unit: string; category: string }[];
   };
 };
 
@@ -21,7 +21,7 @@ export function aggregateGroceryList(entries: MealPlanEntryWithRecipe[]): Grocer
       if (aggregated.has(key)) {
         aggregated.get(key)!.quantity += scaled;
       } else {
-        aggregated.set(key, { name: ing.name, quantity: scaled, unit: ing.unit });
+        aggregated.set(key, { name: ing.name, quantity: scaled, unit: ing.unit, category: ing.category });
       }
     }
   }
