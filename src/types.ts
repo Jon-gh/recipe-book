@@ -4,6 +4,7 @@ export type RecipeIngredient = {
   quantity: number;
   unit: string;
   preparation: string;
+  category: string;
   recipeId: string;
 };
 
@@ -31,6 +32,7 @@ export type GroceryItem = {
   name: string;
   quantity: number;
   unit: string;
+  category: string;
 };
 
 export type RecipeFormData = {
@@ -45,5 +47,6 @@ export type RecipeFormData = {
     quantity: number;
     unit: string;
     preparation: string;
+    category: string;
   }[];
 };

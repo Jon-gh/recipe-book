@@ -9,12 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Camera, ImageIcon, Link2, Pencil } from "lucide-react";
+import { CATEGORY_NAMES } from "@/lib/categories";
 
 type Props = {
   initial?: Recipe;
 };
 
-const emptyIngredient = () => ({ name: "", quantity: 0, unit: "", preparation: "" });
+const emptyIngredient = () => ({ name: "", quantity: 0, unit: "", preparation: "", category: "other" });
 
 function importedToForm(data: Partial<RecipeFormData>): RecipeFormData {
   return {
@@ -26,9 +27,37 @@ function importedToForm(data: Partial<RecipeFormData>): RecipeFormData {
     notes: data.notes ?? "",
     ingredients:
       data.ingredients && data.ingredients.length > 0
-        ? data.ingredients
+        ? data.ingredients.map((i) => ({ ...i, category: i.category ?? "other" }))
         : [emptyIngredient()],
   };
+}
+
+async function resizeImage(file: File): Promise<File> {
+  const MAX = 1200;
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const { width, height } = img;
+      if (width <= MAX && height <= MAX) {
+        resolve(file);
+        return;
+      }
+      const scale = MAX / Math.max(width, height);
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (blob) => resolve(new File([blob!], "photo.jpg", { type: "image/jpeg" })),
+        "image/jpeg",
+        0.85
+      );
+    };
+    img.src = url;
+  });
 }
 
 export default function RecipeForm({ initial }: Props) {
@@ -129,11 +158,12 @@ export default function RecipeForm({ initial }: Props) {
     setImporting(false);
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    handleImageFile(file);
     e.target.value = "";
+    const resized = await resizeImage(file);
+    handleImageFile(resized);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -208,7 +238,6 @@ export default function RecipeForm({ initial }: Props) {
           </div>
         </div>
       )}
-
 
       {/* Manual form fields */}
       {showManualForm && (
@@ -313,6 +342,17 @@ export default function RecipeForm({ initial }: Props) {
                     className="flex-1"
                   />
                 </div>
+                <select
+                  value={ing.category}
+                  onChange={(e) => setIngredient(i, "category", e.target.value)}
+                  className="w-full text-sm rounded-md border border-input bg-background px-3 py-1.5 text-foreground"
+                >
+                  {CATEGORY_NAMES.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
               </div>
             ))}
           </div>

@@ -7,9 +7,11 @@ Return ONLY a valid JSON object with this exact structure — no markdown, no ex
   "name": "Recipe Name",
   "servings": 4,
   "ingredients": [
-    {"name": "sirloin steak", "quantity": 250.0, "unit": "g", "preparation": "trimmed of visible fat and sliced into 1cm strips"},
-    {"name": "bird's eye chilli", "quantity": 1.0, "unit": "", "preparation": "finely chopped"},
-    {"name": "fresh egg noodles", "quantity": 240.0, "unit": "g", "preparation": ""}
+    {"name": "sirloin steak", "quantity": 250.0, "unit": "g", "preparation": "trimmed of visible fat and sliced into 1cm strips", "category": "meat & fish"},
+    {"name": "bird's eye chilli", "quantity": 1.0, "unit": "", "preparation": "finely chopped", "category": "produce"},
+    {"name": "fresh egg noodles", "quantity": 240.0, "unit": "g", "preparation": "", "category": "grains & pulses"},
+    {"name": "soy sauce", "quantity": 2.0, "unit": "tbsp", "preparation": "", "category": "condiments & sauces"},
+    {"name": "star anise", "quantity": 1.0, "unit": "", "preparation": "", "category": "spices & herbs"}
   ],
   "instructions": "Step 1: ...\\nStep 2: ...\\nStep 3: ...",
   "tags": ["asian", "noodles", "quick"]
@@ -23,6 +25,7 @@ Rules:
 - preparation describes how to prepare the ingredient; use "" if none
 - instructions must be newline-separated steps
 - tags must be a list of 1-5 lowercase category keywords
+- category must be exactly one of: "produce", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "condiments & sauces", "spices & herbs", "other"
 - If a detail is unclear, make a reasonable culinary estimate
 
 Return only the JSON object, nothing else.`;

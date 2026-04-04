@@ -29,6 +29,7 @@ model RecipeIngredient {
   quantity    Float
   unit        String  @default("")
   preparation String  @default("")
+  category    String  @default("other")
   recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeId    String
 }
