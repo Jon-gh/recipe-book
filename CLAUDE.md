@@ -45,6 +45,7 @@ ANTHROPIC_API_KEY= # Required for AI import features
 - See @docs/testing.md for patterns, mocking examples, and known gotchas
 
 ### Git & PRs — Continuous Integration
+- **Create a feature branch before touching any files** — the very first action for any task (bug fix, feature, refactor) is `git checkout main && git pull origin main && git checkout -b feat/my-feature`; never edit files while on `main`
 - **Never commit or push directly to `main`** — always use a short-lived feature branch (`feat/`, `fix/`)
 - **All branches merge directly into `main`** — there is no `dev` integration branch; trunk-based development means `main` is always the integration point
 - **Keep branches small and short-lived** — a branch should represent one logical change and be merged within a day or two; long-running branches cause merge conflicts and slow feedback

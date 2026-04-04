@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
   }
 
   const jsonldRecipe = tryJsonLd(html);
-  if (jsonldRecipe) return NextResponse.json(jsonldRecipe);
+  if (jsonldRecipe) {
+    const recipe = await extractRecipeFromText(JSON.stringify(jsonldRecipe, null, 2));
+    return NextResponse.json(recipe);
+  }
 
   const text = stripHtml(html);
   if (!text.trim()) {
