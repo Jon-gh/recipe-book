@@ -15,7 +15,7 @@ const mockAiRecipe = {
   name: "Pancakes",
   servings: 4,
   ingredients: [
-    { name: "flour", quantity: 200, unit: "g", preparation: "", category: "grains & pulses" },
+    { name: "flour", quantity: 200, unit: "g", preparation: "", category: "baking & sweeteners" },
     { name: "egg", quantity: 2, unit: "", preparation: "beaten", category: "dairy & eggs" },
   ],
   instructions: "Mix and cook.",
@@ -66,7 +66,7 @@ describe("POST /api/recipes/import/url", () => {
     expect(res.status).toBe(200);
     expect(vi.mocked(extractRecipeFromText)).toHaveBeenCalledOnce();
     const body = await res.json();
-    expect(body.ingredients[0].category).toBe("grains & pulses");
+    expect(body.ingredients[0].category).toBe("baking & sweeteners");
     expect(body.ingredients[1].preparation).toBe("beaten");
   });
 

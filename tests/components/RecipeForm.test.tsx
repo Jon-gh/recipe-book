@@ -207,7 +207,7 @@ describe("RecipeForm — AI import panel", () => {
         tags: ["easy"],
         favourite: false,
         notes: "",
-        ingredients: [{ name: "Flour", quantity: 200, unit: "g", preparation: "", category: "grains & pulses" }],
+        ingredients: [{ name: "Flour", quantity: 200, unit: "g", preparation: "", category: "baking & sweeteners" }],
       }),
     });
 

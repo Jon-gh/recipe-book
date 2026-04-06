@@ -22,7 +22,7 @@ global.fetch = mockFetch;
 const mockItems = [
   { name: "Pasta", quantity: 400, unit: "g", category: "grains & pulses" },
   { name: "Eggs", quantity: 4, unit: "", category: "dairy & eggs" },
-  { name: "Flour", quantity: 0.5, unit: "kg", category: "grains & pulses" },
+  { name: "Flour", quantity: 0.5, unit: "kg", category: "baking & sweeteners" },
 ];
 
 beforeEach(() => {
