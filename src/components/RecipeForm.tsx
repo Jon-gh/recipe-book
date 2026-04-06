@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 import { Recipe, RecipeFormData } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -182,6 +183,8 @@ export default function RecipeForm({ initial }: Props) {
       body: JSON.stringify(body),
     });
     const saved = await res.json();
+    mutate(`/api/recipes/${saved.id}`, saved, { revalidate: false });
+    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
     router.push(`/recipes/${saved.id}`);
   }
 
