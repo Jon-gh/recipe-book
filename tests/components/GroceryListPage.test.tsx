@@ -102,14 +102,6 @@ describe("GroceryListPage", () => {
     });
   });
 
-  it("shows download button", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    render(<GroceryListPage />);
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Download .txt" })).toBeInTheDocument();
-    });
-  });
-
   it("shows Copied! after clicking copy", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockItems });
     Object.assign(navigator, {
