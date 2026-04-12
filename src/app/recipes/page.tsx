@@ -51,6 +51,7 @@ export default function RecipesPage() {
   );
 
   return (
+    <>
     <PullToRefresh onRefresh={() => mutate()}>
       <div>
         <div className="flex items-center justify-between mb-5">
@@ -132,25 +133,27 @@ export default function RecipesPage() {
           </div>
         )}
 
-        {/* FAB */}
-        <button
-          onClick={() => setShowAddSheet(true)}
-          aria-label="Add recipe"
-          className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
-        >
-          <Plus size={26} strokeWidth={2.5} />
-        </button>
-
-        <BottomSheet
-          open={showAddSheet}
-          onClose={() => setShowAddSheet(false)}
-          title="New Recipe"
-        >
-          <div className="px-4 pb-8">
-            <RecipeForm onClose={() => setShowAddSheet(false)} />
-          </div>
-        </BottomSheet>
       </div>
     </PullToRefresh>
+
+    {/* FAB — outside PullToRefresh so CSS transform doesn't break position:fixed */}
+    <button
+      onClick={() => setShowAddSheet(true)}
+      aria-label="Add recipe"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+    >
+      <Plus size={26} strokeWidth={2.5} />
+    </button>
+
+    <BottomSheet
+      open={showAddSheet}
+      onClose={() => setShowAddSheet(false)}
+      title="New Recipe"
+    >
+      <div className="px-4 pb-8">
+        <RecipeForm onClose={() => setShowAddSheet(false)} />
+      </div>
+    </BottomSheet>
+    </>
   );
 }
