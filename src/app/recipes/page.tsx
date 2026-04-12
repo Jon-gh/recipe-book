@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Users, List } from "lucide-react";
+import { fetcher } from "@/lib/fetcher";
 
 const CARD_COLORS = [
   "border-l-green-500",
@@ -26,26 +28,23 @@ function cardColor(name: string): string {
 }
 
 export default function RecipesPage() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterFavourite, setFilterFavourite] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  const fetchRecipes = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("q", search);
-    if (filterFavourite) params.set("favourite", "true");
-    const res = await fetch(`/api/recipes?${params}`);
-    const data = await res.json();
-    setRecipes(data);
-    setLoading(false);
-  }, [search, filterFavourite]);
 
   useEffect(() => {
-    const t = setTimeout(fetchRecipes, 300);
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(t);
-  }, [fetchRecipes]);
+  }, [search]);
+
+  const params = new URLSearchParams();
+  if (debouncedSearch) params.set("q", debouncedSearch);
+  if (filterFavourite) params.set("favourite", "true");
+
+  const { data: recipes, isLoading } = useSWR<Recipe[]>(
+    `/api/recipes?${params}`,
+    fetcher
+  );
 
   return (
     <div>
@@ -72,9 +71,9 @@ export default function RecipesPage() {
         </Button>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
-      ) : recipes.length === 0 ? (
+      ) : (recipes ?? []).length === 0 ? (
         <p className="text-muted-foreground">
           No recipes found.{" "}
           <Link href="/recipes/new" className="underline">
@@ -83,7 +82,7 @@ export default function RecipesPage() {
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {recipes.map((recipe) => (
+          {(recipes ?? []).map((recipe) => (
             <Link
               key={recipe.id}
               href={`/recipes/${recipe.id}`}

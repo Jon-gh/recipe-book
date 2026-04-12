@@ -1,43 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import useSWR, { mutate } from "swr";
 import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { fetcher } from "@/lib/fetcher";
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [addingToPlan, setAddingToPlan] = useState(false);
-  const [planServings, setPlanServings] = useState("");
   const [showPlanInput, setShowPlanInput] = useState(false);
+  const [planServings, setPlanServings] = useState("");
 
-  useEffect(() => {
-    fetch(`/api/recipes/${id}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setRecipe(data);
-        if (data) setPlanServings(String(data.servings));
-        setLoading(false);
-      });
-  }, [id]);
+  const { data: recipe, isLoading } = useSWR<Recipe>(`/api/recipes/${id}`, fetcher);
 
   async function handleDelete() {
     if (!confirm("Delete this recipe?")) return;
     setDeleting(true);
     await fetch(`/api/recipes/${id}`, { method: "DELETE" });
+    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes"), undefined, { revalidate: true });
     router.push("/recipes");
   }
 
   async function handleDuplicate() {
     const res = await fetch(`/api/recipes/${id}/duplicate`, { method: "POST" });
     const copy = await res.json();
+    mutate(`/api/recipes/${copy.id}`, copy, { revalidate: false });
+    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
     router.push(`/recipes/${copy.id}`);
   }
 
@@ -55,7 +50,7 @@ export default function RecipeDetailPage() {
     alert("Added to meal plan!");
   }
 
-  if (loading) return <p className="text-muted-foreground">Loading…</p>;
+  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (!recipe) return <p className="text-muted-foreground">Recipe not found.</p>;
 
   return (

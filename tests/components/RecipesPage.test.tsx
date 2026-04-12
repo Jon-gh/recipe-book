@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { SWRConfig } from "swr";
 import RecipesPage from "@/app/recipes/page";
 
 vi.mock("next/navigation", () => ({
@@ -36,6 +37,14 @@ const mockRecipes = [
   },
 ];
 
+function renderPage() {
+  return render(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <RecipesPage />
+    </SWRConfig>
+  );
+}
+
 beforeEach(() => {
   mockFetch.mockClear();
 });
@@ -43,13 +52,13 @@ beforeEach(() => {
 describe("RecipesPage", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<RecipesPage />);
+    renderPage();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
   it("renders recipe cards after loading", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockRecipes });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument();
@@ -59,7 +68,7 @@ describe("RecipesPage", () => {
 
   it("shows empty state when no recipes found", async () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("No recipes found.")).toBeInTheDocument();
@@ -68,7 +77,7 @@ describe("RecipesPage", () => {
 
   it("shows favourite star on favourite recipes", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockRecipes });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => {
       const stars = screen.getAllByText("★");
@@ -78,7 +87,7 @@ describe("RecipesPage", () => {
 
   it("displays serving count and ingredient count", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockRecipes });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("4 servings")).toBeInTheDocument();
@@ -90,7 +99,7 @@ describe("RecipesPage", () => {
 
   it("displays tags as badges", async () => {
     mockFetch.mockResolvedValue({ json: async () => mockRecipes });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => {
       expect(screen.getByText("Italian")).toBeInTheDocument();
@@ -101,7 +110,7 @@ describe("RecipesPage", () => {
 
   it("debounces search and refetches with query param", async () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
@@ -120,7 +129,7 @@ describe("RecipesPage", () => {
 
   it("adds favourite=true param when Favourites filter is active", async () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
@@ -135,7 +144,7 @@ describe("RecipesPage", () => {
 
   it("toggles favourite filter off when clicked again", async () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<RecipesPage />);
+    renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
