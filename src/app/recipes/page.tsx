@@ -90,7 +90,6 @@ export default function RecipesPage() {
             </Button>
           </div>
           <button
-            onMouseDown={(e) => e.preventDefault()}
             onClick={handleCancel}
             className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
               searchFocused
