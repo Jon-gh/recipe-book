@@ -41,7 +41,7 @@ export default function RecipesPage() {
   if (debouncedSearch) params.set("q", debouncedSearch);
   if (filterFavourite) params.set("favourite", "true");
 
-  const { data: recipes, isLoading } = useSWR<Recipe[]>(
+  const { data: recipes, isLoading, error } = useSWR<Recipe[]>(
     `/api/recipes?${params}`,
     fetcher
   );
@@ -73,6 +73,8 @@ export default function RecipesPage() {
 
       {isLoading ? (
         <p className="text-muted-foreground">Loading…</p>
+      ) : error ? (
+        <p className="text-destructive">Failed to load recipes. Check your connection and try again.</p>
       ) : (recipes ?? []).length === 0 ? (
         <p className="text-muted-foreground">
           No recipes found.{" "}
