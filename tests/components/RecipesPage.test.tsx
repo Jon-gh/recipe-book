@@ -142,6 +142,22 @@ describe("RecipesPage", () => {
     });
   });
 
+  it("shows Cancel button when search input is focused and clears search on click", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    const searchInput = screen.getByPlaceholderText("Search by name, tag or ingredient…");
+    await userEvent.click(searchInput);
+    await userEvent.type(searchInput, "pasta");
+
+    expect(searchInput).toHaveValue("pasta");
+
+    const cancelBtn = screen.getByRole("button", { name: "Cancel" });
+    await userEvent.click(cancelBtn);
+
+    expect(searchInput).toHaveValue("");
+  });
+
   it("toggles favourite filter off when clicked again", async () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();

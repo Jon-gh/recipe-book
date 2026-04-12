@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { Recipe } from "@/types";
@@ -35,6 +35,14 @@ export default function RecipesPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterFavourite, setFilterFavourite] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function handleCancel() {
+    setSearch("");
+    setSearchFocused(false);
+    inputRef.current?.blur();
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search), 300);
@@ -58,20 +66,40 @@ export default function RecipesPage() {
           <h1 className="text-2xl font-bold">Recipes</h1>
         </div>
 
-        <div className="flex gap-3 mb-5">
+        <div className="flex items-center gap-2 mb-5">
           <Input
+            ref={inputRef}
             placeholder="Search by name, tag or ingredient…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+            className="flex-1"
           />
-          <Button
-            variant={filterFavourite ? "default" : "outline"}
-            onClick={() => setFilterFavourite((f) => !f)}
-            className="active:scale-95 transition-transform shrink-0"
+          <div
+            className={`overflow-hidden transition-all duration-200 shrink-0 ${
+              searchFocused ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"
+            }`}
           >
-            ★ Favourites
-          </Button>
+            <Button
+              variant={filterFavourite ? "default" : "outline"}
+              onClick={() => setFilterFavourite((f) => !f)}
+              className="active:scale-95 transition-transform shrink-0 whitespace-nowrap"
+            >
+              ★ Favourites
+            </Button>
+          </div>
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={handleCancel}
+            className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
+              searchFocused
+                ? "max-w-[72px] opacity-100"
+                : "max-w-0 opacity-0 pointer-events-none"
+            }`}
+          >
+            Cancel
+          </button>
         </div>
 
         {isLoading ? (
