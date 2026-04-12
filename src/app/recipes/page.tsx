@@ -37,8 +37,20 @@ export default function RecipesPage() {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  function handleFocus() {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
+    setSearchFocused(true);
+  }
+
+  function handleBlur() {
+    // Delay hiding the Cancel button so a tap on it can fire onClick first
+    blurTimeoutRef.current = setTimeout(() => setSearchFocused(false), 150);
+  }
 
   function handleCancel() {
+    if (blurTimeoutRef.current) clearTimeout(blurTimeoutRef.current);
     setSearch("");
     setSearchFocused(false);
     inputRef.current?.blur();
@@ -72,8 +84,8 @@ export default function RecipesPage() {
             placeholder="Search by name, tag or ingredient…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
             className="flex-1"
           />
           <div
@@ -90,7 +102,6 @@ export default function RecipesPage() {
             </Button>
           </div>
           <button
-            onTouchStart={(e) => { e.preventDefault(); handleCancel(); }}
             onClick={handleCancel}
             className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
               searchFocused
