@@ -90,6 +90,7 @@ export default function RecipesPage() {
             </Button>
           </div>
           <button
+            onTouchStart={(e) => { e.preventDefault(); handleCancel(); }}
             onClick={handleCancel}
             className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
               searchFocused
