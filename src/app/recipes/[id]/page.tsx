@@ -18,7 +18,19 @@ export default function RecipeDetailPage() {
   const [showPlanInput, setShowPlanInput] = useState(false);
   const [planServings, setPlanServings] = useState("");
 
-  const { data: recipe, isLoading } = useSWR<Recipe>(`/api/recipes/${id}`, fetcher);
+  const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(`/api/recipes/${id}`, fetcher);
+
+  async function handleToggleFavourite() {
+    if (!recipe) return;
+    const updated = { ...recipe, favourite: !recipe.favourite };
+    mutateRecipe(updated, false);
+    await fetch(`/api/recipes/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ favourite: updated.favourite }),
+    });
+    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
+  }
 
   async function handleDelete() {
     if (!confirm("Delete this recipe?")) return;
@@ -59,7 +71,13 @@ export default function RecipeDetailPage() {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-2xl font-bold">{recipe.name}</h1>
-            {recipe.favourite && <span className="text-yellow-400 text-xl">★</span>}
+            <button
+              onClick={handleToggleFavourite}
+              className="text-2xl leading-none active:scale-95 transition-transform"
+              aria-label={recipe.favourite ? "Remove from favourites" : "Add to favourites"}
+            >
+              {recipe.favourite ? "★" : "☆"}
+            </button>
           </div>
           <p className="text-sm text-muted-foreground">
             {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
