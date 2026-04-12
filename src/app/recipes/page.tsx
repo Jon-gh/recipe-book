@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Users, List } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
+import PullToRefresh from "@/components/PullToRefresh";
 
 const CARD_COLORS = [
   "border-l-green-500",
@@ -41,12 +42,13 @@ export default function RecipesPage() {
   if (debouncedSearch) params.set("q", debouncedSearch);
   if (filterFavourite) params.set("favourite", "true");
 
-  const { data: recipes, isLoading, error } = useSWR<Recipe[]>(
+  const { data: recipes, isLoading, error, mutate } = useSWR<Recipe[]>(
     `/api/recipes?${params}`,
     fetcher
   );
 
   return (
+    <PullToRefresh onRefresh={() => mutate()}>
     <div>
       <div className="flex items-center justify-between mb-5">
         <h1 className="text-2xl font-bold">Recipes</h1>
@@ -124,5 +126,6 @@ export default function RecipesPage() {
         </div>
       )}
     </div>
+    </PullToRefresh>
   );
 }

@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { SWRConfig } from "swr";
 import MealPlanPage from "@/app/meal-plan/page";
 
 vi.mock("next/navigation", () => ({
@@ -31,6 +32,14 @@ const mockEntries = [
   },
 ];
 
+function renderPage() {
+  return render(
+    <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+      <MealPlanPage />
+    </SWRConfig>
+  );
+}
+
 beforeEach(() => {
   mockFetch.mockClear();
 });
@@ -38,13 +47,13 @@ beforeEach(() => {
 describe("MealPlanPage", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<MealPlanPage />);
+    renderPage();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
   it("shows empty state when no entries", async () => {
     mockFetch.mockResolvedValue({ json: async () => [] });
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText("No recipes in the plan yet.")).toBeInTheDocument();
     });
@@ -54,7 +63,7 @@ describe("MealPlanPage", () => {
     mockFetch
       .mockResolvedValueOnce({ json: async () => mockEntries }) // meal-plan
       .mockResolvedValueOnce({ json: async () => mockRecipes }); // recipes
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta")).toBeInTheDocument();
     });
@@ -64,7 +73,7 @@ describe("MealPlanPage", () => {
     mockFetch
       .mockResolvedValueOnce({ json: async () => mockEntries })
       .mockResolvedValueOnce({ json: async () => mockRecipes });
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText(/1 recipe · 4 total servings/)).toBeInTheDocument();
     });
@@ -74,7 +83,7 @@ describe("MealPlanPage", () => {
     mockFetch
       .mockResolvedValueOnce({ json: async () => [] })
       .mockResolvedValueOnce({ json: async () => mockRecipes });
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes…"), "pasta");
@@ -84,11 +93,12 @@ describe("MealPlanPage", () => {
 
   it("removes an entry when clicking ✕", async () => {
     mockFetch
-      .mockResolvedValueOnce({ json: async () => mockEntries })
-      .mockResolvedValueOnce({ json: async () => mockRecipes })
-      .mockResolvedValueOnce({ status: 204, json: async () => null }); // DELETE
+      .mockResolvedValueOnce({ json: async () => mockEntries }) // initial meal-plan
+      .mockResolvedValueOnce({ json: async () => mockRecipes }) // recipes
+      .mockResolvedValueOnce({ status: 204, json: async () => null }) // DELETE
+      .mockResolvedValueOnce({ json: async () => [] }); // revalidation after delete
 
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
@@ -106,12 +116,12 @@ describe("MealPlanPage", () => {
     };
 
     mockFetch
-      .mockResolvedValueOnce({ json: async () => [] })       // initial meal-plan
+      .mockResolvedValueOnce({ json: async () => [] })         // initial meal-plan
       .mockResolvedValueOnce({ json: async () => mockRecipes }) // recipes
-      .mockResolvedValueOnce({ json: async () => newEntry }) // POST
-      .mockResolvedValueOnce({ json: async () => [newEntry] }); // re-fetch meal-plan
+      .mockResolvedValueOnce({ json: async () => newEntry })   // POST response
+      .mockResolvedValueOnce({ json: async () => [newEntry] }); // revalidation
 
-    render(<MealPlanPage />);
+    renderPage();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes…"), "Pasta");
