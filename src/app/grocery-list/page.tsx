@@ -113,16 +113,6 @@ export default function GroceryListPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function download() {
-    const blob = new Blob([toPlainText()], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "grocery-list.txt";
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   function toggleItem(key: string) {
     setCheckedKeys((prev) => {
       const next = new Set(prev);
@@ -322,13 +312,6 @@ export default function GroceryListPage() {
               className="active:scale-95 transition-transform"
             >
               {copied ? "Copied!" : "Copy to clipboard"}
-            </Button>
-            <Button
-              onClick={download}
-              variant="outline"
-              className="active:scale-95 transition-transform"
-            >
-              Download .txt
             </Button>
           </div>
 
