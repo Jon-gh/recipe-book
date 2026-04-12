@@ -37,8 +37,14 @@ export default function RecipesPage() {
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Tracks whether the Cancel button is being pressed. Prevents onBlur from
+  // collapsing the bar before onClick fires — on iOS, the input blurs at
+  // touchend, before the synthetic click event, so without this flag the
+  // Cancel button would disappear before its click could register.
+  const cancelPressedRef = useRef(false);
 
   function handleCancel() {
+    cancelPressedRef.current = false;
     setSearch("");
     setSearchFocused(false);
     inputRef.current?.blur();
@@ -73,7 +79,7 @@ export default function RecipesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             onFocus={() => setSearchFocused(true)}
-            onBlur={() => setSearchFocused(false)}
+            onBlur={() => { if (!cancelPressedRef.current) setSearchFocused(false); }}
             className="flex-1"
           />
           <div
@@ -90,7 +96,8 @@ export default function RecipesPage() {
             </Button>
           </div>
           <button
-            onTouchStart={(e) => { e.preventDefault(); handleCancel(); }}
+            onPointerDown={() => { cancelPressedRef.current = true; }}
+            onPointerCancel={() => { cancelPressedRef.current = false; }}
             onClick={handleCancel}
             className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
               searchFocused
