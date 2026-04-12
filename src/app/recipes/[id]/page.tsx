@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Minus, Plus } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
+import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
@@ -30,6 +31,7 @@ export default function RecipeDetailPage() {
 
   async function handleToggleFavourite() {
     if (!recipe) return;
+    haptic();
     const updated = { ...recipe, favourite: !recipe.favourite };
     mutateRecipe(updated, false);
     await fetch(`/api/recipes/${id}`, {
@@ -45,6 +47,7 @@ export default function RecipeDetailPage() {
   }
 
   async function handleDelete() {
+    haptic([10, 50, 10]);
     setDeleting(true);
     await fetch(`/api/recipes/${id}`, { method: "DELETE" });
     mutate(
@@ -74,6 +77,7 @@ export default function RecipeDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId: id, targetServings: planServings }),
     });
+    haptic();
     setAddingToPlan(false);
     setShowPlanSheet(false);
   }

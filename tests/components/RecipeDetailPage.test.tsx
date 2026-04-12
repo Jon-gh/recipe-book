@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockVibrate = vi.fn();
+Object.defineProperty(navigator, "vibrate", {
+  value: mockVibrate,
+  configurable: true,
+  writable: true,
+});
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
@@ -44,6 +51,7 @@ beforeEach(() => {
     ok: true,
     json: async () => mockRecipe,
   });
+  mockVibrate.mockClear();
 });
 
 describe("RecipeDetailPage — favourite toggle", () => {
@@ -99,5 +107,42 @@ describe("RecipeDetailPage — favourite toggle", () => {
         body: expect.stringContaining('"favourite":false'),
       })
     );
+  });
+});
+
+describe("RecipeDetailPage — haptic feedback", () => {
+  it("vibrates on favourite toggle", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Add to favourites" }));
+
+    expect(mockVibrate).toHaveBeenCalled();
+  });
+
+  it("vibrates on delete confirmation", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /delete/i }));
+    const confirmBtn = await screen.findByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(confirmBtn);
+
+    expect(mockVibrate).toHaveBeenCalled();
+  });
+
+  it("vibrates on add to plan confirmation", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /add to meal plan/i }));
+
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+    // Two "Add to Meal Plan" buttons exist when the sheet is open — the page button and the sheet confirm button.
+    // The confirm button is the last one rendered.
+    const allAddBtns = await screen.findAllByRole("button", { name: "Add to Meal Plan" });
+    await userEvent.click(allAddBtns[allAddBtns.length - 1]);
+
+    expect(mockVibrate).toHaveBeenCalled();
   });
 });
