@@ -26,7 +26,8 @@ export default function RecipeDetailPage() {
 
   const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(
     `/api/recipes/${id}`,
-    fetcher
+    fetcher,
+    { revalidateIfStale: false }
   );
 
   async function handleToggleFavourite() {
