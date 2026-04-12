@@ -2,23 +2,31 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Minus, Plus } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
+import BottomSheet from "@/components/BottomSheet";
+import ActionSheet from "@/components/ActionSheet";
+import RecipeForm from "@/components/RecipeForm";
 
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
+  const [showEditSheet, setShowEditSheet] = useState(false);
+  const [showDeleteSheet, setShowDeleteSheet] = useState(false);
+  const [showPlanSheet, setShowPlanSheet] = useState(false);
+  const [planServings, setPlanServings] = useState(2);
   const [addingToPlan, setAddingToPlan] = useState(false);
-  const [showPlanInput, setShowPlanInput] = useState(false);
-  const [planServings, setPlanServings] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
-  const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(`/api/recipes/${id}`, fetcher);
+  const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(
+    `/api/recipes/${id}`,
+    fetcher
+  );
 
   async function handleToggleFavourite() {
     if (!recipe) return;
@@ -29,14 +37,21 @@ export default function RecipeDetailPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ favourite: updated.favourite }),
     });
-    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
+    mutate(
+      (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"),
+      undefined,
+      { revalidate: true }
+    );
   }
 
   async function handleDelete() {
-    if (!confirm("Delete this recipe?")) return;
     setDeleting(true);
     await fetch(`/api/recipes/${id}`, { method: "DELETE" });
-    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes"), undefined, { revalidate: true });
+    mutate(
+      (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes"),
+      undefined,
+      { revalidate: true }
+    );
     router.push("/recipes");
   }
 
@@ -44,22 +59,23 @@ export default function RecipeDetailPage() {
     const res = await fetch(`/api/recipes/${id}/duplicate`, { method: "POST" });
     const copy = await res.json();
     mutate(`/api/recipes/${copy.id}`, copy, { revalidate: false });
-    mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
+    mutate(
+      (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"),
+      undefined,
+      { revalidate: true }
+    );
     router.push(`/recipes/${copy.id}`);
   }
 
   async function handleAddToPlan() {
-    const servings = parseInt(planServings);
-    if (!servings || servings < 1) return;
     setAddingToPlan(true);
     await fetch("/api/meal-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipeId: id, targetServings: servings }),
+      body: JSON.stringify({ recipeId: id, targetServings: planServings }),
     });
     setAddingToPlan(false);
-    setShowPlanInput(false);
-    alert("Added to meal plan!");
+    setShowPlanSheet(false);
   }
 
   if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
@@ -84,13 +100,29 @@ export default function RecipeDetailPage() {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Link href={`/recipes/${id}/edit`}>
-            <Button variant="outline" size="sm" className="min-h-[44px] active:scale-95 transition-transform">Edit</Button>
-          </Link>
-          <Button variant="outline" size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleDuplicate}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px] active:scale-95 transition-transform"
+            onClick={() => setShowEditSheet(true)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-[44px] active:scale-95 transition-transform"
+            onClick={handleDuplicate}
+          >
             Duplicate
           </Button>
-          <Button variant="destructive" size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleDelete} disabled={deleting}>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="min-h-[44px] active:scale-95 transition-transform"
+            onClick={() => setShowDeleteSheet(true)}
+            disabled={deleting}
+          >
             {deleting ? "Deleting…" : "Delete"}
           </Button>
         </div>
@@ -99,7 +131,9 @@ export default function RecipeDetailPage() {
       {recipe.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-4">
           {recipe.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">{tag}</Badge>
+            <Badge key={tag} variant="secondary">
+              {tag}
+            </Badge>
           ))}
         </div>
       )}
@@ -114,7 +148,10 @@ export default function RecipeDetailPage() {
               <span className="font-medium tabular-nums">
                 {ing.quantity} {ing.unit}
               </span>
-              <span>{ing.name}{ing.preparation ? `, ${ing.preparation}` : ""}</span>
+              <span>
+                {ing.name}
+                {ing.preparation ? `, ${ing.preparation}` : ""}
+              </span>
             </li>
           ))}
         </ul>
@@ -124,7 +161,9 @@ export default function RecipeDetailPage() {
 
       <section className="mb-6">
         <h2 className="font-semibold mb-3">Instructions</h2>
-        <div className="text-sm whitespace-pre-wrap leading-relaxed">{recipe.instructions}</div>
+        <div className="text-sm whitespace-pre-wrap leading-relaxed">
+          {recipe.instructions}
+        </div>
       </section>
 
       {recipe.notes && (
@@ -132,37 +171,93 @@ export default function RecipeDetailPage() {
           <Separator className="my-4" />
           <section className="mb-6">
             <h2 className="font-semibold mb-2">Notes</h2>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">{recipe.notes}</p>
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {recipe.notes}
+            </p>
           </section>
         </>
       )}
 
       <Separator className="my-4" />
 
-      <div>
-        {showPlanInput ? (
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              value={planServings}
-              onChange={(e) => setPlanServings(e.target.value)}
-              className="w-20 border rounded px-2 py-1 text-sm min-h-[44px]"
-            />
-            <span className="text-sm text-muted-foreground">servings</span>
-            <Button size="sm" className="min-h-[44px] active:scale-95 transition-transform" onClick={handleAddToPlan} disabled={addingToPlan}>
-              {addingToPlan ? "Adding…" : "Confirm"}
+      <Button
+        variant="outline"
+        className="min-h-[44px] active:scale-95 transition-transform"
+        onClick={() => {
+          setPlanServings(recipe.servings);
+          setShowPlanSheet(true);
+        }}
+      >
+        Add to Meal Plan
+      </Button>
+
+      {/* Edit sheet */}
+      <BottomSheet
+        open={showEditSheet}
+        onClose={() => setShowEditSheet(false)}
+        title="Edit Recipe"
+      >
+        <div className="px-4 pb-8">
+          <RecipeForm initial={recipe} onClose={() => setShowEditSheet(false)} />
+        </div>
+      </BottomSheet>
+
+      {/* Delete action sheet */}
+      <ActionSheet
+        open={showDeleteSheet}
+        onClose={() => setShowDeleteSheet(false)}
+        title={recipe.name}
+        message="This will permanently delete the recipe and remove it from any meal plans."
+        actions={[{ label: "Delete Recipe", onClick: handleDelete, destructive: true }]}
+      />
+
+      {/* Add to Meal Plan sheet */}
+      <BottomSheet
+        open={showPlanSheet}
+        onClose={() => setShowPlanSheet(false)}
+        title="Add to Meal Plan"
+      >
+        <div className="px-6 py-6 flex flex-col items-center gap-6">
+          <p className="text-sm text-muted-foreground text-center">
+            How many servings do you need?
+          </p>
+          <div className="flex items-center gap-6">
+            <button
+              onClick={() => setPlanServings((s) => Math.max(1, s - 1))}
+              className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
+              aria-label="Decrease servings"
+            >
+              <Minus size={18} />
+            </button>
+            <span className="text-3xl font-semibold tabular-nums w-10 text-center">
+              {planServings}
+            </span>
+            <button
+              onClick={() => setPlanServings((s) => s + 1)}
+              className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
+              aria-label="Increase servings"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          <div className="w-full flex flex-col gap-2">
+            <Button
+              className="w-full min-h-[44px]"
+              onClick={handleAddToPlan}
+              disabled={addingToPlan}
+            >
+              {addingToPlan ? "Adding…" : "Add to Meal Plan"}
             </Button>
-            <Button size="sm" variant="ghost" className="min-h-[44px] active:scale-95 transition-transform" onClick={() => setShowPlanInput(false)}>
+            <Button
+              variant="ghost"
+              className="w-full min-h-[44px]"
+              onClick={() => setShowPlanSheet(false)}
+            >
               Cancel
             </Button>
           </div>
-        ) : (
-          <Button variant="outline" className="min-h-[44px] active:scale-95 transition-transform" onClick={() => setShowPlanInput(true)}>
-            Add to Meal Plan
-          </Button>
-        )}
-      </div>
+        </div>
+      </BottomSheet>
     </div>
   );
 }
