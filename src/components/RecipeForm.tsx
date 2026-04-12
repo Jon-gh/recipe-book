@@ -14,6 +14,7 @@ import { CATEGORY_NAMES } from "@/lib/categories";
 
 type Props = {
   initial?: Recipe;
+  onClose?: () => void;
 };
 
 const emptyIngredient = () => ({ name: "", quantity: 0, unit: "", preparation: "", category: "other" });
@@ -61,7 +62,7 @@ async function resizeImage(file: File): Promise<File> {
   });
 }
 
-export default function RecipeForm({ initial }: Props) {
+export default function RecipeForm({ initial, onClose }: Props) {
   const router = useRouter();
   const isEdit = !!initial;
 
@@ -185,7 +186,11 @@ export default function RecipeForm({ initial }: Props) {
     const saved = await res.json();
     mutate(`/api/recipes/${saved.id}`, saved, { revalidate: false });
     mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
-    router.push(`/recipes/${saved.id}`);
+    if (isEdit && onClose) {
+      onClose();
+    } else {
+      router.push(`/recipes/${saved.id}`);
+    }
   }
 
   return (
@@ -389,7 +394,7 @@ export default function RecipeForm({ initial }: Props) {
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Recipe"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => router.back()}>
+            <Button type="button" variant="outline" onClick={() => onClose ? onClose() : router.back()}>
               Cancel
             </Button>
           </div>
@@ -454,7 +459,7 @@ export default function RecipeForm({ initial }: Props) {
                   <p className="text-xs text-muted-foreground">Enter the recipe yourself</p>
                 </div>
               </button>
-              <Button type="button" variant="ghost" className="w-full" onClick={() => router.back()}>
+              <Button type="button" variant="ghost" className="w-full" onClick={() => onClose ? onClose() : router.back()}>
                 Cancel
               </Button>
             </>
