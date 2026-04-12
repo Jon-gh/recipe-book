@@ -55,7 +55,7 @@ describe("MealPlanPage", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("No recipes in the plan yet.")).toBeInTheDocument();
+      expect(screen.getByText("No recipes planned yet")).toBeInTheDocument();
     });
   });
 
@@ -86,7 +86,7 @@ describe("MealPlanPage", () => {
     renderPage();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
-    await userEvent.type(screen.getByPlaceholderText("Search recipes…"), "pasta");
+    await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "pasta");
     expect(screen.getByText("Pasta")).toBeInTheDocument();
     expect(screen.queryByText("Stir-Fry")).not.toBeInTheDocument();
   });
@@ -101,11 +101,11 @@ describe("MealPlanPage", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove from plan" }));
 
     // UI updates from the revalidation response (empty list)
     await waitFor(() => {
-      expect(screen.getByText("No recipes in the plan yet.")).toBeInTheDocument();
+      expect(screen.getByText("No recipes planned yet")).toBeInTheDocument();
     });
     expect(mockFetch).toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
   });
@@ -127,9 +127,9 @@ describe("MealPlanPage", () => {
     renderPage();
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
 
-    await userEvent.type(screen.getByPlaceholderText("Search recipes…"), "Pasta");
+    await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "Pasta");
     await userEvent.click(screen.getByText("Pasta"));
-    await userEvent.click(screen.getByRole("button", { name: "Add to Plan" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
 
     // UI updates from the revalidation response (new entry appears)
     await waitFor(() => {

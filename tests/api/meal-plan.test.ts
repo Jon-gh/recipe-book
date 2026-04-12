@@ -5,7 +5,9 @@ vi.mock("@/lib/prisma", () => ({
   prisma: {
     mealPlanEntry: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
   },
@@ -13,7 +15,7 @@ vi.mock("@/lib/prisma", () => ({
 
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/meal-plan/route";
-import { DELETE } from "@/app/api/meal-plan/[id]/route";
+import { PATCH, DELETE } from "@/app/api/meal-plan/[id]/route";
 
 const mockEntry = {
   id: 1,
@@ -53,7 +55,8 @@ describe("GET /api/meal-plan", () => {
 });
 
 describe("POST /api/meal-plan", () => {
-  it("creates entry and returns 201", async () => {
+  it("creates a new entry and returns 201 when recipe is not yet in the plan", async () => {
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(null as never);
     vi.mocked(prisma.mealPlanEntry.create).mockResolvedValue(mockEntry as never);
     const req = new NextRequest("http://localhost/api/meal-plan", {
       method: "POST",
@@ -62,6 +65,38 @@ describe("POST /api/meal-plan", () => {
     const res = await POST(req);
     expect(res.status).toBe(201);
     expect((await res.json()).recipeId).toBe("abc123");
+    expect(prisma.mealPlanEntry.create).toHaveBeenCalledOnce();
+  });
+
+  it("sums servings when recipe already exists in the plan and returns 200", async () => {
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(mockEntry as never);
+    const updated = { ...mockEntry, targetServings: 6 };
+    vi.mocked(prisma.mealPlanEntry.update).mockResolvedValue(updated as never);
+    const req = new NextRequest("http://localhost/api/meal-plan", {
+      method: "POST",
+      body: JSON.stringify({ recipeId: "abc123", targetServings: 2 }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect((await res.json()).targetServings).toBe(6);
+    expect(prisma.mealPlanEntry.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { targetServings: 6 } })
+    );
+    expect(prisma.mealPlanEntry.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("PATCH /api/meal-plan/[id]", () => {
+  it("updates servings and returns 200", async () => {
+    const updated = { ...mockEntry, targetServings: 6 };
+    vi.mocked(prisma.mealPlanEntry.update).mockResolvedValue(updated as never);
+    const req = new NextRequest("http://localhost/api/meal-plan/1", {
+      method: "PATCH",
+      body: JSON.stringify({ targetServings: 6 }),
+    });
+    const res = await PATCH(req, { params: { id: "1" } });
+    expect(res.status).toBe(200);
+    expect((await res.json()).targetServings).toBe(6);
   });
 });
 
