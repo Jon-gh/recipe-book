@@ -51,13 +51,13 @@ beforeEach(() => {
 
 describe("RecipesPage", () => {
   it("shows loading state initially", () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
   it("renders recipe cards after loading", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockRecipes });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipes });
     renderPage();
 
     await waitFor(() => {
@@ -67,7 +67,7 @@ describe("RecipesPage", () => {
   });
 
   it("shows empty state when no recipes found", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
 
     await waitFor(() => {
@@ -76,7 +76,7 @@ describe("RecipesPage", () => {
   });
 
   it("shows favourite star on favourite recipes", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockRecipes });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipes });
     renderPage();
 
     await waitFor(() => {
@@ -86,7 +86,7 @@ describe("RecipesPage", () => {
   });
 
   it("displays serving count and ingredient count", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockRecipes });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipes });
     renderPage();
 
     await waitFor(() => {
@@ -98,7 +98,7 @@ describe("RecipesPage", () => {
   });
 
   it("displays tags as badges", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockRecipes });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipes });
     renderPage();
 
     await waitFor(() => {
@@ -109,7 +109,7 @@ describe("RecipesPage", () => {
   });
 
   it("debounces search and refetches with query param", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
@@ -128,7 +128,7 @@ describe("RecipesPage", () => {
   });
 
   it("adds favourite=true param when Favourites filter is active", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
@@ -143,7 +143,7 @@ describe("RecipesPage", () => {
   });
 
   it("toggles favourite filter off when clicked again", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
