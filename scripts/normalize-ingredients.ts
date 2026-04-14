@@ -107,7 +107,7 @@ async function main() {
 
   console.log(`\n${APPLY ? "Applying" : "Dry run —"} ${changes.length} change(s) across ${byRecipe.size} recipe(s):\n`);
 
-  for (const [recipe, recipeChanges] of byRecipe) {
+  for (const [recipe, recipeChanges] of Array.from(byRecipe.entries())) {
     console.log(`  ${recipe}`);
     for (const c of recipeChanges) {
       if (c.type === "delete") {
