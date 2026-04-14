@@ -98,8 +98,8 @@ describe("aggregateGroceryList", () => {
 
   it("ingredient aggregation is case-insensitive on name and unit", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "Garlic", quantity: 2, unit: "cloves", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 3, unit: "cloves", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "Garlic", quantity: 2, unit: "cloves", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 3, unit: "cloves", category: "fruit & veg" }] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(5);
@@ -153,9 +153,9 @@ describe("aggregateGroceryList", () => {
 
   it("merges bunch variants (small bunch, handful, bunch) for the same ingredient", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "handful", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "small bunch", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 0.5, unit: "bunch", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "handful", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "small bunch", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 0.5, unit: "bunch", category: "fruit & veg" }] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(2.5);
@@ -164,9 +164,9 @@ describe("aggregateGroceryList", () => {
 
   it("merges clove variants (fat clove, small cloves, clove) for the same ingredient", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "fat clove", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "cloves", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 4, unit: "small cloves", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "fat clove", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "cloves", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 4, unit: "small cloves", category: "fruit & veg" }] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(8);
@@ -175,8 +175,8 @@ describe("aggregateGroceryList", () => {
 
   it("normalises unit spelling variants (handfuls, bunches → bunch)", () => {
     const result = aggregateGroceryList([
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 2, unit: "handfuls", category: "produce" }] } },
-      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 1, unit: "bunches", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 2, unit: "handfuls", category: "fruit & veg" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 1, unit: "bunches", category: "fruit & veg" }] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(3);

@@ -1,7 +1,7 @@
 export type Category = { name: string; isStaple: boolean };
 
 export const CATEGORIES: Category[] = [
-  { name: "produce", isStaple: false },
+  { name: "fruit & veg", isStaple: false },
   { name: "meat & fish", isStaple: false },
   { name: "dairy & eggs", isStaple: false },
   { name: "bakery", isStaple: false },
