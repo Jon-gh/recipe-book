@@ -50,7 +50,7 @@ describe("aggregateGroceryList", () => {
     expect(parm?.quantity).toBe(80); // 50 + 30
   });
 
-  it("same ingredient with different units kept separate", () => {
+  it("same ingredient with truly different units kept as separate rows", () => {
     const result = aggregateGroceryList([
       { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 200, unit: "ml", category: "dairy & eggs" }] } },
       { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "milk", quantity: 1, unit: "cup", category: "dairy & eggs" }] } },
@@ -103,5 +103,83 @@ describe("aggregateGroceryList", () => {
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].quantity).toBe(5);
+  });
+
+  // --- trivial ingredient exclusion ---
+
+  it("excludes water from the grocery list", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [
+        { name: "water", quantity: 500, unit: "ml", category: "drinks" },
+        { name: "pasta", quantity: 200, unit: "g", category: "grains & pulses" },
+      ]}},
+    ]);
+    expect(result.find((i) => i.name.toLowerCase() === "water")).toBeUndefined();
+    expect(result).toHaveLength(1);
+  });
+
+  it("excludes water case-insensitively", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [
+        { name: "Water", quantity: 200, unit: "ml", category: "drinks" },
+      ]}},
+    ]);
+    expect(result).toHaveLength(0);
+  });
+
+  // --- Tier 1: metric unit conversion ---
+
+  it("merges kg and g entries for the same ingredient", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "flour", quantity: 0.5, unit: "kg", category: "grains & pulses" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "flour", quantity: 200, unit: "g", category: "grains & pulses" }] } },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(700); // 500g + 200g
+    expect(result[0].unit).toBe("g");
+  });
+
+  it("merges l and ml entries for the same ingredient", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "stock", quantity: 0.5, unit: "l", category: "canned & jarred" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "stock", quantity: 250, unit: "ml", category: "canned & jarred" }] } },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(750);
+    expect(result[0].unit).toBe("ml");
+  });
+
+  // --- Tier 2: size qualifier stripping ---
+
+  it("merges bunch variants (small bunch, handful, bunch) for the same ingredient", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "handful", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 1, unit: "small bunch", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "coriander", quantity: 0.5, unit: "bunch", category: "produce" }] } },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(2.5);
+    expect(result[0].unit).toBe("bunch");
+  });
+
+  it("merges clove variants (fat clove, small cloves, clove) for the same ingredient", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "fat clove", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 2, unit: "cloves", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "garlic", quantity: 4, unit: "small cloves", category: "produce" }] } },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(8);
+    expect(result[0].unit).toBe("clove");
+  });
+
+  it("normalises unit spelling variants (handfuls, bunches → bunch)", () => {
+    const result = aggregateGroceryList([
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 2, unit: "handfuls", category: "produce" }] } },
+      { targetServings: 1, recipe: { servings: 1, ingredients: [{ name: "parsley", quantity: 1, unit: "bunches", category: "produce" }] } },
+    ]);
+    expect(result).toHaveLength(1);
+    expect(result[0].quantity).toBe(3);
+    expect(result[0].unit).toBe("bunch");
   });
 });

@@ -21,11 +21,14 @@ Rules:
 - servings must be a positive integer
 - quantity must be a positive number
 - unit must be a string; use "" when no unit applies (e.g. 2 eggs → unit "")
-- name must be the pure ingredient only — no preparation details
+- unit must use standard abbreviated forms: "g" not "grams", "kg" not "kilograms", "ml" not "millilitres", "l" not "litre", "tbsp" not "tablespoon", "tsp" not "teaspoon"
+- Do not include size qualifiers (fat, small, large, big) in the unit field — e.g. "2 fat cloves garlic" → quantity 2, unit "clove", name "garlic"
+- name must be the pure ingredient only — no preparation details and no size qualifiers
 - preparation describes how to prepare the ingredient; use "" if none
 - instructions must be newline-separated steps
 - tags must be a list of 1-5 lowercase category keywords
 - category must be exactly one of: "produce", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "canned & jarred", "nuts & seeds", "baking & sweeteners", "condiments & sauces", "spices & herbs", "other"
+- Omit water and other universally available household basics (e.g. tap water, ice) from the ingredients list
 - If a detail is unclear, make a reasonable culinary estimate
 
 Return only the JSON object, nothing else.`;
