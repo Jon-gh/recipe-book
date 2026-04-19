@@ -29,11 +29,27 @@ export type Recipe = {
   ingredients: RecipeIngredient[];
 };
 
+export type ScheduledMealBrief = {
+  id: number;
+  servings: number;
+  mealPlanEntryId: number;
+};
+
 export type MealPlanEntry = {
   id: number;
   targetServings: number;
   recipeId: string;
   recipe: Recipe;
+  scheduledMeals: ScheduledMealBrief[];
+};
+
+export type ScheduledMeal = {
+  id: number;
+  date: string;
+  mealType: "lunch" | "dinner";
+  servings: number;
+  mealPlanEntryId: number;
+  mealPlanEntry: MealPlanEntry;
 };
 
 export type GroceryItem = {
