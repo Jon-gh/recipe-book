@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { GroceryItem } from "@/types";
+import { GroceryItem, ShoppingListItem, Ingredient } from "@/types";
 import { CATEGORIES, categoryIsStaple } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,29 +15,30 @@ const STORAGE_KEY = "recipe-book:shopping";
 
 type PersistedState = {
   checkedKeys: string[];
-  customItems: GroceryItem[];
   shoppingMode: boolean;
   showStaples: boolean;
 };
 
-function itemKey(item: GroceryItem): string {
+// A display item is either a meal-plan item or a shopping list extra (with id for deletion)
+type DisplayItem = GroceryItem & { shoppingListId?: number };
+
+function itemKey(item: { name: string; unit: string }): string {
   return `${item.name.toLowerCase()}__${item.unit.toLowerCase()}`;
 }
 
 function groupByCategory(
-  items: GroceryItem[]
-): { category: string; isStaple: boolean; items: GroceryItem[] }[] {
-  const map = new Map<string, GroceryItem[]>();
+  items: DisplayItem[]
+): { category: string; isStaple: boolean; items: DisplayItem[] }[] {
+  const map = new Map<string, DisplayItem[]>();
   for (const item of items) {
     const cat = item.category || "other";
     if (!map.has(cat)) map.set(cat, []);
     map.get(cat)!.push(item);
   }
-  const ordered: { category: string; isStaple: boolean; items: GroceryItem[] }[] = [];
+  const ordered: { category: string; isStaple: boolean; items: DisplayItem[] }[] = [];
   for (const { name, isStaple } of CATEGORIES) {
     if (map.has(name)) ordered.push({ category: name, isStaple, items: map.get(name)! });
   }
-  // any unknown categories at the end
   Array.from(map.entries()).forEach(([cat, catItems]) => {
     if (!CATEGORIES.find((c) => c.name === cat)) {
       ordered.push({ category: cat, isStaple: false, items: catItems });
@@ -46,18 +47,39 @@ function groupByCategory(
   return ordered;
 }
 
+function shoppingItemToDisplay(item: ShoppingListItem): DisplayItem {
+  return {
+    name: item.ingredient.name,
+    quantity: item.quantity,
+    unit: item.unit,
+    category: item.ingredient.category,
+    shoppingListId: item.id,
+  };
+}
+
 export default function GroceryListPage() {
-  const { data, isLoading, mutate } = useSWR<GroceryItem[]>(
+  const { data: mealPlanItems, isLoading: mpLoading, mutate: mutateMp } = useSWR<GroceryItem[]>(
     "/api/grocery-list",
+    noCacheFetcher
+  );
+  const { data: shoppingListItems, isLoading: slLoading, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
+    "/api/shopping-list",
     noCacheFetcher
   );
 
   const [copied, setCopied] = useState(false);
   const [shoppingMode, setShoppingMode] = useState(false);
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
-  const [customItems, setCustomItems] = useState<GroceryItem[]>([]);
-  const [newItemName, setNewItemName] = useState("");
   const [showStaples, setShowStaples] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+
+  // Autocomplete suggestions from existing ingredients
+  const { data: suggestions } = useSWR<Ingredient[]>(
+    newItemName.trim().length >= 1
+      ? `/api/ingredients?q=${encodeURIComponent(newItemName.trim())}`
+      : null,
+    noCacheFetcher
+  );
 
   // Restore persisted shopping state once on mount
   useEffect(() => {
@@ -66,7 +88,6 @@ export default function GroceryListPage() {
       if (raw) {
         const saved: PersistedState = JSON.parse(raw);
         setCheckedKeys(new Set(saved.checkedKeys));
-        setCustomItems(saved.customItems ?? []);
         setShoppingMode(saved.shoppingMode ?? false);
         setShowStaples(saved.showStaples ?? false);
       }
@@ -75,7 +96,8 @@ export default function GroceryListPage() {
     }
   }, []);
 
-  // Persist shopping state to localStorage whenever it changes; clear it when not shopping
+  // Persist shopping state whenever it changes; clear when not shopping
+  const isLoading = mpLoading || slLoading;
   useEffect(() => {
     if (isLoading) return;
     if (!shoppingMode) {
@@ -84,17 +106,17 @@ export default function GroceryListPage() {
     }
     const state: PersistedState = {
       checkedKeys: Array.from(checkedKeys),
-      customItems,
       shoppingMode,
       showStaples,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [checkedKeys, customItems, shoppingMode, showStaples, isLoading]);
+  }, [checkedKeys, shoppingMode, showStaples, isLoading]);
 
-  const items = data ?? [];
-  const allItems = [...items, ...customItems];
+  const mpItems: DisplayItem[] = (mealPlanItems ?? []).map((i) => ({ ...i }));
+  const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
+  const allItems: DisplayItem[] = [...mpItems, ...slItems];
 
-  function formatItem(item: GroceryItem): string {
+  function formatItem(item: DisplayItem): string {
     const qty = item.quantity % 1 === 0 ? item.quantity.toString() : item.quantity.toFixed(1);
     return item.unit ? `${qty} ${item.unit} ${item.name}` : `${qty}× ${item.name}`;
   }
@@ -112,26 +134,44 @@ export default function GroceryListPage() {
   function toggleItem(key: string) {
     setCheckedKeys((prev) => {
       const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   }
 
-  function addCustomItem() {
+  async function addItem() {
     const name = newItemName.trim();
     if (!name) return;
-    setCustomItems((prev) => [...prev, { name, quantity: 1, unit: "", category: "other" }]);
     setNewItemName("");
+    await fetch("/api/shopping-list", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, quantity: 1, unit: "" }),
+    });
+    mutateSl();
   }
 
-  function exitShoppingMode() {
+  async function removeShoppingItem(id: number) {
+    await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
+    mutateSl();
+  }
+
+  async function exitShoppingMode() {
+    // Delete all checked shopping list items from the DB
+    const checkedSlItems = slItems.filter((i) => checkedKeys.has(itemKey(i)));
+    await Promise.all(
+      checkedSlItems.map((i) =>
+        fetch(`/api/shopping-list/${i.shoppingListId}`, { method: "DELETE" })
+      )
+    );
+    if (checkedSlItems.length > 0) mutateSl();
     setShoppingMode(false);
     setCheckedKeys(new Set());
-    setCustomItems([]);
+  }
+
+  async function handleRefresh() {
+    await Promise.all([mutateMp(), mutateSl()]);
   }
 
   const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
@@ -145,11 +185,11 @@ export default function GroceryListPage() {
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category)).length;
 
   return (
-    <PullToRefresh onRefresh={() => mutate()}>
+    <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Grocery List</h1>
-          {!isLoading && totalCount > 0 && !shoppingMode && (
+          {!isLoading && !shoppingMode && totalCount > 0 && (
             <Button
               variant="default"
               className="active:scale-95 transition-transform"
@@ -167,7 +207,7 @@ export default function GroceryListPage() {
               Done
             </Button>
           )}
-          {!shoppingMode && (totalCount === 0 || isLoading) && (
+          {!shoppingMode && totalCount === 0 && !isLoading && (
             <Link href="/meal-plan">
               <Button variant="outline" className="active:scale-95 transition-transform">
                 ← Meal Plan
@@ -178,17 +218,8 @@ export default function GroceryListPage() {
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
-        ) : totalCount === 0 ? (
-          <p className="text-muted-foreground">
-            No items yet.{" "}
-            <Link href="/meal-plan" className="underline">
-              Add recipes to your meal plan
-            </Link>{" "}
-            first.
-          </p>
         ) : shoppingMode ? (
           <div className="space-y-4">
-            {/* Staples toggle */}
             {stapleCount > 0 && (
               <button
                 className="text-sm text-muted-foreground underline-offset-2 underline"
@@ -198,7 +229,6 @@ export default function GroceryListPage() {
               </button>
             )}
 
-            {/* Unchecked items grouped by category */}
             {visibleGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -211,18 +241,29 @@ export default function GroceryListPage() {
                         const key = itemKey(item);
                         return (
                           <li key={key}>
-                            <button
-                              className="w-full flex items-baseline gap-2 py-3 text-left min-h-[44px] active:bg-muted transition-colors"
-                              onClick={() => toggleItem(key)}
-                            >
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-muted-foreground text-sm ml-auto">
-                                {item.quantity % 1 === 0
-                                  ? item.quantity
-                                  : item.quantity.toFixed(1)}
-                                {item.unit ? ` ${item.unit}` : ""}
-                              </span>
-                            </button>
+                            <div className="flex items-center gap-2 py-3 min-h-[44px]">
+                              <button
+                                className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
+                                onClick={() => toggleItem(key)}
+                              >
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-muted-foreground text-sm ml-auto">
+                                  {item.quantity % 1 === 0
+                                    ? item.quantity
+                                    : item.quantity.toFixed(1)}
+                                  {item.unit ? ` ${item.unit}` : ""}
+                                </span>
+                              </button>
+                              {item.shoppingListId !== undefined && (
+                                <button
+                                  className="text-muted-foreground hover:text-foreground px-1 shrink-0"
+                                  onClick={() => removeShoppingItem(item.shoppingListId!)}
+                                  aria-label={`Remove ${item.name}`}
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
                           </li>
                         );
                       })}
@@ -232,25 +273,14 @@ export default function GroceryListPage() {
               </div>
             ))}
 
-            {/* Add custom item */}
-            <div className="flex gap-2">
-              <Input
-                placeholder="Add item…"
-                value={newItemName}
-                onChange={(e) => setNewItemName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addCustomItem()}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={addCustomItem}
-                disabled={!newItemName.trim()}
-              >
-                +
-              </Button>
-            </div>
+            {/* Add item — always visible */}
+            <AddItemInput
+              value={newItemName}
+              suggestions={suggestions ?? []}
+              onChange={setNewItemName}
+              onAdd={addItem}
+            />
 
-            {/* In Trolley */}
             {checkedItems.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -288,29 +318,43 @@ export default function GroceryListPage() {
           </div>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">
-                {totalCount} item{totalCount !== 1 ? "s" : ""}
-              </p>
-              {stapleCount > 0 && (
-                <button
-                  className="text-sm text-muted-foreground underline-offset-2 underline"
-                  onClick={() => setShowStaples((v) => !v)}
-                >
-                  {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
-                </button>
-              )}
-            </div>
+            {totalCount > 0 && (
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">
+                  {totalCount} item{totalCount !== 1 ? "s" : ""}
+                </p>
+                {stapleCount > 0 && (
+                  <button
+                    className="text-sm text-muted-foreground underline-offset-2 underline"
+                    onClick={() => setShowStaples((v) => !v)}
+                  >
+                    {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
+                  </button>
+                )}
+              </div>
+            )}
 
-            <div className="flex gap-2 mb-6">
-              <Button
-                onClick={copyToClipboard}
-                variant="outline"
-                className="active:scale-95 transition-transform"
-              >
-                {copied ? "Copied!" : "Copy to clipboard"}
-              </Button>
-            </div>
+            {totalCount > 0 && (
+              <div className="flex gap-2 mb-6">
+                <Button
+                  onClick={copyToClipboard}
+                  variant="outline"
+                  className="active:scale-95 transition-transform"
+                >
+                  {copied ? "Copied!" : "Copy to clipboard"}
+                </Button>
+              </div>
+            )}
+
+            {totalCount === 0 && (
+              <p className="text-muted-foreground mb-6">
+                No meal plan items yet.{" "}
+                <Link href="/meal-plan" className="underline">
+                  Add recipes to your meal plan
+                </Link>{" "}
+                to get started, or add extras below.
+              </p>
+            )}
 
             <div className="space-y-4">
               {groupByCategory(allItems)
@@ -324,14 +368,23 @@ export default function GroceryListPage() {
                       <CardContent className="pt-4">
                         <ul className="divide-y">
                           {catItems.map((item, i) => (
-                            <li key={i} className="py-2 flex items-baseline gap-2">
-                              <span className="font-medium">{item.name}</span>
-                              <span className="text-muted-foreground text-sm ml-auto">
+                            <li key={i} className="flex items-center gap-2 py-2 min-h-[44px]">
+                              <span className="font-medium flex-1">{item.name}</span>
+                              <span className="text-muted-foreground text-sm">
                                 {item.quantity % 1 === 0
                                   ? item.quantity
                                   : item.quantity.toFixed(1)}
                                 {item.unit ? ` ${item.unit}` : ""}
                               </span>
+                              {item.shoppingListId !== undefined && (
+                                <button
+                                  className="text-muted-foreground hover:text-foreground px-1 shrink-0"
+                                  onClick={() => removeShoppingItem(item.shoppingListId!)}
+                                  aria-label={`Remove ${item.name}`}
+                                >
+                                  ×
+                                </button>
+                              )}
                             </li>
                           ))}
                         </ul>
@@ -340,9 +393,56 @@ export default function GroceryListPage() {
                   </div>
                 ))}
             </div>
+
+            {/* Add item — always visible */}
+            <div className="mt-6">
+              <AddItemInput
+                value={newItemName}
+                suggestions={suggestions ?? []}
+                onChange={setNewItemName}
+                onAdd={addItem}
+              />
+            </div>
           </>
         )}
       </div>
     </PullToRefresh>
+  );
+}
+
+function AddItemInput({
+  value,
+  suggestions,
+  onChange,
+  onAdd,
+}: {
+  value: string;
+  suggestions: Ingredient[];
+  onChange: (v: string) => void;
+  onAdd: () => void;
+}) {
+  return (
+    <div className="flex gap-2">
+      <Input
+        list="ingredient-suggestions"
+        placeholder="Add to shopping list…"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onAdd()}
+      />
+      <datalist id="ingredient-suggestions">
+        {suggestions.map((ing) => (
+          <option key={ing.id} value={ing.name} />
+        ))}
+      </datalist>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={onAdd}
+        disabled={!value.trim()}
+      >
+        +
+      </Button>
+    </div>
   );
 }

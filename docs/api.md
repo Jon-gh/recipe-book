@@ -66,6 +66,23 @@ Base64-encoded image. Claude vision extracts the recipe.
 { "recipeId": "cuid", "servings": 4 }
 ```
 
+## Shopping List
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/shopping-list` | List all user-added shopping list items |
+| POST | `/api/shopping-list` | Add an item to the shopping list |
+| DELETE | `/api/shopping-list/[id]` | Remove an item |
+
+### POST `/api/shopping-list` — body
+```json
+{ "name": "butter", "quantity": 1, "unit": "" }
+```
+`quantity` and `unit` are optional (default `1` and `""` respectively). The server resolves `name` to an `Ingredient` via case-insensitive find-or-create (same as recipe save) — category is set automatically.
+
+### GET `/api/shopping-list` — response
+Returns `ShoppingListItem[]` — each item includes the nested `ingredient` object (`id`, `name`, `category`).
+
 ## Grocery List
 
 | Method | Path | Description |

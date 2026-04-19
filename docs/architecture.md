@@ -32,13 +32,14 @@ Browser
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
-| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category, staple toggle, shopping mode with localStorage persistence and custom item add |
+| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category, staple toggle, shopping mode with localStorage persistence; persistent shopping list extras via DB |
+| `src/app/api/shopping-list/` | REST: list/add/delete persistent shopping list items |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Meal Plan / Grocery List); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
-| `prisma/schema.prisma` | DB schema: `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry` |
+| `prisma/schema.prisma` | DB schema: `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ShoppingListItem` |
 | `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
 
 ## Database Schema — Key Decisions
@@ -58,6 +59,14 @@ Browser
 
 ### `Ingredient.category` — supermarket aisle grouping
 **Why:** Ingredients are grouped by category on the grocery list so users can shop efficiently by aisle (all produce together, all meat together, etc.). Categories are defined in `src/lib/categories.ts`. Two categories (`spices & herbs`, `condiments & sauces`) are flagged `isStaple: true` and hidden by default on the grocery list — they're things you likely already have.
+
+### `ShoppingListItem` — persistent user-added grocery extras
+**Why:** Users want to add items to the grocery list at any time (not just during a shopping session) and have them persist across devices. `ShoppingListItem` links to `Ingredient` via FK so category assignment is automatic and items sort into the correct aisle. The same find-or-create logic used on recipe save is applied here.
+
+- `ShoppingListItem` holds `ingredientId`, `quantity`, and `unit` — same shape as `RecipeIngredient` minus the recipe FK.
+- Managed via `POST /api/shopping-list` and `DELETE /api/shopping-list/[id]`.
+- Displayed alongside meal-plan items on the grocery list page; × button removes them any time.
+- Pressing **Done** in shopping mode deletes any checked shopping list items from the DB.
 
 ### Cascade deletes on `Recipe`
 **Why:** Removing a recipe should clean up all dependent rows automatically. Orphaned `RecipeIngredient` and `MealPlanEntry` rows would silently corrupt the grocery list and meal plan.

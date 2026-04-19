@@ -41,6 +41,13 @@ export type GroceryItem = {
   category: string;
 };
 
+export type ShoppingListItem = {
+  id: number;
+  quantity: number;
+  unit: string;
+  ingredient: Ingredient;
+};
+
 export type RecipeFormData = {
   name: string;
   servings: number;
