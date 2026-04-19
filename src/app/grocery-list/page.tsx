@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
-import { GroceryItem, ShoppingListItem, Ingredient } from "@/types";
+import { GroceryItem, ShoppingListItem, Product } from "@/types";
 import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,10 +51,10 @@ function groupByCategory(
 
 function shoppingItemToDisplay(item: ShoppingListItem): DisplayItem {
   return {
-    name: item.ingredient.name,
+    name: item.product.name,
     quantity: item.quantity,
     unit: item.unit,
-    category: item.ingredient.category,
+    category: item.product.category,
     shoppingListId: item.id,
   };
 }
@@ -81,21 +81,25 @@ export default function GroceryListPage() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
-  // Autocomplete suggestions from existing ingredients
-  const { data: suggestions } = useSWR<Ingredient[]>(
+  // Autocomplete suggestions from existing products
+  const { data: suggestions } = useSWR<Product[]>(
     newItemName.trim().length >= 1
-      ? `/api/ingredients?q=${encodeURIComponent(newItemName.trim())}`
+      ? `/api/products?q=${encodeURIComponent(newItemName.trim())}`
       : null,
     noCacheFetcher
   );
 
-  // Auto-fill category when the typed name exactly matches an existing ingredient
+  // Auto-fill category, unit, and quantity when the typed name exactly matches a known product
   useEffect(() => {
     if (!newItemName.trim() || !suggestions?.length) return;
     const match = suggestions.find(
       (s) => s.name.toLowerCase() === newItemName.trim().toLowerCase()
     );
-    if (match) setNewItemCategory(match.category);
+    if (match) {
+      setNewItemCategory(match.category);
+      if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
+      if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+    }
   }, [newItemName, suggestions]);
 
   // Restore persisted shopping state once on mount

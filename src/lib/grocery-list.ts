@@ -4,7 +4,7 @@ export type MealPlanEntryWithRecipe = {
   targetServings: number;
   recipe: {
     servings: number;
-    ingredients: { ingredient: { name: string; category: string }; quantity: number; unit: string }[];
+    ingredients: { product: { name: string; category: string }; quantity: number; unit: string }[];
   };
 };
 
@@ -67,7 +67,7 @@ export function aggregateGroceryList(entries: MealPlanEntryWithRecipe[]): Grocer
     const factor = entry.targetServings / entry.recipe.servings;
 
     for (const ing of entry.recipe.ingredients) {
-      const { name, category } = ing.ingredient;
+      const { name, category } = ing.product;
       if (TRIVIAL_INGREDIENTS.has(name.trim().toLowerCase())) continue;
 
       const { canonical, factor: unitFactor } = normalizeUnit(ing.unit);

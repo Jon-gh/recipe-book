@@ -10,7 +10,7 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
-    ingredient: {
+    product: {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
@@ -22,7 +22,7 @@ import { GET, POST } from "@/app/api/recipes/route";
 import { GET as GET_ONE, PUT, DELETE } from "@/app/api/recipes/[id]/route";
 import { POST as DUPLICATE } from "@/app/api/recipes/[id]/duplicate/route";
 
-const mockIngredient = { id: 1, name: "pasta", category: "grains & pulses" };
+const mockProduct = { id: 1, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 500 };
 
 const mockRecipe = {
   id: "abc123",
@@ -35,14 +35,14 @@ const mockRecipe = {
   createdAt: new Date(),
   updatedAt: new Date(),
   ingredients: [
-    { id: 1, recipeId: "abc123", ingredientId: 1, quantity: 400, unit: "g", preparation: "", ingredient: mockIngredient },
+    { id: 1, recipeId: "abc123", productId: 1, quantity: 400, unit: "g", preparation: "", product: mockProduct },
   ],
 };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: ingredient already exists (find-or-create returns existing)
-  vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(mockIngredient as never);
+  // Default: product already exists (find-or-create returns existing)
+  vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
 });
 
 // ---------------------------------------------------------------------------
@@ -76,7 +76,7 @@ describe("GET /api/recipes", () => {
           OR: [
             { name: { contains: "pasta", mode: "insensitive" } },
             { tags: { has: "pasta" } },
-            { ingredients: { some: { ingredient: { name: { contains: "pasta", mode: "insensitive" } } } } },
+            { ingredients: { some: { product: { name: { contains: "pasta", mode: "insensitive" } } } } },
           ],
         }),
       })

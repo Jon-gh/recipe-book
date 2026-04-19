@@ -1,7 +1,9 @@
-export type Ingredient = {
+export type Product = {
   id: number;
   name: string;
   category: string;
+  defaultUnit: string;
+  defaultQuantity: number;
 };
 
 export type RecipeIngredient = {
@@ -9,9 +11,9 @@ export type RecipeIngredient = {
   quantity: number;
   unit: string;
   preparation: string;
-  ingredientId: number;
+  productId: number;
   recipeId: string;
-  ingredient: Ingredient;
+  product: Product;
 };
 
 export type Recipe = {
@@ -45,7 +47,7 @@ export type ShoppingListItem = {
   id: number;
   quantity: number;
   unit: string;
-  ingredient: Ingredient;
+  product: Product;
 };
 
 export type RecipeFormData = {

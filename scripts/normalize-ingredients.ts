@@ -60,7 +60,7 @@ function normalizeUnit(unit: string): { canonical: string; factor: number } {
 
 async function main() {
   const ingredients = await prisma.recipeIngredient.findMany({
-    include: { recipe: { select: { name: true } }, ingredient: true },
+    include: { recipe: { select: { name: true } }, product: true },
     orderBy: [{ recipeId: "asc" }, { id: "asc" }],
   });
 
@@ -71,7 +71,7 @@ async function main() {
   const changes: Change[] = [];
 
   for (const ing of ingredients) {
-    const ingName = ing.ingredient.name;
+    const ingName = ing.product.name;
     if (TRIVIAL_INGREDIENTS.has(ingName.trim().toLowerCase())) {
       changes.push({ type: "delete", id: ing.id, recipeName: ing.recipe.name, name: ingName, reason: "trivial ingredient" });
       continue;

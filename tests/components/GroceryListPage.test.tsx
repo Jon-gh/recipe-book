@@ -24,7 +24,7 @@ const mockShoppingItem = {
   id: 99,
   quantity: 2,
   unit: "pack",
-  ingredient: { id: 5, name: "Butter", category: "dairy & eggs" },
+  product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1 },
 };
 
 function setupFetch({

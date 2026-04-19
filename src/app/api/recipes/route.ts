@@ -3,24 +3,24 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const ingredientsInclude = { ingredients: { include: { ingredient: true } } } as const;
+const ingredientsInclude = { ingredients: { include: { product: true } } } as const;
 
 type IngredientInput = { name: string; category?: string; quantity: number; unit: string; preparation: string };
 
-// Find existing Ingredient by name (case-insensitive) or create it (first-write wins for category).
-async function resolveIngredientId(name: string, category: string): Promise<number> {
-  const existing = await prisma.ingredient.findFirst({
+// Find existing Product by name (case-insensitive) or create it (first-write wins for category).
+async function resolveProductId(name: string, category: string): Promise<number> {
+  const existing = await prisma.product.findFirst({
     where: { name: { equals: name, mode: "insensitive" } },
   });
   if (existing) return existing.id;
-  const created = await prisma.ingredient.create({ data: { name, category } });
+  const created = await prisma.product.create({ data: { name, category } });
   return created.id;
 }
 
 async function buildIngredientCreates(ingredients: IngredientInput[]) {
   return Promise.all(
     ingredients.map(async ({ name, category = "other", quantity, unit, preparation }) => ({
-      ingredientId: await resolveIngredientId(name, category),
+      productId: await resolveProductId(name, category),
       quantity,
       unit,
       preparation,
@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
         OR: [
           { name: { contains: q, mode: "insensitive" } },
           { tags: { has: q } },
-          { ingredients: { some: { ingredient: { name: { contains: q, mode: "insensitive" } } } } },
+          { ingredients: { some: { product: { name: { contains: q, mode: "insensitive" } } } } },
         ],
       }),
       ...(favourite === "true" && { favourite: true }),
