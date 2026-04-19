@@ -14,11 +14,41 @@ vi.mock("next/link", () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-const mockItems = [
+const mockMealPlanItems = [
   { name: "Pasta", quantity: 400, unit: "g", category: "grains & pulses" },
   { name: "Eggs", quantity: 4, unit: "", category: "dairy & eggs" },
   { name: "Flour", quantity: 0.5, unit: "kg", category: "baking & sweeteners" },
 ];
+
+const mockShoppingItem = {
+  id: 99,
+  quantity: 2,
+  unit: "pack",
+  ingredient: { id: 5, name: "Butter", category: "dairy & eggs" },
+};
+
+function setupFetch({
+  groceryList = mockMealPlanItems,
+  shoppingList = [] as object[],
+} = {}) {
+  mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const method = (options?.method ?? "GET").toUpperCase();
+    if (url === "/api/grocery-list") {
+      return Promise.resolve({ json: async () => groceryList });
+    }
+    if (url === "/api/shopping-list" && method === "GET") {
+      return Promise.resolve({ json: async () => shoppingList });
+    }
+    if (url === "/api/shopping-list" && method === "POST") {
+      return Promise.resolve({ status: 201, json: async () => ({}) });
+    }
+    if (/\/api\/shopping-list\/\d+/.test(url) && method === "DELETE") {
+      return Promise.resolve({ status: 204 });
+    }
+    // ingredients autocomplete
+    return Promise.resolve({ json: async () => [] });
+  });
+}
 
 function renderPage() {
   return render(
@@ -31,25 +61,24 @@ function renderPage() {
 beforeEach(() => {
   mockFetch.mockClear();
   localStorage.clear();
+  setupFetch();
 });
 
 describe("GroceryListPage", () => {
   it("shows loading state initially", () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
     renderPage();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("shows empty state when no items", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+  it("shows empty state when no items in either list", async () => {
+    setupFetch({ groceryList: [], shoppingList: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText(/No items yet/)).toBeInTheDocument();
+      expect(screen.getByText(/No meal plan items yet/)).toBeInTheDocument();
     });
   });
 
-  it("renders grocery items after loading", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("renders meal plan items after loading", async () => {
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -58,23 +87,36 @@ describe("GroceryListPage", () => {
     });
   });
 
-  it("fetches with cache: no-store to always get fresh data", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("renders shopping list items with a remove button", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("Butter")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Remove Butter" })).toBeInTheDocument();
+  });
+
+  it("meal plan items do not have a remove button", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Remove Pasta" })).not.toBeInTheDocument();
+  });
+
+  it("fetches grocery-list with cache: no-store", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
     expect(mockFetch).toHaveBeenCalledWith("/api/grocery-list", { cache: "no-store" });
   });
 
-  it("shows item count", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("item count includes both meal plan and shopping list items", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("3 items")).toBeInTheDocument();
+      expect(screen.getByText("4 items")).toBeInTheDocument();
     });
   });
 
   it("shows quantity with unit", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("400 g")).toBeInTheDocument();
@@ -82,7 +124,6 @@ describe("GroceryListPage", () => {
   });
 
   it("shows decimal quantity for fractional amounts", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("0.5 kg")).toBeInTheDocument();
@@ -90,7 +131,6 @@ describe("GroceryListPage", () => {
   });
 
   it("shows copy to clipboard button", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument();
@@ -98,20 +138,18 @@ describe("GroceryListPage", () => {
   });
 
   it("shows Copied! after clicking copy", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     Object.assign(navigator, {
       clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
     });
-
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument());
-
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Copy to clipboard" }));
     expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
   });
 
   it("groups items by category", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("grains & pulses")).toBeInTheDocument();
@@ -120,13 +158,26 @@ describe("GroceryListPage", () => {
   });
 });
 
+describe("GroceryListPage — remove shopping list item", () => {
+  it("calls DELETE when × is clicked on a shopping list item", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove Butter" }));
+
+    expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+  });
+});
+
 describe("GroceryListPage — staples", () => {
   it("hides staple items by default and shows toggle", async () => {
-    const itemsWithStaple = [
-      ...mockItems,
-      { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
-    ];
-    mockFetch.mockResolvedValue({ json: async () => itemsWithStaple });
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
+      ],
+    });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
     expect(screen.queryByText("cumin")).not.toBeInTheDocument();
@@ -134,11 +185,12 @@ describe("GroceryListPage — staples", () => {
   });
 
   it("shows staple items after clicking Show staples", async () => {
-    const itemsWithStaple = [
-      ...mockItems,
-      { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
-    ];
-    mockFetch.mockResolvedValue({ json: async () => itemsWithStaple });
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
+      ],
+    });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
     await userEvent.click(screen.getByText(/Show staples/));
@@ -148,8 +200,7 @@ describe("GroceryListPage — staples", () => {
 });
 
 describe("GroceryListPage — shopping mode", () => {
-  it("shows Start Shopping button when items are loaded, not while loading or empty", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("shows Start Shopping button when meal plan has items", async () => {
     renderPage();
     expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
     await waitFor(() => {
@@ -157,26 +208,36 @@ describe("GroceryListPage — shopping mode", () => {
     });
   });
 
-  it("does not show Start Shopping button when list is empty", async () => {
-    mockFetch.mockResolvedValue({ json: async () => [] });
+  it("shows Start Shopping button when only shopping list has items", async () => {
+    setupFetch({ groceryList: [], shoppingList: [mockShoppingItem] });
     renderPage();
-    await waitFor(() => expect(screen.getByText(/No items yet/)).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
+    });
+  });
+
+  it("does not show Start Shopping button when both lists are empty", async () => {
+    setupFetch({ groceryList: [], shoppingList: [] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText(/No meal plan items yet/)).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
   });
 
-  it("entering shopping mode shows Done and hides copy/download buttons", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("entering shopping mode shows Done and hides copy button", async () => {
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Copy to clipboard" })).not.toBeInTheDocument();
   });
 
   it("tapping an item moves it to In Trolley with strikethrough", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
@@ -186,9 +247,10 @@ describe("GroceryListPage — shopping mode", () => {
   });
 
   it("tapping a checked item unchecks it and removes In Trolley section", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
@@ -199,9 +261,10 @@ describe("GroceryListPage — shopping mode", () => {
   });
 
   it("clicking Done exits shopping mode and resets checked items", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
@@ -211,62 +274,108 @@ describe("GroceryListPage — shopping mode", () => {
     expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
-});
 
-describe("GroceryListPage — add custom items", () => {
-  it("shows Add item input in shopping mode", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
+  it("clicking Done sends DELETE for checked shopping list items", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    expect(screen.getByPlaceholderText("Add item…")).toBeInTheDocument();
-  });
-
-  it("adds a custom item when clicking +", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
 
-    await userEvent.type(screen.getByPlaceholderText("Add item…"), "Butter");
-    await userEvent.click(screen.getByRole("button", { name: "+" }));
-
-    expect(screen.getByText("Butter")).toBeInTheDocument();
-  });
-
-  it("adds a custom item when pressing Enter", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-
-    await userEvent.type(screen.getByPlaceholderText("Add item…"), "Butter{Enter}");
-
-    expect(screen.getByText("Butter")).toBeInTheDocument();
-  });
-
-  it("clears input after adding item", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-
-    await userEvent.type(screen.getByPlaceholderText("Add item…"), "Butter{Enter}");
-
-    expect(screen.getByPlaceholderText("Add item…")).toHaveValue("");
-  });
-
-  it("custom items are cleared when Done is clicked", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    await userEvent.type(screen.getByPlaceholderText("Add item…"), "Butter{Enter}");
-    expect(screen.getByText("Butter")).toBeInTheDocument();
+    // Check the shopping list item (tap the row, not the × button)
+    const butterButtons = screen.getAllByRole("button", { name: /Butter/ });
+    await userEvent.click(butterButtons[0]);
+    expect(screen.getByText("In Trolley")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(screen.queryByText("Butter")).not.toBeInTheDocument();
+    expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+  });
+
+  it("clicking Done does not DELETE meal plan items", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+
+    const deleteCalls = mockFetch.mock.calls.filter(
+      ([url, opts]: [string, RequestInit]) =>
+        url.startsWith("/api/shopping-list/") && opts?.method === "DELETE"
+    );
+    expect(deleteCalls).toHaveLength(0);
+  });
+});
+
+describe("GroceryListPage — add to shopping list", () => {
+  it("shows add input in normal mode", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(
+      screen.getByPlaceholderText("Add to shopping list…")
+    ).toBeInTheDocument();
+  });
+
+  it("shows add input in shopping mode", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    expect(screen.getByPlaceholderText("Add to shopping list…")).toBeInTheDocument();
+  });
+
+  it("POSTs new item when clicking +", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.type(screen.getByPlaceholderText("Add to shopping list…"), "Butter");
+    await userEvent.click(screen.getByRole("button", { name: "+" }));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/shopping-list",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ name: "Butter", quantity: 1, unit: "" }),
+      })
+    );
+  });
+
+  it("POSTs new item when pressing Enter", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.type(
+      screen.getByPlaceholderText("Add to shopping list…"),
+      "Butter{Enter}"
+    );
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/shopping-list",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("clears input after adding item", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.type(
+      screen.getByPlaceholderText("Add to shopping list…"),
+      "Butter{Enter}"
+    );
+
+    expect(screen.getByPlaceholderText("Add to shopping list…")).toHaveValue("");
+  });
+
+  it("+ button is disabled when input is empty", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
   });
 });
 
@@ -274,35 +383,22 @@ describe("GroceryListPage — localStorage persistence", () => {
   it("restores shopping mode from localStorage", async () => {
     const saved = {
       checkedKeys: [],
-      customItems: [],
       shoppingMode: true,
       showStaples: false,
     };
     localStorage.setItem("recipe-book:shopping", JSON.stringify(saved));
 
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument());
-  });
-
-  it("restores custom items from localStorage", async () => {
-    const saved = {
-      checkedKeys: [],
-      customItems: [{ name: "Butter", quantity: 1, unit: "", category: "other" }],
-      shoppingMode: true,
-      showStaples: false,
-    };
-    localStorage.setItem("recipe-book:shopping", JSON.stringify(saved));
-
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument()
+    );
   });
 
   it("clears localStorage when Done is clicked", async () => {
-    mockFetch.mockResolvedValue({ json: async () => mockItems });
     renderPage();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument());
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
 
