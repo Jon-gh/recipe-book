@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Product } from "@/types";
 import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple } from "@/lib/categories";
@@ -75,16 +75,22 @@ export default function GroceryListPage() {
   const [showStaples, setShowStaples] = useState(false);
 
   // Add item sheet state
+  const { mutate: globalMutate } = useSWRConfig();
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState(1);
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
-  // Debounce the autocomplete query so fetches don't fire on every keystroke
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const isSelectedRef = useRef(false);
+
+  // Debounce the autocomplete query so fetches don't fire on every keystroke.
+  // Skipped entirely after a datalist selection — re-arms on the next onChange.
   const [debouncedName, setDebouncedName] = useState("");
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (isSelectedRef.current) return;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => setDebouncedName(newItemName), 200);
     return () => {
@@ -110,6 +116,17 @@ export default function GroceryListPage() {
       setNewItemCategory(match.category);
       if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
       if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+      isSelectedRef.current = true;
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+      setDebouncedName("");
+      // Clear SWR's in-memory cache for product queries so the next search
+      // always hits the network (prevents stale cache bypassing the 200ms debounce).
+      globalMutate(
+        (key: unknown) => typeof key === "string" && key.startsWith("/api/products"),
+        undefined,
+        { revalidate: false }
+      );
+      nameInputRef.current?.blur();
     }
   }, [newItemName, suggestions]);
 
@@ -449,10 +466,11 @@ export default function GroceryListPage() {
         <div className="space-y-1">
           <label className="text-sm font-medium">Item</label>
           <Input
+            ref={nameInputRef}
             list="ingredient-suggestions"
             placeholder="e.g. butter, oat milk…"
             value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
+            onChange={(e) => { isSelectedRef.current = false; setNewItemName(e.target.value); }}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             autoFocus
           />
