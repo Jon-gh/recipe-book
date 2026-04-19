@@ -57,6 +57,15 @@ describe("GET /api/products", () => {
     );
   });
 
+  it("limits results to 10", async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue(mockProducts as never);
+    const req = new NextRequest("http://localhost/api/products");
+    await GET(req);
+    expect(prisma.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 10 })
+    );
+  });
+
   it("each product has id, name, category, defaultUnit, and defaultQuantity fields", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([mockProducts[0]] as never);
     const req = new NextRequest("http://localhost/api/products");
