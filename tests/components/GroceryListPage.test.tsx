@@ -314,45 +314,55 @@ describe("GroceryListPage — shopping mode", () => {
 });
 
 describe("GroceryListPage — add to shopping list", () => {
-  it("shows add input in normal mode", async () => {
+  it("shows FAB add button", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    expect(
-      screen.getByPlaceholderText("Add to shopping list…")
-    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add to shopping list" })).toBeInTheDocument();
   });
 
-  it("shows add input in shopping mode", async () => {
+  it("opens add sheet when FAB is clicked", async () => {
     renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+      expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
     );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    expect(screen.getByPlaceholderText("Add to shopping list…")).toBeInTheDocument();
   });
 
-  it("POSTs new item when clicking +", async () => {
+  it("POSTs new item with name, quantity, unit and category when clicking Add to List", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.type(screen.getByPlaceholderText("Add to shopping list…"), "Butter");
-    await userEvent.click(screen.getByRole("button", { name: "+" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
+    );
+
+    await userEvent.type(screen.getByPlaceholderText("e.g. butter, oat milk…"), "Butter");
+    await userEvent.click(screen.getByRole("button", { name: "Add to List" }));
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/shopping-list",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ name: "Butter", quantity: 1, unit: "" }),
+        body: JSON.stringify({ name: "Butter", quantity: 1, unit: "", category: "other" }),
       })
     );
   });
 
-  it("POSTs new item when pressing Enter", async () => {
+  it("POSTs new item when pressing Enter in the name field", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
+    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
+    );
+
     await userEvent.type(
-      screen.getByPlaceholderText("Add to shopping list…"),
+      screen.getByPlaceholderText("e.g. butter, oat milk…"),
       "Butter{Enter}"
     );
 
@@ -362,22 +372,33 @@ describe("GroceryListPage — add to shopping list", () => {
     );
   });
 
-  it("clears input after adding item", async () => {
+  it("closes sheet after adding item", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.type(
-      screen.getByPlaceholderText("Add to shopping list…"),
-      "Butter{Enter}"
+    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
     );
 
-    expect(screen.getByPlaceholderText("Add to shopping list…")).toHaveValue("");
+    await userEvent.type(screen.getByPlaceholderText("e.g. butter, oat milk…"), "Butter");
+    await userEvent.click(screen.getByRole("button", { name: "Add to List" }));
+
+    await waitFor(() =>
+      expect(screen.queryByPlaceholderText("e.g. butter, oat milk…")).not.toBeInTheDocument()
+    );
   });
 
-  it("+ button is disabled when input is empty", async () => {
+  it("Add to List button is disabled when name is empty", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "+" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Add to List" })).toBeInTheDocument()
+    );
+
+    expect(screen.getByRole("button", { name: "Add to List" })).toBeDisabled();
   });
 });
 

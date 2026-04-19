@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Ingredient } from "@/types";
-import { CATEGORIES, categoryIsStaple } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
+import BottomSheet from "@/components/BottomSheet";
+import { Plus } from "lucide-react";
 
 const STORAGE_KEY = "recipe-book:shopping";
 
@@ -71,7 +73,13 @@ export default function GroceryListPage() {
   const [shoppingMode, setShoppingMode] = useState(false);
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
+
+  // Add item sheet state
+  const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
+  const [newItemQty, setNewItemQty] = useState(1);
+  const [newItemUnit, setNewItemUnit] = useState("");
+  const [newItemCategory, setNewItemCategory] = useState("other");
 
   // Autocomplete suggestions from existing ingredients
   const { data: suggestions } = useSWR<Ingredient[]>(
@@ -80,6 +88,15 @@ export default function GroceryListPage() {
       : null,
     noCacheFetcher
   );
+
+  // Auto-fill category when the typed name exactly matches an existing ingredient
+  useEffect(() => {
+    if (!newItemName.trim() || !suggestions?.length) return;
+    const match = suggestions.find(
+      (s) => s.name.toLowerCase() === newItemName.trim().toLowerCase()
+    );
+    if (match) setNewItemCategory(match.category);
+  }, [newItemName, suggestions]);
 
   // Restore persisted shopping state once on mount
   useEffect(() => {
@@ -140,14 +157,22 @@ export default function GroceryListPage() {
     });
   }
 
+  function openAddSheet() {
+    setNewItemName("");
+    setNewItemQty(1);
+    setNewItemUnit("");
+    setNewItemCategory("other");
+    setShowAddSheet(true);
+  }
+
   async function addItem() {
     const name = newItemName.trim();
     if (!name) return;
-    setNewItemName("");
+    setShowAddSheet(false);
     await fetch("/api/shopping-list", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, quantity: 1, unit: "" }),
+      body: JSON.stringify({ name, quantity: newItemQty, unit: newItemUnit, category: newItemCategory }),
     });
     mutateSl();
   }
@@ -185,6 +210,7 @@ export default function GroceryListPage() {
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category)).length;
 
   return (
+    <>
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -273,14 +299,6 @@ export default function GroceryListPage() {
               </div>
             ))}
 
-            {/* Add item — always visible */}
-            <AddItemInput
-              value={newItemName}
-              suggestions={suggestions ?? []}
-              onChange={setNewItemName}
-              onAdd={addItem}
-            />
-
             {checkedItems.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -352,7 +370,7 @@ export default function GroceryListPage() {
                 <Link href="/meal-plan" className="underline">
                   Add recipes to your meal plan
                 </Link>{" "}
-                to get started, or add extras below.
+                to get started, or tap + to add extras.
               </p>
             )}
 
@@ -393,56 +411,88 @@ export default function GroceryListPage() {
                   </div>
                 ))}
             </div>
-
-            {/* Add item — always visible */}
-            <div className="mt-6">
-              <AddItemInput
-                value={newItemName}
-                suggestions={suggestions ?? []}
-                onChange={setNewItemName}
-                onAdd={addItem}
-              />
-            </div>
           </>
         )}
       </div>
     </PullToRefresh>
-  );
-}
 
-function AddItemInput({
-  value,
-  suggestions,
-  onChange,
-  onAdd,
-}: {
-  value: string;
-  suggestions: Ingredient[];
-  onChange: (v: string) => void;
-  onAdd: () => void;
-}) {
-  return (
-    <div className="flex gap-2">
-      <Input
-        list="ingredient-suggestions"
-        placeholder="Add to shopping list…"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && onAdd()}
-      />
-      <datalist id="ingredient-suggestions">
-        {suggestions.map((ing) => (
-          <option key={ing.id} value={ing.name} />
-        ))}
-      </datalist>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={onAdd}
-        disabled={!value.trim()}
-      >
-        +
-      </Button>
-    </div>
+    {/* FAB — outside PullToRefresh so CSS transform doesn't break position:fixed */}
+    <button
+      onClick={openAddSheet}
+      aria-label="Add to shopping list"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+    >
+      <Plus size={26} strokeWidth={2.5} />
+    </button>
+
+    <BottomSheet
+      open={showAddSheet}
+      onClose={() => setShowAddSheet(false)}
+      title="Add to Shopping List"
+    >
+      <div className="px-4 py-4 space-y-4 pb-8">
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Item</label>
+          <Input
+            list="ingredient-suggestions"
+            placeholder="e.g. butter, oat milk…"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && addItem()}
+            autoFocus
+          />
+          <datalist id="ingredient-suggestions">
+            {(suggestions ?? []).map((ing) => (
+              <option key={ing.id} value={ing.name} />
+            ))}
+          </datalist>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="flex-1 space-y-1">
+            <label className="text-sm font-medium">Quantity</label>
+            <Input
+              type="number"
+              min={0}
+              step="any"
+              value={newItemQty}
+              onChange={(e) => setNewItemQty(Number(e.target.value))}
+            />
+          </div>
+          <div className="flex-1 space-y-1">
+            <label className="text-sm font-medium">Unit</label>
+            <Input
+              placeholder="g, ml, tbsp…"
+              value={newItemUnit}
+              onChange={(e) => setNewItemUnit(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Category</label>
+          <select
+            value={newItemCategory}
+            onChange={(e) => setNewItemCategory(e.target.value)}
+            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+          >
+            {CATEGORY_NAMES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <Button
+          className="w-full"
+          onClick={addItem}
+          disabled={!newItemName.trim()}
+        >
+          Add to List
+        </Button>
+      </div>
+    </BottomSheet>
+    </>
   );
 }
