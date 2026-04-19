@@ -23,31 +23,35 @@ model Recipe {
   mealPlanEntries MealPlanEntry[]
 }
 
-model Ingredient {
+model Product {
   id                Int                @id @default(autoincrement())
   name              String             @unique
   category          String             @default("other")
+  defaultUnit       String             @default("")
+  defaultQuantity   Float              @default(1)
   recipeIngredients RecipeIngredient[]
   shoppingListItems ShoppingListItem[]
+
+  @@map("Ingredient")
 }
 
 model ShoppingListItem {
-  id           Int        @id @default(autoincrement())
-  quantity     Float      @default(1)
-  unit         String     @default("")
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
-  ingredientId Int
+  id        Int     @id @default(autoincrement())
+  quantity  Float   @default(1)
+  unit      String  @default("")
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int     @map("ingredientId")
 }
 
 model RecipeIngredient {
-  id           Int        @id @default(autoincrement())
-  quantity     Float
-  unit         String     @default("")
-  preparation  String     @default("")
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id])
-  ingredientId Int
-  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  recipeId     String
+  id          Int     @id @default(autoincrement())
+  quantity    Float
+  unit        String  @default("")
+  preparation String  @default("")
+  product     Product @relation(fields: [productId], references: [id])
+  productId   Int     @map("ingredientId")
+  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId    String
 }
 
 model MealPlanEntry {

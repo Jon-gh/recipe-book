@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
       create: vi.fn(),
       delete: vi.fn(),
     },
-    ingredient: {
+    product: {
       findFirst: vi.fn(),
       create: vi.fn(),
     },
@@ -19,8 +19,8 @@ import { GET, POST } from "@/app/api/shopping-list/route";
 import { DELETE } from "@/app/api/shopping-list/[id]/route";
 import { NextRequest } from "next/server";
 
-const mockIngredient = { id: 1, name: "garlic", category: "fruit & veg" };
-const mockItem = { id: 10, quantity: 2, unit: "clove", ingredient: mockIngredient };
+const mockProduct = { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1 };
+const mockItem = { id: 10, quantity: 2, unit: "clove", product: mockProduct };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -40,7 +40,7 @@ describe("GET /api/shopping-list", () => {
 
 describe("POST /api/shopping-list", () => {
   it("reuses an existing ingredient and creates the item", async () => {
-    vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(mockIngredient as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -51,16 +51,16 @@ describe("POST /api/shopping-list", () => {
 
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual(mockItem);
-    expect(prisma.ingredient.create).not.toHaveBeenCalled();
+    expect(prisma.product.create).not.toHaveBeenCalled();
     expect(prisma.shoppingListItem.create).toHaveBeenCalledWith({
-      data: { ingredientId: mockIngredient.id, quantity: 2, unit: "clove" },
-      include: { ingredient: true },
+      data: { productId: mockProduct.id, quantity: 2, unit: "clove" },
+      include: { product: true },
     });
   });
 
   it("creates a new ingredient when none exists, defaulting to 'other' category", async () => {
-    vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.ingredient.create).mockResolvedValue(mockIngredient as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -70,14 +70,14 @@ describe("POST /api/shopping-list", () => {
     const res = await POST(req);
 
     expect(res.status).toBe(201);
-    expect(prisma.ingredient.create).toHaveBeenCalledWith({
+    expect(prisma.product.create).toHaveBeenCalledWith({
       data: { name: "garlic", category: "other" },
     });
   });
 
   it("creates a new ingredient with the provided category", async () => {
-    vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(null);
-    vi.mocked(prisma.ingredient.create).mockResolvedValue(mockIngredient as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -86,13 +86,13 @@ describe("POST /api/shopping-list", () => {
     });
     await POST(req);
 
-    expect(prisma.ingredient.create).toHaveBeenCalledWith({
+    expect(prisma.product.create).toHaveBeenCalledWith({
       data: { name: "garlic", category: "fruit & veg" },
     });
   });
 
   it("does not update category for an existing ingredient", async () => {
-    vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(mockIngredient as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -101,11 +101,11 @@ describe("POST /api/shopping-list", () => {
     });
     await POST(req);
 
-    expect(prisma.ingredient.create).not.toHaveBeenCalled();
+    expect(prisma.product.create).not.toHaveBeenCalled();
   });
 
   it("defaults quantity to 1 and unit to empty string", async () => {
-    vi.mocked(prisma.ingredient.findFirst).mockResolvedValue(mockIngredient as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -115,8 +115,8 @@ describe("POST /api/shopping-list", () => {
     await POST(req);
 
     expect(prisma.shoppingListItem.create).toHaveBeenCalledWith({
-      data: { ingredientId: mockIngredient.id, quantity: 1, unit: "" },
-      include: { ingredient: true },
+      data: { productId: mockProduct.id, quantity: 1, unit: "" },
+      include: { product: true },
     });
   });
 

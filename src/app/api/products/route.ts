@@ -7,10 +7,10 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q");
 
-  const ingredients = await prisma.ingredient.findMany({
+  const products = await prisma.product.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
     orderBy: { name: "asc" },
   });
 
-  return NextResponse.json(ingredients);
+  return NextResponse.json(products);
 }

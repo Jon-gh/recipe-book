@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const ingredientsInclude = { ingredients: { include: { ingredient: true } } } as const;
+const ingredientsInclude = { ingredients: { include: { product: true } } } as const;
 
 type IngredientInput = { name: string; category?: string; quantity: number; unit: string; preparation: string };
 
-async function resolveIngredientId(name: string, category: string): Promise<number> {
-  const existing = await prisma.ingredient.findFirst({
+async function resolveProductId(name: string, category: string): Promise<number> {
+  const existing = await prisma.product.findFirst({
     where: { name: { equals: name, mode: "insensitive" } },
   });
   if (existing) return existing.id;
-  const created = await prisma.ingredient.create({ data: { name, category } });
+  const created = await prisma.product.create({ data: { name, category } });
   return created.id;
 }
 
 async function buildIngredientCreates(ingredients: IngredientInput[]) {
   return Promise.all(
     ingredients.map(async ({ name, category = "other", quantity, unit, preparation }) => ({
-      ingredientId: await resolveIngredientId(name, category),
+      productId: await resolveProductId(name, category),
       quantity,
       unit,
       preparation,

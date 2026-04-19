@@ -71,11 +71,11 @@ export default function RecipeForm({ initial, onClose }: Props) {
       ? {
           ...initial,
           ingredients: initial.ingredients.map((i) => ({
-            name: i.ingredient.name,
+            name: i.product.name,
             quantity: i.quantity,
             unit: i.unit,
             preparation: i.preparation,
-            category: i.ingredient.category,
+            category: i.product.category,
           })),
         }
       : importedToForm({})

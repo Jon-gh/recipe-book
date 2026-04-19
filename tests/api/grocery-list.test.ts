@@ -18,8 +18,8 @@ const entryWithRecipe = {
   recipe: {
     servings: 4,
     ingredients: [
-      { ingredient: { name: "pasta", category: "grains & pulses" }, quantity: 400, unit: "g" },
-      { ingredient: { name: "beef", category: "meat & fish" }, quantity: 500, unit: "g" },
+      { product: { name: "pasta", category: "grains & pulses" }, quantity: 400, unit: "g" },
+      { product: { name: "beef", category: "meat & fish" }, quantity: 500, unit: "g" },
     ],
   },
 };

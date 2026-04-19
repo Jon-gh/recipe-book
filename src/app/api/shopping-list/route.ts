@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const items = await prisma.shoppingListItem.findMany({
-    include: { ingredient: true },
+    include: { product: true },
     orderBy: { id: "asc" },
   });
   return NextResponse.json(items);
@@ -17,19 +17,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
 
-  // Find-or-create ingredient (case-insensitive, same as recipe save)
-  let ingredient = await prisma.ingredient.findFirst({
+  // Find-or-create product (case-insensitive, same as recipe save)
+  let product = await prisma.product.findFirst({
     where: { name: { equals: name.trim(), mode: "insensitive" } },
   });
-  if (!ingredient) {
-    ingredient = await prisma.ingredient.create({
+  if (!product) {
+    product = await prisma.product.create({
       data: { name: name.trim(), category },
     });
   }
 
   const item = await prisma.shoppingListItem.create({
-    data: { ingredientId: ingredient.id, quantity, unit },
-    include: { ingredient: true },
+    data: { productId: product.id, quantity, unit },
+    include: { product: true },
   });
 
   return NextResponse.json(item, { status: 201 });

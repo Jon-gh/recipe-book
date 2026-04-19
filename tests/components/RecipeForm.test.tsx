@@ -26,8 +26,8 @@ const mockRecipe = {
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
   ingredients: [
-    { id: 1, ingredientId: 1, quantity: 400, unit: "g", preparation: "", recipeId: "recipe-1", ingredient: { id: 1, name: "Pasta", category: "grains & pulses" } },
-    { id: 2, ingredientId: 2, quantity: 4, unit: "", preparation: "beaten", recipeId: "recipe-1", ingredient: { id: 2, name: "Eggs", category: "dairy & eggs" } },
+    { id: 1, productId: 1, quantity: 400, unit: "g", preparation: "", recipeId: "recipe-1", product: { id: 1, name: "Pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 500 } },
+    { id: 2, productId: 2, quantity: 4, unit: "", preparation: "beaten", recipeId: "recipe-1", product: { id: 2, name: "Eggs", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1 } },
   ],
 };
 
