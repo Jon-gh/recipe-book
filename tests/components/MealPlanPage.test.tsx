@@ -29,6 +29,7 @@ const mockEntries = [
     targetServings: 4,
     recipeId: "r1",
     recipe: { id: "r1", name: "Pasta", servings: 4, tags: ["Italian"], favourite: false, ingredients: [] },
+    scheduledMeals: [],
   },
 ];
 
@@ -62,7 +63,8 @@ describe("MealPlanPage", () => {
   it("renders meal plan entries after loading", async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }); // recipes
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
+      .mockResolvedValue({ ok: true, json: async () => [] }); // scheduled-meals
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -72,7 +74,8 @@ describe("MealPlanPage", () => {
   it("shows total servings summary", async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes });
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
+      .mockResolvedValue({ ok: true, json: async () => [] }); // scheduled-meals
     renderPage();
     await waitFor(() => {
       expect(screen.getByText(/1 recipe · 4 total servings/)).toBeInTheDocument();
@@ -82,9 +85,10 @@ describe("MealPlanPage", () => {
   it("filters recipe search results", async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes });
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
+      .mockResolvedValue({ ok: true, json: async () => [] }); // scheduled-meals
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "pasta");
     expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -95,8 +99,9 @@ describe("MealPlanPage", () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // initial meal-plan
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValueOnce({ status: 204, json: async () => null }) // DELETE
-      .mockResolvedValueOnce({ ok: true, json: async () => [] }); // revalidation — server returns empty list
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })          // scheduled-meals
+      .mockResolvedValueOnce({ status: 204, json: async () => null })     // DELETE
+      .mockResolvedValue({ ok: true, json: async () => [] });             // revalidations
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
@@ -116,16 +121,18 @@ describe("MealPlanPage", () => {
       targetServings: 4,
       recipeId: "r1",
       recipe: mockRecipes[0],
+      scheduledMeals: [],
     };
 
     mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })         // initial meal-plan
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })          // initial meal-plan
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValueOnce({ ok: true, json: async () => newEntry })   // POST response
-      .mockResolvedValueOnce({ ok: true, json: async () => [newEntry] }); // revalidation — server returns new entry
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })          // scheduled-meals
+      .mockResolvedValueOnce({ ok: true, json: async () => newEntry })    // POST response
+      .mockResolvedValue({ ok: true, json: async () => [newEntry] });     // revalidations
 
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "Pasta");
     await userEvent.click(screen.getByText("Pasta"));

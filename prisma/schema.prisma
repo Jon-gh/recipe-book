@@ -55,8 +55,18 @@ model RecipeIngredient {
 }
 
 model MealPlanEntry {
-  id             Int    @id @default(autoincrement())
+  id             Int             @id @default(autoincrement())
   targetServings Int
-  recipe         Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe         Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeId       String
+  scheduledMeals ScheduledMeal[]
+}
+
+model ScheduledMeal {
+  id              Int           @id @default(autoincrement())
+  date            DateTime      @db.Date
+  mealType        String
+  servings        Int
+  mealPlanEntry   MealPlanEntry @relation(fields: [mealPlanEntryId], references: [id], onDelete: Cascade)
+  mealPlanEntryId Int
 }
