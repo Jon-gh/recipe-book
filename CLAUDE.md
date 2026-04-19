@@ -80,7 +80,13 @@ Browser
   → /api/* route handlers → Prisma ORM → Neon Postgres
   → /api/recipes/import/* → Anthropic SDK → Claude Haiku (AI extraction)
   → /api/grocery-list → src/lib/grocery-list.ts (scale + aggregate ingredients)
+  → /api/ingredients → list/search shared Ingredient records
 ```
+
+## Key Design Decisions
+
+### `Ingredient` is a shared canonical entity
+`Ingredient` (id, name, category) is normalised out of `RecipeIngredient` so the same ingredient is represented once across all recipes. `RecipeIngredient` holds only the per-recipe fields: `quantity`, `unit`, `preparation`, and `ingredientId` (FK). On recipe save the API resolves ingredient name → `Ingredient` via case-insensitive find-or-create; **first-write wins** for category — later imports never overwrite an existing ingredient's category. See `docs/architecture.md` for full detail.
 
 ## Key Gotchas
 

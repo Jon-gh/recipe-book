@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+const ingredientsInclude = { ingredients: { include: { ingredient: true } } } as const;
+
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const original = await prisma.recipe.findUnique({
     where: { id: params.id },
-    include: { ingredients: true },
+    include: ingredientsInclude,
   });
 
   if (!original) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -16,10 +18,10 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
       ...recipeData,
       name: `${original.name} (copy)`,
       ingredients: {
-        create: ingredients.map(({ id: _iid, recipeId: _rid, ...ing }) => ing),
+        create: ingredients.map(({ id: _iid, recipeId: _rid, ingredient: _ing, ...ing }) => ing),
       },
     },
-    include: { ingredients: true },
+    include: ingredientsInclude,
   });
 
   return NextResponse.json(duplicate, { status: 201 });

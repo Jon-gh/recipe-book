@@ -1,11 +1,17 @@
-export type RecipeIngredient = {
+export type Ingredient = {
   id: number;
   name: string;
+  category: string;
+};
+
+export type RecipeIngredient = {
+  id: number;
   quantity: number;
   unit: string;
   preparation: string;
-  category: string;
+  ingredientId: number;
   recipeId: string;
+  ingredient: Ingredient;
 };
 
 export type Recipe = {

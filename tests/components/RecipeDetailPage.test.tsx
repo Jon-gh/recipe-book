@@ -32,7 +32,7 @@ const mockRecipe = {
   servings: 4,
   tags: ["Italian"],
   favourite: false,
-  ingredients: [{ id: "i1", name: "eggs", quantity: 3, unit: "", preparation: "", category: "other" }],
+  ingredients: [{ id: 1, ingredientId: 1, quantity: 3, unit: "", preparation: "", recipeId: "1", ingredient: { id: 1, name: "eggs", category: "other" } }],
   instructions: "Cook pasta.",
   notes: null,
 };

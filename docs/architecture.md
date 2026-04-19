@@ -17,13 +17,14 @@ Browser
 
 | Path | Purpose |
 |------|---------|
-| `src/types.ts` | Shared TypeScript types: `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
+| `src/types.ts` | Shared TypeScript types: `Ingredient`, `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
 | `src/lib/prisma.ts` | Prisma client singleton — prevents too-many-connections in dev/serverless |
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
 | `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper |
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
 | `src/app/api/recipes/` | REST: list/create, get/update/delete, duplicate, import (text/url/image) |
+| `src/app/api/ingredients/` | GET — list/search all shared `Ingredient` records |
 | `src/app/api/meal-plan/` | REST: list entries, add entry, delete entry |
 | `src/app/api/grocery-list/` | GET — aggregated grocery list; `force-dynamic` to bypass Next.js Data Cache |
 | `src/app/recipes/` | Recipe list page (search + favourite filter) |
@@ -37,19 +38,26 @@ Browser
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Meal Plan / Grocery List); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
-| `prisma/schema.prisma` | DB schema: `Recipe`, `RecipeIngredient`, `MealPlanEntry` |
+| `prisma/schema.prisma` | DB schema: `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry` |
 | `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
 
 ## Database Schema — Key Decisions
 
-### `RecipeIngredient.preparation` is a separate field
-**Why:** Grocery list aggregation groups by `name + unit` only. If preparation ("diced", "sliced") were part of `name`, the same ingredient with different preps would not merge — resulting in duplicate line items on the grocery list.
+### `Ingredient` — shared canonical ingredient entity
+**Why:** Ingredients are normalised into their own table so the same ingredient (e.g. "garlic") is represented once, shared across all recipes. This enables: (1) consistent category assignment across recipes, (2) a foundation for custom grocery basket items that reference real ingredients rather than free-text strings.
 
-### `RecipeIngredient.category` — supermarket aisle grouping
+- `Ingredient.name` has a `@unique` constraint — one canonical record per ingredient name.
+- `Ingredient.category` is set on first creation and never overwritten by later recipe imports (**first-write wins**). This prevents a new recipe import from silently reclassifying an ingredient globally.
+- Claude assigns categories automatically on AI import (prompt includes the valid list); manual entry gets a dropdown in the form.
+- `category` defaults to `"other"`.
+
+**Ingredient resolution on recipe save:** The API performs a case-insensitive lookup by name. If a matching `Ingredient` exists it is reused; otherwise a new one is created. The `RecipeFormData` sent from the client still uses `{name, category, quantity, unit, preparation}` objects — the server handles the resolution transparently.
+
+### `RecipeIngredient.preparation` is a separate field
+**Why:** Grocery list aggregation groups by `ingredient.name + unit` only. If preparation ("diced", "sliced") were part of the ingredient name, the same ingredient with different preps would not merge — resulting in duplicate line items on the grocery list.
+
+### `Ingredient.category` — supermarket aisle grouping
 **Why:** Ingredients are grouped by category on the grocery list so users can shop efficiently by aisle (all produce together, all meat together, etc.). Categories are defined in `src/lib/categories.ts`. Two categories (`spices & herbs`, `condiments & sauces`) are flagged `isStaple: true` and hidden by default on the grocery list — they're things you likely already have.
-- Claude assigns categories automatically on AI import (prompt includes the valid list)
-- Manual entry gets a dropdown in the ingredient form
-- `category` defaults to `"other"` in the DB so existing records are unaffected
 
 ### Cascade deletes on `Recipe`
 **Why:** Removing a recipe should clean up all dependent rows automatically. Orphaned `RecipeIngredient` and `MealPlanEntry` rows would silently corrupt the grocery list and meal plan.

@@ -154,7 +154,7 @@ export default function RecipeDetailPage() {
                 {ing.quantity} {ing.unit}
               </span>
               <span>
-                {ing.name}
+                {ing.ingredient.name}
                 {ing.preparation ? `, ${ing.preparation}` : ""}
               </span>
             </li>
