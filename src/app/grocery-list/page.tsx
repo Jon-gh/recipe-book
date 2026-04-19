@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Product } from "@/types";
@@ -13,9 +13,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import { Plus } from "lucide-react";
 
-const STORAGE_KEY = "recipe-book:shopping";
-
-type PersistedState = {
+type SessionState = {
   checkedKeys: string[];
   shoppingMode: boolean;
   showStaples: boolean;
@@ -68,11 +66,16 @@ export default function GroceryListPage() {
     "/api/shopping-list",
     noCacheFetcher
   );
+  const { data: sessionData, isLoading: sessionLoading } = useSWR<SessionState>(
+    "/api/shopping-session",
+    noCacheFetcher
+  );
 
   const [copied, setCopied] = useState(false);
   const [shoppingMode, setShoppingMode] = useState(false);
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
+  const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Add item sheet state
   const { mutate: globalMutate } = useSWRConfig();
@@ -130,36 +133,36 @@ export default function GroceryListPage() {
     }
   }, [newItemName, suggestions]);
 
-  // Restore persisted shopping state once on mount
+  // Restore session state from server once loaded
+  const sessionInitialised = useRef(false);
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const saved: PersistedState = JSON.parse(raw);
-        setCheckedKeys(new Set(saved.checkedKeys));
-        setShoppingMode(saved.shoppingMode ?? false);
-        setShowStaples(saved.showStaples ?? false);
-      }
-    } catch {
-      // ignore malformed localStorage
-    }
-  }, []);
+    if (sessionLoading || !sessionData || sessionInitialised.current) return;
+    sessionInitialised.current = true;
+    setCheckedKeys(new Set(sessionData.checkedKeys));
+    setShoppingMode(sessionData.shoppingMode);
+    setShowStaples(sessionData.showStaples);
+  }, [sessionData, sessionLoading]);
 
-  // Persist shopping state whenever it changes; clear when not shopping
-  const isLoading = mpLoading || slLoading;
-  useEffect(() => {
-    if (isLoading) return;
-    if (!shoppingMode) {
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-    const state: PersistedState = {
-      checkedKeys: Array.from(checkedKeys),
-      shoppingMode,
-      showStaples,
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [checkedKeys, shoppingMode, showStaples, isLoading]);
+  // Sync session state to server (debounced 800ms)
+  const isLoading = mpLoading || slLoading || sessionLoading;
+  const syncSession = useCallback(
+    (keys: Set<string>, mode: boolean, staples: boolean) => {
+      if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
+      sessionSyncTimer.current = setTimeout(() => {
+        const body: SessionState = {
+          checkedKeys: Array.from(keys),
+          shoppingMode: mode,
+          showStaples: staples,
+        };
+        fetch("/api/shopping-session", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+      }, 800);
+    },
+    []
+  );
 
   const mpItems: DisplayItem[] = (mealPlanItems ?? []).map((i) => ({ ...i }));
   const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
@@ -185,6 +188,7 @@ export default function GroceryListPage() {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
+      syncSession(next, shoppingMode, showStaples);
       return next;
     });
   }
@@ -225,6 +229,7 @@ export default function GroceryListPage() {
     if (checkedSlItems.length > 0) mutateSl();
     setShoppingMode(false);
     setCheckedKeys(new Set());
+    syncSession(new Set(), false, showStaples);
   }
 
   async function handleRefresh() {
@@ -251,7 +256,7 @@ export default function GroceryListPage() {
             <Button
               variant="default"
               className="active:scale-95 transition-transform"
-              onClick={() => setShoppingMode(true)}
+              onClick={() => { setShoppingMode(true); syncSession(checkedKeys, true, showStaples); }}
             >
               Start Shopping
             </Button>
@@ -281,7 +286,7 @@ export default function GroceryListPage() {
             {stapleCount > 0 && (
               <button
                 className="text-sm text-muted-foreground underline-offset-2 underline"
-                onClick={() => setShowStaples((v) => !v)}
+                onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, shoppingMode, next); }}
               >
                 {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
               </button>
