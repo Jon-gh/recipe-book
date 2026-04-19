@@ -304,8 +304,10 @@ describe("GroceryListPage — shopping mode", () => {
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
 
     const deleteCalls = mockFetch.mock.calls.filter(
-      ([url, opts]: [string, RequestInit]) =>
-        url.startsWith("/api/shopping-list/") && opts?.method === "DELETE"
+      (args: unknown[]) =>
+        typeof args[0] === "string" &&
+        args[0].startsWith("/api/shopping-list/") &&
+        (args[1] as RequestInit)?.method === "DELETE"
     );
     expect(deleteCalls).toHaveLength(0);
   });

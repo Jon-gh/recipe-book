@@ -170,9 +170,8 @@ export default function GroceryListPage() {
     setCheckedKeys(new Set());
   }
 
-  function handleRefresh() {
-    mutateMp();
-    mutateSl();
+  async function handleRefresh() {
+    await Promise.all([mutateMp(), mutateSl()]);
   }
 
   const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
