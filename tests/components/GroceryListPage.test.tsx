@@ -27,9 +27,12 @@ const mockShoppingItem = {
   product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1 },
 };
 
+const defaultSession = { id: "session", checkedKeys: [], shoppingMode: false, showStaples: false };
+
 function setupFetch({
   groceryList = mockMealPlanItems,
   shoppingList = [] as object[],
+  session = defaultSession as object,
 } = {}) {
   mockFetch.mockImplementation((url: string, options?: RequestInit) => {
     const method = (options?.method ?? "GET").toUpperCase();
@@ -44,6 +47,12 @@ function setupFetch({
     }
     if (/\/api\/shopping-list\/\d+/.test(url) && method === "DELETE") {
       return Promise.resolve({ status: 204 });
+    }
+    if (url === "/api/shopping-session" && method === "GET") {
+      return Promise.resolve({ json: async () => session });
+    }
+    if (url === "/api/shopping-session" && method === "PUT") {
+      return Promise.resolve({ json: async () => session });
     }
     // ingredients autocomplete
     return Promise.resolve({ json: async () => [] });
@@ -402,22 +411,32 @@ describe("GroceryListPage — add to shopping list", () => {
   });
 });
 
-describe("GroceryListPage — localStorage persistence", () => {
-  it("restores shopping mode from localStorage", async () => {
-    const saved = {
-      checkedKeys: [],
-      shoppingMode: true,
-      showStaples: false,
-    };
-    localStorage.setItem("recipe-book:shopping", JSON.stringify(saved));
-
+describe("GroceryListPage — server session persistence", () => {
+  it("restores shopping mode from server session", async () => {
+    setupFetch({ session: { id: "session", checkedKeys: [], shoppingMode: true, showStaples: false } });
     renderPage();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument()
     );
   });
 
-  it("clears localStorage when Done is clicked", async () => {
+  it("sends PUT to server when Start Shopping is clicked", async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await waitFor(
+      () =>
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/shopping-session",
+          expect.objectContaining({ method: "PUT" })
+        ),
+      { timeout: 2000 }
+    );
+  });
+
+  it("sends PUT with shoppingMode false when Done is clicked", async () => {
     renderPage();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
@@ -425,6 +444,19 @@ describe("GroceryListPage — localStorage persistence", () => {
     await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
     await userEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(localStorage.getItem("recipe-book:shopping")).toBeNull();
+    await waitFor(
+      () => {
+        const putCalls = mockFetch.mock.calls.filter(
+          (args: unknown[]) =>
+            args[0] === "/api/shopping-session" &&
+            (args[1] as RequestInit)?.method === "PUT"
+        );
+        expect(putCalls.length).toBeGreaterThan(0);
+        const lastBody = JSON.parse(putCalls[putCalls.length - 1][1].body as string);
+        expect(lastBody.shoppingMode).toBe(false);
+        expect(lastBody.checkedKeys).toEqual([]);
+      },
+      { timeout: 2000 }
+    );
   });
 });

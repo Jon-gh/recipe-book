@@ -70,3 +70,11 @@ model ScheduledMeal {
   mealPlanEntry   MealPlanEntry @relation(fields: [mealPlanEntryId], references: [id], onDelete: Cascade)
   mealPlanEntryId Int
 }
+
+model ShoppingSession {
+  id           String   @id @default("session")
+  checkedKeys  String[] @default([])
+  shoppingMode Boolean  @default(false)
+  showStaples  Boolean  @default(false)
+  updatedAt    DateTime @updatedAt
+}
