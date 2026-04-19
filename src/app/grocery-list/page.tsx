@@ -82,11 +82,14 @@ export default function GroceryListPage() {
   const [newItemCategory, setNewItemCategory] = useState("other");
 
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const isSelectedRef = useRef(false);
 
-  // Debounce the autocomplete query so fetches don't fire on every keystroke
+  // Debounce the autocomplete query so fetches don't fire on every keystroke.
+  // Skipped entirely after a datalist selection — re-arms on the next onChange.
   const [debouncedName, setDebouncedName] = useState("");
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
+    if (isSelectedRef.current) return;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => setDebouncedName(newItemName), 200);
     return () => {
@@ -112,6 +115,7 @@ export default function GroceryListPage() {
       setNewItemCategory(match.category);
       if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
       if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+      isSelectedRef.current = true;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       setDebouncedName("");
       nameInputRef.current?.blur();
@@ -458,7 +462,7 @@ export default function GroceryListPage() {
             list="ingredient-suggestions"
             placeholder="e.g. butter, oat milk…"
             value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
+            onChange={(e) => { isSelectedRef.current = false; setNewItemName(e.target.value); }}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
             autoFocus
           />
