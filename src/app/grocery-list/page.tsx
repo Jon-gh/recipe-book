@@ -81,6 +81,8 @@ export default function GroceryListPage() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
   // Debounce the autocomplete query so fetches don't fire on every keystroke
   const [debouncedName, setDebouncedName] = useState("");
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -110,6 +112,8 @@ export default function GroceryListPage() {
       setNewItemCategory(match.category);
       if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
       if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+      setDebouncedName("");
+      nameInputRef.current?.blur();
     }
   }, [newItemName, suggestions]);
 
@@ -449,6 +453,7 @@ export default function GroceryListPage() {
         <div className="space-y-1">
           <label className="text-sm font-medium">Item</label>
           <Input
+            ref={nameInputRef}
             list="ingredient-suggestions"
             placeholder="e.g. butter, oat milk…"
             value={newItemName}
