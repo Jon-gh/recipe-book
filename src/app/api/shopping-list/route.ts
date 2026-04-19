@@ -12,7 +12,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const { name, quantity = 1, unit = "" } = await req.json();
+  const { name, quantity = 1, unit = "", category = "other" } = await req.json();
   if (!name?.trim()) {
     return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   });
   if (!ingredient) {
     ingredient = await prisma.ingredient.create({
-      data: { name: name.trim(), category: "other" },
+      data: { name: name.trim(), category },
     });
   }
 
