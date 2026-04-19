@@ -3,6 +3,19 @@
 ## What
 All API routes live under `src/app/api/`. They are Next.js App Router route handlers and run as Vercel serverless functions in production. All routes return JSON.
 
+## Ingredients
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/ingredients` | List all shared ingredient records |
+
+### GET `/api/ingredients` — query params
+| Param | Type | Description |
+|-------|------|-------------|
+| `q` | string | Case-insensitive search on ingredient name |
+
+Ingredients are the canonical, shared entities referenced by recipe ingredients. The same `Ingredient` record (e.g. "garlic") is reused across all recipes that contain it. Results are sorted alphabetically by name.
+
 ## Recipes
 
 | Method | Path | Description |

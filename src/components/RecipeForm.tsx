@@ -68,7 +68,16 @@ export default function RecipeForm({ initial, onClose }: Props) {
 
   const [form, setForm] = useState<RecipeFormData>(
     initial
-      ? { ...initial, ingredients: initial.ingredients.map((i) => ({ ...i })) }
+      ? {
+          ...initial,
+          ingredients: initial.ingredients.map((i) => ({
+            name: i.ingredient.name,
+            quantity: i.quantity,
+            unit: i.unit,
+            preparation: i.preparation,
+            category: i.ingredient.category,
+          })),
+        }
       : importedToForm({})
   );
   const [tagsInput, setTagsInput] = useState(initial?.tags.join(", ") ?? "");
