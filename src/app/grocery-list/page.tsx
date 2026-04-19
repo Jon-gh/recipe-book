@@ -112,6 +112,7 @@ export default function GroceryListPage() {
       setNewItemCategory(match.category);
       if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
       if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
       setDebouncedName("");
       nameInputRef.current?.blur();
     }
