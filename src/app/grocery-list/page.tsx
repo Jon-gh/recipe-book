@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Product } from "@/types";
@@ -81,10 +81,21 @@ export default function GroceryListPage() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
+  // Debounce the autocomplete query so fetches don't fire on every keystroke
+  const [debouncedName, setDebouncedName] = useState("");
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => setDebouncedName(newItemName), 200);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [newItemName]);
+
   // Autocomplete suggestions from existing products
   const { data: suggestions } = useSWR<Product[]>(
-    newItemName.trim().length >= 1
-      ? `/api/products?q=${encodeURIComponent(newItemName.trim())}`
+    debouncedName.trim().length >= 1
+      ? `/api/products?q=${encodeURIComponent(debouncedName.trim())}`
       : null,
     noCacheFetcher
   );
