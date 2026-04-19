@@ -27,7 +27,7 @@ Rules:
 - preparation describes how to prepare the ingredient; use "" if none
 - instructions must be newline-separated steps
 - tags must be a list of 1-5 lowercase category keywords
-- category must be exactly one of: "fruit & veg", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "canned & jarred", "nuts & seeds", "baking & sweeteners", "condiments & sauces", "spices & herbs", "other"
+- category must be exactly one of: "fruit & veg", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "canned & jarred", "nuts & seeds", "baking & sweeteners", "condiments & sauces", "spices & herbs", "personal care", "household & cleaning", "health & pharmacy", "pet care", "other"
 - Omit water and other universally available household basics (e.g. tap water, ice) from the ingredients list
 - If a detail is unclear, make a reasonable culinary estimate
 

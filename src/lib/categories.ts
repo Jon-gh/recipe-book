@@ -13,6 +13,10 @@ export const CATEGORIES: Category[] = [
   { name: "baking & sweeteners", isStaple: false },
   { name: "condiments & sauces", isStaple: true },
   { name: "spices & herbs", isStaple: true },
+  { name: "personal care", isStaple: false },
+  { name: "household & cleaning", isStaple: false },
+  { name: "health & pharmacy", isStaple: false },
+  { name: "pet care", isStaple: false },
   { name: "other", isStaple: false },
 ];
 
