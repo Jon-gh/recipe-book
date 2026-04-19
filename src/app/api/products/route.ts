@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
   const products = await prisma.product.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
     orderBy: { name: "asc" },
+    take: 10,
   });
 
   return NextResponse.json(products);
