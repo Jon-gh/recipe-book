@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import useSWR from "swr";
+import { useEffect, useMemo, useRef, useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { CalendarDays, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react
 import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
+import StartNewWeekWizard from "@/components/StartNewWeekWizard";
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 
@@ -55,6 +56,25 @@ export default function MealPlanPage() {
     fetcher
   );
 
+  const { mutate: globalMutate } = useSWRConfig();
+
+  // ── new week wizard state ───────────────────────────────────────────────────
+  const [showNewWeekWizard, setShowNewWeekWizard] = useState(false);
+
+  async function handleWizardClose(result?: { weekStart: string; weekEnd: string }) {
+    setShowNewWeekWizard(false);
+    if (result) {
+      setScheduleFrom(result.weekStart);
+      setScheduleTo(result.weekEnd);
+    }
+    await Promise.all([
+      mutateEntries(),
+      mutateSchedule(),
+      globalMutate("/api/shopping-list"),
+      globalMutate("/api/shopping-session"),
+    ]);
+  }
+
   // ── basket state ────────────────────────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
@@ -88,9 +108,24 @@ export default function MealPlanPage() {
     mutate: mutateSchedule,
   } = useSWR<ScheduledMeal[]>(scheduleKey, fetcher);
 
-  const { data: sessionData } = useSWR<{ checkedKeys: string[] }>(
-    "/api/shopping-session",
-    fetcher
+  const { data: sessionData } = useSWR<{
+    checkedKeys: string[];
+    weekStart: string | null;
+    weekEnd: string | null;
+  }>("/api/shopping-session", fetcher);
+
+  const sessionApplied = useRef(false);
+  useEffect(() => {
+    if (sessionApplied.current || !sessionData) return;
+    sessionApplied.current = true;
+    if (sessionData.weekStart) setScheduleFrom(sessionData.weekStart.slice(0, 10));
+    if (sessionData.weekEnd) setScheduleTo(sessionData.weekEnd.slice(0, 10));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionData]);
+
+  const checkedKeys = useMemo(
+    () => new Set(sessionData?.checkedKeys ?? []),
+    [sessionData]
   );
 
   const checkedNames = useMemo(() => {
@@ -249,16 +284,26 @@ export default function MealPlanPage() {
       <div>
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-2xl font-bold">Meal Plan</h1>
-          <Link href="/grocery-list">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               className="gap-1.5 active:scale-95 transition-transform"
+              onClick={() => setShowNewWeekWizard(true)}
             >
-              <ShoppingCart size={15} />
-              Grocery List
+              New Week
             </Button>
-          </Link>
+            <Link href="/grocery-list">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 active:scale-95 transition-transform"
+              >
+                <ShoppingCart size={15} />
+                Grocery List
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* ── Basket: search + add ─────────────────────────────────────────── */}
@@ -540,6 +585,15 @@ export default function MealPlanPage() {
             </div>
           </>
         )}
+
+        {/* ── New week wizard ──────────────────────────────────────────────── */}
+        <StartNewWeekWizard
+          open={showNewWeekWizard}
+          entries={entries ?? []}
+          recipes={recipes ?? []}
+          checkedKeys={checkedKeys}
+          onClose={handleWizardClose}
+        />
 
         {/* ── Add slot bottom sheet ─────────────────────────────────────────── */}
         {slotDate && slotMealType && (

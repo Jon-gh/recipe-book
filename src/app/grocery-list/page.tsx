@@ -20,7 +20,8 @@ type SessionState = {
 
 type DisplayItem = GroceryItem & { shoppingListId?: number };
 
-function itemKey(item: { name: string; unit: string }): string {
+function itemKey(item: { name: string; unit: string; shoppingListId?: number }): string {
+  if (item.shoppingListId != null) return `sl_${item.shoppingListId}`;
   return `${item.name.toLowerCase()}__${item.unit.toLowerCase()}`;
 }
 
