@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
+import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
 
 // ── date helpers ──────────────────────────────────────────────────────────────
@@ -86,6 +87,27 @@ export default function MealPlanPage() {
     data: scheduledMeals,
     mutate: mutateSchedule,
   } = useSWR<ScheduledMeal[]>(scheduleKey, fetcher);
+
+  const { data: sessionData } = useSWR<{ checkedKeys: string[] }>(
+    "/api/shopping-session",
+    fetcher
+  );
+
+  const checkedNames = useMemo(() => {
+    const names = new Set<string>();
+    for (const key of sessionData?.checkedKeys ?? []) {
+      names.add(key.split("__")[0]);
+    }
+    return names;
+  }, [sessionData]);
+
+  function isReadyToCook(entry: MealPlanEntry): boolean {
+    const nonStaple = entry.recipe.ingredients.filter(
+      (i) => !categoryIsStaple(i.product?.category ?? "other")
+    );
+    if (nonStaple.length === 0) return false;
+    return nonStaple.every((i) => checkedNames.has(i.product.name.toLowerCase()));
+  }
 
   // ── basket helpers ──────────────────────────────────────────────────────────
   const showDropdown = searchFocused && search.length > 0 && !selectedRecipe;
@@ -355,15 +377,23 @@ export default function MealPlanPage() {
             <div className="border rounded-xl overflow-hidden divide-y mb-8">
               {entries!.map((entry) => {
                 const allocated = allocatedForEntry(entry.id);
+                const ready = isReadyToCook(entry);
                 return (
-                  <div key={entry.id} className="flex items-center gap-3 px-4 py-3">
+                  <div key={entry.id} className={`flex items-center gap-3 px-4 py-3 ${ready ? "bg-green-50 dark:bg-green-950/20" : ""}`}>
                     <div className="flex-1 min-w-0">
-                      <Link
-                        href={`/recipes/${entry.recipe.id}`}
-                        className="font-medium text-sm leading-snug hover:underline line-clamp-1"
-                      >
-                        {entry.recipe.name}
-                      </Link>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Link
+                          href={`/recipes/${entry.recipe.id}`}
+                          className="font-medium text-sm leading-snug hover:underline line-clamp-1"
+                        >
+                          {entry.recipe.name}
+                        </Link>
+                        {ready && (
+                          <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full">
+                            Ready
+                          </span>
+                        )}
+                      </div>
                       {entry.recipe.tags.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {entry.recipe.tags.slice(0, 3).map((tag) => (

@@ -6,7 +6,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const entry = await prisma.mealPlanEntry.update({
     where: { id: parseInt(params.id) },
     data: { targetServings },
-    include: { recipe: { include: { ingredients: true } }, scheduledMeals: true },
+    include: { recipe: { include: { ingredients: { include: { product: true } } } }, scheduledMeals: true },
   });
   return NextResponse.json(entry);
 }
