@@ -130,25 +130,6 @@ describe("GroceryListPage", () => {
     });
   });
 
-  it("shows copy to clipboard button", async () => {
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument();
-    });
-  });
-
-  it("shows Copied! after clicking copy", async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-    });
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Copy to clipboard" }));
-    expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
-  });
-
   it("groups items by category", async () => {
     renderPage();
     await waitFor(() => {

@@ -69,7 +69,6 @@ export default function GroceryListPage() {
     noCacheFetcher
   );
 
-  const [copied, setCopied] = useState(false);
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -150,21 +149,6 @@ export default function GroceryListPage() {
   const mpItems: DisplayItem[] = (mealPlanItems ?? []).map((i) => ({ ...i }));
   const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
   const allItems: DisplayItem[] = [...mpItems, ...slItems];
-
-  function formatItem(item: DisplayItem): string {
-    const qty = item.quantity % 1 === 0 ? item.quantity.toString() : item.quantity.toFixed(1);
-    return item.unit ? `${qty} ${item.unit} ${item.name}` : `${qty}× ${item.name}`;
-  }
-
-  function toPlainText(): string {
-    return allItems.map(formatItem).join("\n");
-  }
-
-  async function copyToClipboard() {
-    await navigator.clipboard.writeText(toPlainText());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
 
   function toggleItem(key: string) {
     setCheckedKeys((prev) => {
@@ -254,25 +238,13 @@ export default function GroceryListPage() {
           <p className="text-muted-foreground">Loading…</p>
         ) : (
           <div className="space-y-4">
-            {totalCount > 0 && (
-              <div className="flex items-center justify-between">
-                <Button
-                  onClick={copyToClipboard}
-                  variant="outline"
-                  size="sm"
-                  className="active:scale-95 transition-transform"
-                >
-                  {copied ? "Copied!" : "Copy to clipboard"}
-                </Button>
-                {stapleCount > 0 && (
-                  <button
-                    className="text-sm text-muted-foreground underline-offset-2 underline"
-                    onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, next); }}
-                  >
-                    {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
-                  </button>
-                )}
-              </div>
+            {totalCount > 0 && stapleCount > 0 && (
+              <button
+                className="text-sm text-muted-foreground underline-offset-2 underline"
+                onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, next); }}
+              >
+                {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
+              </button>
             )}
 
             {totalCount === 0 && (
