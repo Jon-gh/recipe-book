@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const entries = await prisma.mealPlanEntry.findMany({
-    include: { recipe: { include: { ingredients: true } }, scheduledMeals: true },
+    include: { recipe: { include: { ingredients: { include: { product: true } } } }, scheduledMeals: true },
     orderBy: { id: "asc" },
   });
 
@@ -23,14 +23,14 @@ export async function POST(req: NextRequest) {
     const entry = await prisma.mealPlanEntry.update({
       where: { id: existing.id },
       data: { targetServings: existing.targetServings + targetServings },
-      include: { recipe: { include: { ingredients: true } }, scheduledMeals: true },
+      include: { recipe: { include: { ingredients: { include: { product: true } } } }, scheduledMeals: true },
     });
     return NextResponse.json(entry);
   }
 
   const entry = await prisma.mealPlanEntry.create({
     data: { recipeId, targetServings },
-    include: { recipe: { include: { ingredients: true } }, scheduledMeals: true },
+    include: { recipe: { include: { ingredients: { include: { product: true } } } }, scheduledMeals: true },
   });
 
   return NextResponse.json(entry, { status: 201 });
