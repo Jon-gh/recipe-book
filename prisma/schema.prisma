@@ -72,9 +72,8 @@ model ScheduledMeal {
 }
 
 model ShoppingSession {
-  id           String   @id @default("session")
-  checkedKeys  String[] @default([])
-  shoppingMode Boolean  @default(false)
-  showStaples  Boolean  @default(false)
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default("session")
+  checkedKeys String[] @default([])
+  showStaples Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
 }

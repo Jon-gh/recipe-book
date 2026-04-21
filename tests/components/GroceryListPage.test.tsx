@@ -27,7 +27,7 @@ const mockShoppingItem = {
   product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1 },
 };
 
-const defaultSession = { id: "session", checkedKeys: [], shoppingMode: false, showStaples: false };
+const defaultSession = { id: "session", checkedKeys: [], showStaples: false };
 
 function setupFetch({
   groceryList = mockMealPlanItems,
@@ -54,7 +54,6 @@ function setupFetch({
     if (url === "/api/shopping-session" && method === "PUT") {
       return Promise.resolve({ json: async () => session });
     }
-    // ingredients autocomplete
     return Promise.resolve({ json: async () => [] });
   });
 }
@@ -117,14 +116,6 @@ describe("GroceryListPage", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/grocery-list", { cache: "no-store" });
   });
 
-  it("item count includes both meal plan and shopping list items", async () => {
-    setupFetch({ shoppingList: [mockShoppingItem] });
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByText("4 items")).toBeInTheDocument();
-    });
-  });
-
   it("shows quantity with unit", async () => {
     renderPage();
     await waitFor(() => {
@@ -137,25 +128,6 @@ describe("GroceryListPage", () => {
     await waitFor(() => {
       expect(screen.getByText("0.5 kg")).toBeInTheDocument();
     });
-  });
-
-  it("shows copy to clipboard button", async () => {
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument();
-    });
-  });
-
-  it("shows Copied! after clicking copy", async () => {
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockResolvedValue(undefined) },
-    });
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Copy to clipboard" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Copy to clipboard" }));
-    expect(screen.getByRole("button", { name: "Copied!" })).toBeInTheDocument();
   });
 
   it("groups items by category", async () => {
@@ -208,46 +180,16 @@ describe("GroceryListPage — staples", () => {
   });
 });
 
-describe("GroceryListPage — shopping mode", () => {
-  it("shows Start Shopping button when meal plan has items", async () => {
+describe("GroceryListPage — checking items", () => {
+  it("does not show Start Shopping button — items are always checkable", async () => {
     renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
     expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
-    });
-  });
-
-  it("shows Start Shopping button when only shopping list has items", async () => {
-    setupFetch({ groceryList: [], shoppingList: [mockShoppingItem] });
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
-    });
-  });
-
-  it("does not show Start Shopping button when both lists are empty", async () => {
-    setupFetch({ groceryList: [], shoppingList: [] });
-    renderPage();
-    await waitFor(() => expect(screen.getByText(/No meal plan items yet/)).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
-  });
-
-  it("entering shopping mode shows Done and hides copy button", async () => {
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Copy to clipboard" })).not.toBeInTheDocument();
   });
 
   it("tapping an item moves it to In Trolley with strikethrough", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
 
@@ -257,10 +199,7 @@ describe("GroceryListPage — shopping mode", () => {
 
   it("tapping a checked item unchecks it and removes In Trolley section", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
@@ -269,48 +208,49 @@ describe("GroceryListPage — shopping mode", () => {
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 
-  it("clicking Done exits shopping mode and resets checked items", async () => {
+  it("Clear button appears when items are checked", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
+  });
+
+  it("clicking Clear resets checked items and removes In Trolley section", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
-    expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument();
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
   });
 
-  it("clicking Done sends DELETE for checked shopping list items", async () => {
+  it("clicking Clear sends DELETE for checked shopping list items", async () => {
     setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
-    // Check the shopping list item (tap the row, not the × button)
     const butterButtons = screen.getAllByRole("button", { name: /Butter/ });
     await userEvent.click(butterButtons[0]);
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
     expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
   });
 
-  it("clicking Done does not DELETE meal plan items", async () => {
+  it("clicking Clear does not DELETE meal plan items", async () => {
     renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
     const deleteCalls = mockFetch.mock.calls.filter(
       (args: unknown[]) =>
@@ -319,6 +259,52 @@ describe("GroceryListPage — shopping mode", () => {
         (args[1] as RequestInit)?.method === "DELETE"
     );
     expect(deleteCalls).toHaveLength(0);
+  });
+});
+
+describe("GroceryListPage — server session persistence", () => {
+  it("restores checked keys from server session", async () => {
+    setupFetch({ session: { id: "session", checkedKeys: ["pasta__g"], showStaples: false } });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("In Trolley")).toBeInTheDocument());
+  });
+
+  it("sends PUT to server when an item is checked", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    await waitFor(
+      () =>
+        expect(mockFetch).toHaveBeenCalledWith(
+          "/api/shopping-session",
+          expect.objectContaining({ method: "PUT" })
+        ),
+      { timeout: 2000 }
+    );
+  });
+
+  it("sends PUT with empty checkedKeys after Clear", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
+
+    await waitFor(
+      () => {
+        const putCalls = mockFetch.mock.calls.filter(
+          (args: unknown[]) =>
+            args[0] === "/api/shopping-session" &&
+            (args[1] as RequestInit)?.method === "PUT"
+        );
+        expect(putCalls.length).toBeGreaterThan(0);
+        const lastBody = JSON.parse(putCalls[putCalls.length - 1][1].body as string);
+        expect(lastBody.checkedKeys).toEqual([]);
+      },
+      { timeout: 2000 }
+    );
   });
 });
 
@@ -408,55 +394,5 @@ describe("GroceryListPage — add to shopping list", () => {
     );
 
     expect(screen.getByRole("button", { name: "Add to List" })).toBeDisabled();
-  });
-});
-
-describe("GroceryListPage — server session persistence", () => {
-  it("restores shopping mode from server session", async () => {
-    setupFetch({ session: { id: "session", checkedKeys: [], shoppingMode: true, showStaples: false } });
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument()
-    );
-  });
-
-  it("sends PUT to server when Start Shopping is clicked", async () => {
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    await waitFor(
-      () =>
-        expect(mockFetch).toHaveBeenCalledWith(
-          "/api/shopping-session",
-          expect.objectContaining({ method: "PUT" })
-        ),
-      { timeout: 2000 }
-    );
-  });
-
-  it("sends PUT with shoppingMode false when Done is clicked", async () => {
-    renderPage();
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Start Shopping" })).toBeInTheDocument()
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Start Shopping" }));
-    await userEvent.click(screen.getByRole("button", { name: "Done" }));
-
-    await waitFor(
-      () => {
-        const putCalls = mockFetch.mock.calls.filter(
-          (args: unknown[]) =>
-            args[0] === "/api/shopping-session" &&
-            (args[1] as RequestInit)?.method === "PUT"
-        );
-        expect(putCalls.length).toBeGreaterThan(0);
-        const lastBody = JSON.parse(putCalls[putCalls.length - 1][1].body as string);
-        expect(lastBody.shoppingMode).toBe(false);
-        expect(lastBody.checkedKeys).toEqual([]);
-      },
-      { timeout: 2000 }
-    );
   });
 });

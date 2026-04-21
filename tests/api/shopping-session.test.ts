@@ -16,7 +16,6 @@ import { NextRequest } from "next/server";
 const mockSession = {
   id: "session",
   checkedKeys: ["milk__l", "eggs__"],
-  shoppingMode: true,
   showStaples: false,
   updatedAt: new Date(),
 };
@@ -29,14 +28,14 @@ describe("GET /api/shopping-session", () => {
     const res = await GET();
     const body = await res.json();
     expect(body.checkedKeys).toEqual(["milk__l", "eggs__"]);
-    expect(body.shoppingMode).toBe(true);
+    expect(body.showStaples).toBe(false);
   });
 
   it("returns default state when no session exists", async () => {
     vi.mocked(prisma.shoppingSession.findUnique).mockResolvedValue(null);
     const res = await GET();
     const body = await res.json();
-    expect(body).toEqual({ id: "session", checkedKeys: [], shoppingMode: false, showStaples: false });
+    expect(body).toEqual({ id: "session", checkedKeys: [], showStaples: false });
   });
 });
 
@@ -45,14 +44,14 @@ describe("PUT /api/shopping-session", () => {
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
-      body: JSON.stringify({ checkedKeys: ["milk__l"], shoppingMode: true, showStaples: false }),
+      body: JSON.stringify({ checkedKeys: ["milk__l"], showStaples: false }),
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);
     expect(prisma.shoppingSession.upsert).toHaveBeenCalledWith({
       where: { id: "session" },
-      create: { id: "session", checkedKeys: ["milk__l"], shoppingMode: true, showStaples: false },
-      update: { checkedKeys: ["milk__l"], shoppingMode: true, showStaples: false },
+      create: { id: "session", checkedKeys: ["milk__l"], showStaples: false },
+      update: { checkedKeys: ["milk__l"], showStaples: false },
     });
   });
 });

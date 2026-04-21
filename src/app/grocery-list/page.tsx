@@ -15,11 +15,9 @@ import { Plus } from "lucide-react";
 
 type SessionState = {
   checkedKeys: string[];
-  shoppingMode: boolean;
   showStaples: boolean;
 };
 
-// A display item is either a meal-plan item or a shopping list extra (with id for deletion)
 type DisplayItem = GroceryItem & { shoppingListId?: number };
 
 function itemKey(item: { name: string; unit: string }): string {
@@ -71,13 +69,10 @@ export default function GroceryListPage() {
     noCacheFetcher
   );
 
-  const [copied, setCopied] = useState(false);
-  const [shoppingMode, setShoppingMode] = useState(false);
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Add item sheet state
   const { mutate: globalMutate } = useSWRConfig();
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -88,8 +83,6 @@ export default function GroceryListPage() {
   const nameInputRef = useRef<HTMLInputElement>(null);
   const isSelectedRef = useRef(false);
 
-  // Debounce the autocomplete query so fetches don't fire on every keystroke.
-  // Skipped entirely after a datalist selection — re-arms on the next onChange.
   const [debouncedName, setDebouncedName] = useState("");
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
@@ -101,7 +94,6 @@ export default function GroceryListPage() {
     };
   }, [newItemName]);
 
-  // Autocomplete suggestions from existing products
   const { data: suggestions } = useSWR<Product[]>(
     debouncedName.trim().length >= 1
       ? `/api/products?q=${encodeURIComponent(debouncedName.trim())}`
@@ -109,7 +101,6 @@ export default function GroceryListPage() {
     noCacheFetcher
   );
 
-  // Auto-fill category, unit, and quantity when the typed name exactly matches a known product
   useEffect(() => {
     if (!newItemName.trim() || !suggestions?.length) return;
     const match = suggestions.find(
@@ -122,8 +113,6 @@ export default function GroceryListPage() {
       isSelectedRef.current = true;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       setDebouncedName("");
-      // Clear SWR's in-memory cache for product queries so the next search
-      // always hits the network (prevents stale cache bypassing the 200ms debounce).
       globalMutate(
         (key: unknown) => typeof key === "string" && key.startsWith("/api/products"),
         undefined,
@@ -133,31 +122,24 @@ export default function GroceryListPage() {
     }
   }, [newItemName, suggestions]);
 
-  // Restore session state from server once loaded
   const sessionInitialised = useRef(false);
   useEffect(() => {
     if (sessionLoading || !sessionData || sessionInitialised.current) return;
     sessionInitialised.current = true;
     setCheckedKeys(new Set(sessionData.checkedKeys));
-    setShoppingMode(sessionData.shoppingMode);
     setShowStaples(sessionData.showStaples);
   }, [sessionData, sessionLoading]);
 
-  // Sync session state to server (debounced 800ms)
   const isLoading = mpLoading || slLoading || sessionLoading;
+
   const syncSession = useCallback(
-    (keys: Set<string>, mode: boolean, staples: boolean) => {
+    (keys: Set<string>, staples: boolean) => {
       if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
       sessionSyncTimer.current = setTimeout(() => {
-        const body: SessionState = {
-          checkedKeys: Array.from(keys),
-          shoppingMode: mode,
-          showStaples: staples,
-        };
         fetch("/api/shopping-session", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ checkedKeys: Array.from(keys), showStaples: staples }),
         });
       }, 800);
     },
@@ -168,27 +150,12 @@ export default function GroceryListPage() {
   const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
   const allItems: DisplayItem[] = [...mpItems, ...slItems];
 
-  function formatItem(item: DisplayItem): string {
-    const qty = item.quantity % 1 === 0 ? item.quantity.toString() : item.quantity.toFixed(1);
-    return item.unit ? `${qty} ${item.unit} ${item.name}` : `${qty}× ${item.name}`;
-  }
-
-  function toPlainText(): string {
-    return allItems.map(formatItem).join("\n");
-  }
-
-  async function copyToClipboard() {
-    await navigator.clipboard.writeText(toPlainText());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
   function toggleItem(key: string) {
     setCheckedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
-      syncSession(next, shoppingMode, showStaples);
+      syncSession(next, showStaples);
       return next;
     });
   }
@@ -218,8 +185,7 @@ export default function GroceryListPage() {
     mutateSl();
   }
 
-  async function exitShoppingMode() {
-    // Delete all checked shopping list items from the DB
+  async function clearChecked() {
     const checkedSlItems = slItems.filter((i) => checkedKeys.has(itemKey(i)));
     await Promise.all(
       checkedSlItems.map((i) =>
@@ -227,9 +193,8 @@ export default function GroceryListPage() {
       )
     );
     if (checkedSlItems.length > 0) mutateSl();
-    setShoppingMode(false);
     setCheckedKeys(new Set());
-    syncSession(new Set(), false, showStaples);
+    syncSession(new Set(), showStaples);
   }
 
   async function handleRefresh() {
@@ -238,13 +203,12 @@ export default function GroceryListPage() {
 
   const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
   const checkedItems = allItems.filter((item) => checkedKeys.has(itemKey(item)));
-
-  const visibleGroups = groupByCategory(uncheckedItems).filter(
-    (g) => showStaples || !g.isStaple
-  );
-
   const totalCount = allItems.length;
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category)).length;
+
+  const visibleUncheckedGroups = groupByCategory(uncheckedItems).filter(
+    (g) => showStaples || !g.isStaple
+  );
 
   return (
     <>
@@ -252,25 +216,16 @@ export default function GroceryListPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Grocery List</h1>
-          {!isLoading && !shoppingMode && totalCount > 0 && (
-            <Button
-              variant="default"
-              className="active:scale-95 transition-transform"
-              onClick={() => { setShoppingMode(true); syncSession(checkedKeys, true, showStaples); }}
-            >
-              Start Shopping
-            </Button>
-          )}
-          {shoppingMode && (
+          {checkedItems.length > 0 && (
             <Button
               variant="outline"
               className="active:scale-95 transition-transform"
-              onClick={exitShoppingMode}
+              onClick={clearChecked}
             >
-              Done
+              Clear
             </Button>
           )}
-          {!shoppingMode && totalCount === 0 && !isLoading && (
+          {!isLoading && totalCount === 0 && (
             <Link href="/meal-plan">
               <Button variant="outline" className="active:scale-95 transition-transform">
                 ← Meal Plan
@@ -281,18 +236,28 @@ export default function GroceryListPage() {
 
         {isLoading ? (
           <p className="text-muted-foreground">Loading…</p>
-        ) : shoppingMode ? (
+        ) : (
           <div className="space-y-4">
-            {stapleCount > 0 && (
+            {totalCount > 0 && stapleCount > 0 && (
               <button
                 className="text-sm text-muted-foreground underline-offset-2 underline"
-                onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, shoppingMode, next); }}
+                onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, next); }}
               >
                 {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
               </button>
             )}
 
-            {visibleGroups.map(({ category, items: catItems }) => (
+            {totalCount === 0 && (
+              <p className="text-muted-foreground">
+                No meal plan items yet.{" "}
+                <Link href="/meal-plan" className="underline">
+                  Add recipes to your meal plan
+                </Link>{" "}
+                to get started, or tap + to add extras.
+              </p>
+            )}
+
+            {visibleUncheckedGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                   {category}
@@ -371,89 +336,10 @@ export default function GroceryListPage() {
               </div>
             )}
           </div>
-        ) : (
-          <>
-            {totalCount > 0 && (
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-muted-foreground">
-                  {totalCount} item{totalCount !== 1 ? "s" : ""}
-                </p>
-                {stapleCount > 0 && (
-                  <button
-                    className="text-sm text-muted-foreground underline-offset-2 underline"
-                    onClick={() => setShowStaples((v) => !v)}
-                  >
-                    {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {totalCount > 0 && (
-              <div className="flex gap-2 mb-6">
-                <Button
-                  onClick={copyToClipboard}
-                  variant="outline"
-                  className="active:scale-95 transition-transform"
-                >
-                  {copied ? "Copied!" : "Copy to clipboard"}
-                </Button>
-              </div>
-            )}
-
-            {totalCount === 0 && (
-              <p className="text-muted-foreground mb-6">
-                No meal plan items yet.{" "}
-                <Link href="/meal-plan" className="underline">
-                  Add recipes to your meal plan
-                </Link>{" "}
-                to get started, or tap + to add extras.
-              </p>
-            )}
-
-            <div className="space-y-4">
-              {groupByCategory(allItems)
-                .filter((g) => showStaples || !g.isStaple)
-                .map(({ category, items: catItems }) => (
-                  <div key={category}>
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                      {category}
-                    </p>
-                    <Card>
-                      <CardContent className="pt-4">
-                        <ul className="divide-y">
-                          {catItems.map((item, i) => (
-                            <li key={i} className="flex items-center gap-2 py-2 min-h-[44px]">
-                              <span className="font-medium flex-1">{item.name}</span>
-                              <span className="text-muted-foreground text-sm">
-                                {item.quantity % 1 === 0
-                                  ? item.quantity
-                                  : item.quantity.toFixed(1)}
-                                {item.unit ? ` ${item.unit}` : ""}
-                              </span>
-                              {item.shoppingListId !== undefined && (
-                                <button
-                                  className="text-muted-foreground hover:text-foreground px-1 shrink-0"
-                                  onClick={() => removeShoppingItem(item.shoppingListId!)}
-                                  aria-label={`Remove ${item.name}`}
-                                >
-                                  ×
-                                </button>
-                              )}
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-                ))}
-            </div>
-          </>
         )}
       </div>
     </PullToRefresh>
 
-    {/* FAB — outside PullToRefresh so CSS transform doesn't break position:fixed */}
     <button
       onClick={openAddSheet}
       aria-label="Add to shopping list"
