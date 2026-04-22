@@ -250,107 +250,129 @@ export default function StartNewWeekWizard({
     }
   }
 
+  const filled = totalPlanned >= totalNeeded;
+  const isNextDisabled = step === 2 && (!weekStart || !weekEnd);
+  const nextLabel = step === 4 && !filled ? "Next (portions not filled)" : "Next";
+  const nextVariant = step === 4 && !filled ? ("outline" as const) : ("default" as const);
+
   return (
     <BottomSheet open={open} onClose={() => onClose()} title="New Week">
-      <div className="px-4 pb-8 pt-2">
-        {/* Step indicator */}
-        <div className="flex items-center justify-between mb-5">
-          {step > 1 && (
-            <button
-              onClick={() => setStep((s) => (s - 1) as typeof step)}
-              className="flex items-center gap-1 text-sm text-muted-foreground"
-            >
-              <ChevronLeft size={16} />
-              Back
-            </button>
+      <div className="flex flex-col min-h-[70dvh]">
+        {/* Scrollable step content */}
+        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-4">
+          {/* Step indicator */}
+          <div className="flex items-center justify-between mb-5">
+            {step > 1 ? (
+              <button
+                onClick={() => setStep((s) => (s - 1) as typeof step)}
+                className="flex items-center gap-1 text-sm text-muted-foreground"
+              >
+                <ChevronLeft size={16} />
+                Back
+              </button>
+            ) : (
+              <span />
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">
+              Step {step} of 5
+            </span>
+          </div>
+
+          {step === 1 && (
+            <Step1
+              entries={entries}
+              consumed={consumed}
+              onConsumedChange={(id, val) =>
+                setConsumed((prev) => ({ ...prev, [id]: val }))
+              }
+            />
           )}
-          <span className="text-xs text-muted-foreground ml-auto">
-            Step {step} of 5
-          </span>
+
+          {step === 2 && (
+            <Step2
+              weekStart={weekStart}
+              weekEnd={weekEnd}
+              onWeekStartChange={handleWeekStartChange}
+              onWeekEndChange={handleWeekEndChange}
+            />
+          )}
+
+          {step === 3 && (
+            <Step3
+              slotPortions={slotPortions}
+              totalNeeded={totalNeeded}
+              onPortionChange={(day, meal, val) =>
+                setSlotPortions((prev) => ({
+                  ...prev,
+                  [day]: { ...prev[day], [meal]: val },
+                }))
+              }
+            />
+          )}
+
+          {step === 4 && (
+            <Step4
+              totalNeeded={totalNeeded}
+              totalPlanned={totalPlanned}
+              leftoverServings={leftoverServings}
+              newRecipes={newRecipes}
+              recipes={filtered}
+              search={search}
+              searchFocused={searchFocused}
+              selectedRecipe={selectedRecipe}
+              servings={servings}
+              searchRef={searchRef}
+              showDropdown={showDropdown}
+              onSearchChange={(v) => {
+                setSearch(v);
+                if (selectedRecipe) setSelectedRecipe(null);
+              }}
+              onSearchFocus={() => setSearchFocused(true)}
+              onSearchBlur={handleSearchBlur}
+              onSearchCancel={handleSearchCancel}
+              onSelectRecipe={selectRecipe}
+              onServingsChange={setServings}
+              onAddRecipe={addNewRecipe}
+              onRemoveRecipe={removeNewRecipe}
+              onDropdownPointerDown={() => {
+                dropdownPressedRef.current = true;
+              }}
+              onCancelPointerDown={() => {
+                cancelPressedRef.current = true;
+              }}
+            />
+          )}
+
+          {step === 5 && (
+            <Step5
+              weekStart={weekStart}
+              weekEnd={weekEnd}
+              leftoverServings={leftoverServings}
+              newRecipes={newRecipes}
+              totalPlanned={totalPlanned}
+              totalNeeded={totalNeeded}
+              error={error}
+            />
+          )}
         </div>
 
-        {step === 1 && (
-          <Step1
-            entries={entries}
-            consumed={consumed}
-            onConsumedChange={(id, val) =>
-              setConsumed((prev) => ({ ...prev, [id]: val }))
-            }
-            onNext={() => setStep(2)}
-          />
-        )}
-
-        {step === 2 && (
-          <Step2
-            weekStart={weekStart}
-            weekEnd={weekEnd}
-            onWeekStartChange={handleWeekStartChange}
-            onWeekEndChange={handleWeekEndChange}
-            onNext={() => setStep(3)}
-          />
-        )}
-
-        {step === 3 && (
-          <Step3
-            slotPortions={slotPortions}
-            totalNeeded={totalNeeded}
-            onPortionChange={(day, meal, val) =>
-              setSlotPortions((prev) => ({
-                ...prev,
-                [day]: { ...prev[day], [meal]: val },
-              }))
-            }
-            onNext={() => setStep(4)}
-          />
-        )}
-
-        {step === 4 && (
-          <Step4
-            totalNeeded={totalNeeded}
-            totalPlanned={totalPlanned}
-            leftoverServings={leftoverServings}
-            newRecipes={newRecipes}
-            recipes={filtered}
-            search={search}
-            searchFocused={searchFocused}
-            selectedRecipe={selectedRecipe}
-            servings={servings}
-            searchRef={searchRef}
-            showDropdown={showDropdown}
-            onSearchChange={(v) => {
-              setSearch(v);
-              if (selectedRecipe) setSelectedRecipe(null);
-            }}
-            onSearchFocus={() => setSearchFocused(true)}
-            onSearchBlur={handleSearchBlur}
-            onSearchCancel={handleSearchCancel}
-            onSelectRecipe={selectRecipe}
-            onServingsChange={setServings}
-            onAddRecipe={addNewRecipe}
-            onRemoveRecipe={removeNewRecipe}
-            onDropdownPointerDown={() => {
-              dropdownPressedRef.current = true;
-            }}
-            onCancelPointerDown={() => {
-              cancelPressedRef.current = true;
-            }}
-            onNext={() => setStep(5)}
-          />
-        )}
-
-        {step === 5 && (
-          <Step5
-            weekStart={weekStart}
-            weekEnd={weekEnd}
-            leftoverServings={leftoverServings}
-            newRecipes={newRecipes}
-            totalPlanned={totalPlanned}
-            totalNeeded={totalNeeded}
-            submitting={submitting}
-            error={error}
-            onConfirm={handleConfirm}
-          />
-        )}
+        {/* Pinned navigation footer — always visible */}
+        <div className="px-4 pb-8 pt-3 border-t shrink-0">
+          {step < 5 ? (
+            <Button
+              className="w-full"
+              variant={nextVariant}
+              disabled={isNextDisabled}
+              onClick={() => setStep((s) => (s + 1) as typeof step)}
+            >
+              {nextLabel}
+            </Button>
+          ) : (
+            <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
+              {submitting ? "Starting week…" : "Start Week"}
+            </Button>
+          )}
+        </div>
       </div>
     </BottomSheet>
   );
@@ -362,12 +384,10 @@ function Step1({
   entries,
   consumed,
   onConsumedChange,
-  onNext,
 }: {
   entries: MealPlanEntry[];
   consumed: Record<number, number>;
   onConsumedChange: (id: number, val: number) => void;
-  onNext: () => void;
 }) {
   return (
     <div>
@@ -432,9 +452,6 @@ function Step1({
         </div>
       )}
 
-      <Button className="w-full" onClick={onNext}>
-        Next
-      </Button>
     </div>
   );
 }
@@ -446,13 +463,11 @@ function Step2({
   weekEnd,
   onWeekStartChange,
   onWeekEndChange,
-  onNext,
 }: {
   weekStart: string;
   weekEnd: string;
   onWeekStartChange: (v: string) => void;
   onWeekEndChange: (v: string) => void;
-  onNext: () => void;
 }) {
   return (
     <div>
@@ -483,9 +498,6 @@ function Step2({
         </div>
       </div>
 
-      <Button className="w-full" onClick={onNext} disabled={!weekStart || !weekEnd}>
-        Next
-      </Button>
     </div>
   );
 }
@@ -496,12 +508,10 @@ function Step3({
   slotPortions,
   totalNeeded,
   onPortionChange,
-  onNext,
 }: {
   slotPortions: SlotPortions;
   totalNeeded: number;
   onPortionChange: (day: string, meal: "lunch" | "dinner", val: number) => void;
-  onNext: () => void;
 }) {
   const days = Object.keys(slotPortions).sort();
   return (
@@ -567,10 +577,6 @@ function Step3({
       <p className="text-sm text-muted-foreground text-center mb-4">
         Total portions needed: <span className="font-semibold text-foreground">{totalNeeded}</span>
       </p>
-
-      <Button className="w-full" onClick={onNext}>
-        Next
-      </Button>
     </div>
   );
 }
@@ -622,7 +628,6 @@ function Step4({
   onRemoveRecipe: (id: string) => void;
   onDropdownPointerDown: () => void;
   onCancelPointerDown: () => void;
-  onNext: () => void;
 }) {
   const filled = totalPlanned >= totalNeeded;
   const showCancel = searchFocused || !!selectedRecipe;
@@ -736,9 +741,6 @@ function Step4({
         </div>
       )}
 
-      <Button className="w-full" onClick={onNext} variant={filled ? "default" : "outline"}>
-        {filled ? "Next" : "Next (portions not filled)"}
-      </Button>
     </div>
   );
 }
@@ -752,9 +754,7 @@ function Step5({
   newRecipes,
   totalPlanned,
   totalNeeded,
-  submitting,
   error,
-  onConfirm,
 }: {
   weekStart: string;
   weekEnd: string;
@@ -762,9 +762,7 @@ function Step5({
   newRecipes: NewRecipeEntry[];
   totalPlanned: number;
   totalNeeded: number;
-  submitting: boolean;
   error: string | null;
-  onConfirm: () => void;
 }) {
   return (
     <div>
@@ -802,10 +800,6 @@ function Step5({
       {error && (
         <p className="text-sm text-destructive mb-4 text-center">{error}</p>
       )}
-
-      <Button className="w-full" onClick={onConfirm} disabled={submitting}>
-        {submitting ? "Starting week…" : "Start Week"}
-      </Button>
     </div>
   );
 }
