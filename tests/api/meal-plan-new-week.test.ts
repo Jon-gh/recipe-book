@@ -13,6 +13,7 @@ vi.mock("@/lib/prisma", () => ({
     },
     scheduledMeal: {
       deleteMany: vi.fn(),
+      create: vi.fn(),
     },
     shoppingSession: {
       upsert: vi.fn(),
@@ -152,6 +153,61 @@ describe("POST /api/meal-plan/new-week", () => {
 
     expect(prisma.mealPlanEntry.create).toHaveBeenCalledWith({
       data: { recipeId: "recipe-2", targetServings: 4 },
+    });
+  });
+
+  it("creates scheduled meals for existing entry slots", async () => {
+    const entry = makeEntry(1, 4);
+    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([entry] as never);
+    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
+
+    await POST(
+      makeReq({
+        consumed: [],
+        weekStart: "2026-04-28",
+        weekEnd: "2026-05-04",
+        newEntries: [],
+        slots: [{ date: "2026-04-28", mealType: "lunch", servings: 2, existingEntryId: 1 }],
+      })
+    );
+
+    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+      data: {
+        mealPlanEntryId: 1,
+        date: new Date("2026-04-28T00:00:00"),
+        mealType: "lunch",
+        servings: 2,
+      },
+    });
+  });
+
+  it("creates scheduled meals for new entry slots using recipeId map", async () => {
+    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(null as never);
+    vi.mocked(prisma.mealPlanEntry.create).mockResolvedValue(makeEntry(5, 4) as never);
+
+    await POST(
+      makeReq({
+        consumed: [],
+        weekStart: "2026-04-28",
+        weekEnd: "2026-05-04",
+        newEntries: [{ recipeId: "recipe-5", targetServings: 4 }],
+        slots: [{ date: "2026-04-29", mealType: "dinner", servings: 2, newRecipeId: "recipe-5" }],
+      })
+    );
+
+    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+      data: {
+        mealPlanEntryId: 5,
+        date: new Date("2026-04-29T00:00:00"),
+        mealType: "dinner",
+        servings: 2,
+      },
     });
   });
 

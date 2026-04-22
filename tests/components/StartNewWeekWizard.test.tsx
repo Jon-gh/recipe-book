@@ -93,35 +93,33 @@ describe("StartNewWeekWizard", () => {
     expect(screen.getByText("Add recipes")).toBeInTheDocument();
   });
 
-  it("shows step 5 summary after advancing through all steps", async () => {
+  it("shows step 5 schedule grid before confirm", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     // Steps 1 → 2 → 3 → 4 → 5
     for (let i = 0; i < 4; i++) {
       await user.click(screen.getByRole("button", { name: /Next/ }));
     }
+    expect(screen.getByText("Schedule meals")).toBeInTheDocument();
+    expect(screen.getByText("Step 5 of 6")).toBeInTheDocument();
+  });
+
+  it("shows confirm summary on step 6", async () => {
+    const user = userEvent.setup();
+    render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
+    // Steps 1 → 2 → 3 → 4 → 5 → 6
+    for (let i = 0; i < 5; i++) {
+      await user.click(screen.getByRole("button", { name: /Next/ }));
+    }
     expect(screen.getByText("Ready to start")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start Week" })).toBeInTheDocument();
   });
 
-  it("advances to step 6 after Start Week and shows Done button", async () => {
-    const user = userEvent.setup();
-    render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
-    for (let i = 0; i < 4; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
-    }
-    await user.click(screen.getByRole("button", { name: "Start Week" }));
-    await waitFor(() => {
-      expect(screen.getByText("Schedule meals")).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    });
-  });
-
-  it("calls fetch with correct payload and invokes onClose when Done is clicked", async () => {
+  it("calls fetch with correct payload and invokes onClose when Start Week is clicked", async () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} onClose={onClose} />);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await user.click(screen.getByRole("button", { name: /Next/ }));
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
@@ -134,12 +132,6 @@ describe("StartNewWeekWizard", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("button", { name: "Done" }));
-
-    await waitFor(() => {
       expect(onClose).toHaveBeenCalledWith(
         expect.objectContaining({ weekStart: expect.any(String), weekEnd: expect.any(String) })
       );
@@ -150,7 +142,7 @@ describe("StartNewWeekWizard", () => {
     mockFetch.mockResolvedValue({ ok: false, json: async () => ({ error: "DB error" }) });
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       await user.click(screen.getByRole("button", { name: /Next/ }));
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
@@ -182,7 +174,8 @@ describe("StartNewWeekWizard", () => {
     await user.click(screen.getByText("Pasta Bolognese"));
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    // Advance to step 5 and confirm
+    // Advance through step 5 (schedule) and step 6 (confirm), then start week
+    await user.click(screen.getByRole("button", { name: /Next/ }));
     await user.click(screen.getByRole("button", { name: /Next/ }));
     await user.click(screen.getByRole("button", { name: "Start Week" }));
 

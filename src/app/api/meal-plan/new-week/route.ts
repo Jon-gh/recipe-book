@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(req: NextRequest) {
-  const { consumed, weekStart, weekEnd, newEntries } = (await req.json()) as {
+  const { consumed, weekStart, weekEnd, newEntries, slots } = (await req.json()) as {
     consumed: { id: number; consumedServings: number }[];
     weekStart: string;
     weekEnd: string;
     newEntries: { recipeId: string; targetServings: number }[];
+    slots?: { date: string; mealType: string; servings: number; existingEntryId?: number; newRecipeId?: string }[];
   };
 
   if (!weekStart || !weekEnd) {
@@ -49,6 +50,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Add new entries (dedup: if recipe already exists, increment targetServings)
+    // Track recipeId → entryId so slots can resolve new entries to DB IDs
+    const newEntryMap: Record<string, number> = {};
     for (const { recipeId, targetServings } of newEntries ?? []) {
       const existing = await tx.mealPlanEntry.findFirst({ where: { recipeId } });
       if (existing) {
@@ -56,9 +59,26 @@ export async function POST(req: NextRequest) {
           where: { id: existing.id },
           data: { targetServings: existing.targetServings + targetServings },
         });
+        newEntryMap[recipeId] = existing.id;
       } else {
-        await tx.mealPlanEntry.create({ data: { recipeId, targetServings } });
+        const created = await tx.mealPlanEntry.create({ data: { recipeId, targetServings } });
+        newEntryMap[recipeId] = created.id;
       }
+    }
+
+    // Create scheduled meals from wizard slots
+    for (const slot of slots ?? []) {
+      const entryId =
+        slot.existingEntryId ?? (slot.newRecipeId ? newEntryMap[slot.newRecipeId] : undefined);
+      if (!entryId) continue;
+      await tx.scheduledMeal.create({
+        data: {
+          mealPlanEntryId: entryId,
+          date: new Date(slot.date + "T00:00:00"),
+          mealType: slot.mealType,
+          servings: slot.servings,
+        },
+      });
     }
 
     // Persist new week dates
