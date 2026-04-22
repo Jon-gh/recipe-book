@@ -108,7 +108,7 @@ export default function BottomSheet({ open, onClose, children, title }: Props) {
           </div>
         )}
 
-        <div ref={contentRef} className="overflow-y-auto overscroll-contain flex-1">
+        <div ref={contentRef} className="overflow-y-auto overscroll-contain flex-1 min-h-0">
           {children}
         </div>
       </div>

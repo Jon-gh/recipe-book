@@ -72,8 +72,10 @@ model ScheduledMeal {
 }
 
 model ShoppingSession {
-  id          String   @id @default("session")
-  checkedKeys String[] @default([])
-  showStaples Boolean  @default(false)
-  updatedAt   DateTime @updatedAt
+  id          String    @id @default("session")
+  checkedKeys String[]  @default([])
+  showStaples Boolean   @default(false)
+  weekStart   DateTime? @db.Date
+  weekEnd     DateTime? @db.Date
+  updatedAt   DateTime  @updatedAt
 }

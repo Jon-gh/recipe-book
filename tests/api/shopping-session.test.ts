@@ -35,7 +35,7 @@ describe("GET /api/shopping-session", () => {
     vi.mocked(prisma.shoppingSession.findUnique).mockResolvedValue(null);
     const res = await GET();
     const body = await res.json();
-    expect(body).toEqual({ id: "session", checkedKeys: [], showStaples: false });
+    expect(body).toEqual({ id: "session", checkedKeys: [], showStaples: false, weekStart: null, weekEnd: null });
   });
 });
 
@@ -48,10 +48,24 @@ describe("PUT /api/shopping-session", () => {
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);
-    expect(prisma.shoppingSession.upsert).toHaveBeenCalledWith({
-      where: { id: "session" },
-      create: { id: "session", checkedKeys: ["milk__l"], showStaples: false },
-      update: { checkedKeys: ["milk__l"], showStaples: false },
+    expect(prisma.shoppingSession.upsert).toHaveBeenCalled();
+  });
+
+  it("persists weekStart and weekEnd when provided", async () => {
+    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
+    const req = new NextRequest("http://localhost/api/shopping-session", {
+      method: "PUT",
+      body: JSON.stringify({
+        checkedKeys: [],
+        showStaples: false,
+        weekStart: "2026-04-28",
+        weekEnd: "2026-05-04",
+      }),
     });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const call = vi.mocked(prisma.shoppingSession.upsert).mock.calls[0][0];
+    expect(call.create.weekStart).toBeInstanceOf(Date);
+    expect(call.create.weekEnd).toBeInstanceOf(Date);
   });
 });

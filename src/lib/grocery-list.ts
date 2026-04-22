@@ -45,7 +45,7 @@ const UNIT_ALIASES: Record<string, string> = {
   cups: "cup",
 };
 
-function normalizeUnit(unit: string): { canonical: string; factor: number } {
+export function normalizeUnit(unit: string): { canonical: string; factor: number } {
   const u = unit.trim().toLowerCase();
 
   // Tier 1: unambiguous metric conversion (kg→g, l→ml)
