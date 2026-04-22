@@ -605,7 +605,6 @@ function Step4({
   onRemoveRecipe,
   onDropdownPointerDown,
   onCancelPointerDown,
-  onNext,
 }: {
   totalNeeded: number;
   totalPlanned: number;
