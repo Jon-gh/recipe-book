@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MealPlanEntry, Recipe } from "@/types";
+import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
@@ -73,7 +73,7 @@ export default function StartNewWeekWizard({
   checkedKeys,
   onClose,
 }: Props) {
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
   // Step 1 — consumed portions
   const [consumed, setConsumed] = useState<Record<number, number>>({});
@@ -95,6 +95,16 @@ export default function StartNewWeekWizard({
   // Step 5 — submit
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Step 6 — schedule allocation
+  const [confirmedEntries, setConfirmedEntries] = useState<MealPlanEntry[]>([]);
+  const [localSlots, setLocalSlots] = useState<ScheduledMeal[]>([]);
+  const [slotDate, setSlotDate] = useState<string | null>(null);
+  const [slotMealType, setSlotMealType] = useState<"lunch" | "dinner" | null>(null);
+  const [slotEntryId, setSlotEntryId] = useState<number | null>(null);
+  const [slotServings, setSlotServings] = useState(2);
+  const [addingSlot, setAddingSlot] = useState(false);
+  const [slotError, setSlotError] = useState<string | null>(null);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownPressedRef = useRef(false);
@@ -242,11 +252,72 @@ export default function StartNewWeekWizard({
       // Grocery transition: for new recipes, create ShoppingListItems for already-bought ingredients
       await runGroceryTransition(newRecipes, checkedKeys);
 
-      onClose({ weekStart, weekEnd });
+      const data = await res.json();
+      setConfirmedEntries(data.entries ?? []);
+      setLocalSlots([]);
+      setSubmitting(false);
+      setStep(6);
     } catch {
       setError("Something went wrong");
       setSubmitting(false);
     }
+  }
+
+  // Step 6 — slot helpers
+  function openSlotPicker(date: string, mealType: "lunch" | "dinner") {
+    setSlotDate(date);
+    setSlotMealType(mealType);
+    setSlotEntryId(null);
+    setSlotServings(2);
+    setSlotError(null);
+  }
+
+  function closeSlotPicker() {
+    setSlotDate(null);
+    setSlotMealType(null);
+    setSlotError(null);
+  }
+
+  function allocatedForEntry(entryId: number) {
+    return localSlots
+      .filter((m) => m.mealPlanEntryId === entryId)
+      .reduce((sum, m) => sum + m.servings, 0);
+  }
+
+  function getSlot(date: string, mealType: "lunch" | "dinner") {
+    return localSlots.find(
+      (m) => m.date.slice(0, 10) === date && m.mealType === mealType
+    );
+  }
+
+  async function addSlot() {
+    if (!slotEntryId || !slotDate || !slotMealType) return;
+    setAddingSlot(true);
+    setSlotError(null);
+    const res = await fetch("/api/scheduled-meals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mealPlanEntryId: slotEntryId,
+        date: slotDate,
+        mealType: slotMealType,
+        servings: slotServings,
+      }),
+    });
+    if (res.ok) {
+      const meal = await res.json();
+      setLocalSlots((prev) => [...prev, meal]);
+      closeSlotPicker();
+    } else {
+      const err = await res.json();
+      setSlotError(err.error ?? "Failed to add");
+    }
+    setAddingSlot(false);
+  }
+
+  async function removeSlot(id: number) {
+    setLocalSlots((prev) => prev.filter((m) => m.id !== id));
+    await fetch(`/api/scheduled-meals/${id}`, { method: "DELETE" });
   }
 
   const filled = totalPlanned >= totalNeeded;
@@ -255,6 +326,8 @@ export default function StartNewWeekWizard({
   const nextVariant = step === 4 && !filled ? ("outline" as const) : ("default" as const);
 
   if (!open) return null;
+
+  const scheduleDays = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
 
   return (
     <div
@@ -273,13 +346,13 @@ export default function StartNewWeekWizard({
         </button>
         <h2 className="font-semibold text-base">New Week</h2>
         <span className="text-xs text-muted-foreground ml-auto">
-          Step {step} of 5
+          Step {step} of 6
         </span>
       </div>
 
       {/* Scrollable step content */}
       <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
-        {step > 1 && (
+        {step > 1 && step < 6 && (
           <button
             onClick={() => setStep((s) => (s - 1) as typeof step)}
             className="flex items-center gap-1 text-sm text-muted-foreground mb-5"
@@ -365,11 +438,22 @@ export default function StartNewWeekWizard({
             error={error}
           />
         )}
+
+        {step === 6 && (
+          <Step6
+            confirmedEntries={confirmedEntries}
+            scheduleDays={scheduleDays}
+            getSlot={getSlot}
+            allocatedForEntry={allocatedForEntry}
+            onOpenSlot={openSlotPicker}
+            onRemoveSlot={removeSlot}
+          />
+        )}
       </div>
 
       {/* Pinned navigation footer — always visible */}
       <div className="px-4 pb-8 pt-3 border-t shrink-0">
-        {step < 5 ? (
+        {step < 5 && (
           <Button
             className="w-full"
             variant={nextVariant}
@@ -378,12 +462,113 @@ export default function StartNewWeekWizard({
           >
             {nextLabel}
           </Button>
-        ) : (
+        )}
+        {step === 5 && (
           <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
             {submitting ? "Starting week…" : "Start Week"}
           </Button>
         )}
+        {step === 6 && (
+          <Button className="w-full" onClick={() => onClose({ weekStart, weekEnd })}>
+            Done
+          </Button>
+        )}
       </div>
+
+      {/* Slot picker overlay (Step 6) */}
+      {slotDate && slotMealType && (
+        <div
+          className="absolute inset-0 bg-black/40 flex items-end z-10"
+          onClick={closeSlotPicker}
+        >
+          <div
+            className="w-full bg-background rounded-t-2xl p-5 max-h-[70dvh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="font-semibold text-sm">
+                {formatDay(slotDate)} · {slotMealType}
+              </h3>
+              <button onClick={closeSlotPicker} className="text-muted-foreground p-1">
+                <X size={18} />
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Pick a recipe from your plan
+            </p>
+
+            <div className="border rounded-xl divide-y overflow-hidden mb-4">
+              {confirmedEntries.map((entry) => {
+                const allocated = allocatedForEntry(entry.id);
+                const remaining = entry.targetServings - allocated;
+                const disabled = remaining <= 0;
+                return (
+                  <button
+                    key={entry.id}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (disabled) return;
+                      setSlotEntryId(entry.id);
+                      setSlotServings(Math.min(2, remaining));
+                      setSlotError(null);
+                    }}
+                    className={`w-full text-left px-4 py-3 transition-colors ${
+                      slotEntryId === entry.id
+                        ? "bg-primary/10"
+                        : "hover:bg-muted active:bg-muted"
+                    } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
+                  >
+                    <div className="font-medium text-sm">{entry.recipe.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {remaining} of {entry.targetServings} servings remaining
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {slotEntryId && (
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-sm flex-1">Servings</span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSlotServings((s) => Math.max(1, s - 1))}
+                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="text-sm font-semibold w-8 text-center tabular-nums">
+                    {slotServings}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const entry = confirmedEntries.find((e) => e.id === slotEntryId);
+                      if (!entry) return;
+                      const remaining = entry.targetServings - allocatedForEntry(entry.id);
+                      setSlotServings((s) => Math.min(s + 1, remaining));
+                    }}
+                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {slotError && (
+              <p className="text-sm text-destructive mb-3">{slotError}</p>
+            )}
+
+            <Button
+              className="w-full active:scale-95 transition-transform"
+              disabled={!slotEntryId || addingSlot}
+              onClick={addSlot}
+            >
+              {addingSlot ? "Adding…" : "Confirm"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -808,6 +993,110 @@ function Step5({
 
       {error && (
         <p className="text-sm text-destructive mb-4 text-center">{error}</p>
+      )}
+    </div>
+  );
+}
+
+// ── Step 6 ────────────────────────────────────────────────────────────────────
+
+function Step6({
+  confirmedEntries,
+  scheduleDays,
+  getSlot,
+  allocatedForEntry,
+  onOpenSlot,
+  onRemoveSlot,
+}: {
+  confirmedEntries: MealPlanEntry[];
+  scheduleDays: string[];
+  getSlot: (date: string, mealType: "lunch" | "dinner") => ScheduledMeal | undefined;
+  allocatedForEntry: (entryId: number) => number;
+  onOpenSlot: (date: string, mealType: "lunch" | "dinner") => void;
+  onRemoveSlot: (id: number) => void;
+}) {
+  return (
+    <div>
+      <h3 className="font-semibold text-base mb-1">Schedule meals</h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Assign recipes to lunch and dinner slots. You can skip this and do it later.
+      </p>
+
+      {confirmedEntries.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-6">
+          No recipes in plan.
+        </p>
+      ) : (
+        <>
+          {/* Allocation summary */}
+          <div className="border rounded-xl divide-y overflow-hidden mb-4 text-sm">
+            {confirmedEntries.map((entry) => {
+              const allocated = allocatedForEntry(entry.id);
+              return (
+                <div key={entry.id} className="flex items-center justify-between px-4 py-2.5">
+                  <span className="truncate flex-1 mr-2">{entry.recipe.name}</span>
+                  <span className={`text-xs shrink-0 ${allocated >= entry.targetServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                    {allocated}/{entry.targetServings}p
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Day × meal grid */}
+          <div className="border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50">
+                <tr>
+                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">Day</th>
+                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Lunch</th>
+                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Dinner</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {scheduleDays.map((day) => (
+                  <tr key={day}>
+                    <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
+                      {formatDay(day)}
+                    </td>
+                    {(["lunch", "dinner"] as const).map((mealType) => {
+                      const meal = getSlot(day, mealType);
+                      return (
+                        <td key={mealType} className="py-2 px-2 align-top">
+                          {meal ? (
+                            <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
+                              <span className="text-xs leading-tight flex-1 min-w-0">
+                                <span className="font-medium line-clamp-1">
+                                  {meal.mealPlanEntry.recipe.name}
+                                </span>
+                                <span className="text-muted-foreground block">{meal.servings}p</span>
+                              </span>
+                              <button
+                                onClick={() => onRemoveSlot(meal.id)}
+                                className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                                aria-label="Remove slot"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => onOpenSlot(day, mealType)}
+                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 py-1 px-1 rounded active:scale-95 transition-transform"
+                            >
+                              <Plus size={12} />
+                              Add
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
