@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MealPlanEntry, Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import BottomSheet from "@/components/BottomSheet";
-import { ChevronLeft, Minus, Plus } from "lucide-react";
+import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { normalizeUnit } from "@/lib/grocery-list";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -255,126 +254,137 @@ export default function StartNewWeekWizard({
   const nextLabel = step === 4 && !filled ? "Next (portions not filled)" : "Next";
   const nextVariant = step === 4 && !filled ? ("outline" as const) : ("default" as const);
 
+  if (!open) return null;
+
   return (
-    <BottomSheet open={open} onClose={() => onClose()} title="New Week">
-      <div className="flex flex-col min-h-[70dvh]">
-        {/* Scrollable step content */}
-        <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-2 pb-4">
-          {/* Step indicator */}
-          <div className="flex items-center justify-between mb-5">
-            {step > 1 ? (
-              <button
-                onClick={() => setStep((s) => (s - 1) as typeof step)}
-                className="flex items-center gap-1 text-sm text-muted-foreground"
-              >
-                <ChevronLeft size={16} />
-                Back
-              </button>
-            ) : (
-              <span />
-            )}
-            <span className="text-xs text-muted-foreground ml-auto">
-              Step {step} of 5
-            </span>
-          </div>
-
-          {step === 1 && (
-            <Step1
-              entries={entries}
-              consumed={consumed}
-              onConsumedChange={(id, val) =>
-                setConsumed((prev) => ({ ...prev, [id]: val }))
-              }
-            />
-          )}
-
-          {step === 2 && (
-            <Step2
-              weekStart={weekStart}
-              weekEnd={weekEnd}
-              onWeekStartChange={handleWeekStartChange}
-              onWeekEndChange={handleWeekEndChange}
-            />
-          )}
-
-          {step === 3 && (
-            <Step3
-              slotPortions={slotPortions}
-              totalNeeded={totalNeeded}
-              onPortionChange={(day, meal, val) =>
-                setSlotPortions((prev) => ({
-                  ...prev,
-                  [day]: { ...prev[day], [meal]: val },
-                }))
-              }
-            />
-          )}
-
-          {step === 4 && (
-            <Step4
-              totalNeeded={totalNeeded}
-              totalPlanned={totalPlanned}
-              leftoverServings={leftoverServings}
-              newRecipes={newRecipes}
-              recipes={filtered}
-              search={search}
-              searchFocused={searchFocused}
-              selectedRecipe={selectedRecipe}
-              servings={servings}
-              searchRef={searchRef}
-              showDropdown={showDropdown}
-              onSearchChange={(v) => {
-                setSearch(v);
-                if (selectedRecipe) setSelectedRecipe(null);
-              }}
-              onSearchFocus={() => setSearchFocused(true)}
-              onSearchBlur={handleSearchBlur}
-              onSearchCancel={handleSearchCancel}
-              onSelectRecipe={selectRecipe}
-              onServingsChange={setServings}
-              onAddRecipe={addNewRecipe}
-              onRemoveRecipe={removeNewRecipe}
-              onDropdownPointerDown={() => {
-                dropdownPressedRef.current = true;
-              }}
-              onCancelPointerDown={() => {
-                cancelPressedRef.current = true;
-              }}
-            />
-          )}
-
-          {step === 5 && (
-            <Step5
-              weekStart={weekStart}
-              weekEnd={weekEnd}
-              leftoverServings={leftoverServings}
-              newRecipes={newRecipes}
-              totalPlanned={totalPlanned}
-              totalNeeded={totalNeeded}
-              error={error}
-            />
-          )}
-        </div>
-
-        {/* Pinned navigation footer — always visible */}
-        <div className="px-4 pb-8 pt-3 border-t shrink-0">
-          {step < 5 ? (
-            <Button
-              className="w-full"
-              variant={nextVariant}
-              disabled={isNextDisabled}
-              onClick={() => setStep((s) => (s + 1) as typeof step)}
-            >
-              {nextLabel}
-            </Button>
-          ) : (
-            <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
-              {submitting ? "Starting week…" : "Start Week"}
-            </Button>
-          )}
-        </div>
+    <div
+      className="fixed inset-0 z-50 bg-background flex flex-col"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+        <button
+          onClick={() => onClose()}
+          className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
+          aria-label="Close"
+        >
+          <X size={20} />
+        </button>
+        <h2 className="font-semibold text-base">New Week</h2>
+        <span className="text-xs text-muted-foreground ml-auto">
+          Step {step} of 5
+        </span>
       </div>
-    </BottomSheet>
+
+      {/* Scrollable step content */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
+        {step > 1 && (
+          <button
+            onClick={() => setStep((s) => (s - 1) as typeof step)}
+            className="flex items-center gap-1 text-sm text-muted-foreground mb-5"
+          >
+            <ChevronLeft size={16} />
+            Back
+          </button>
+        )}
+
+        {step === 1 && (
+          <Step1
+            entries={entries}
+            consumed={consumed}
+            onConsumedChange={(id, val) =>
+              setConsumed((prev) => ({ ...prev, [id]: val }))
+            }
+          />
+        )}
+
+        {step === 2 && (
+          <Step2
+            weekStart={weekStart}
+            weekEnd={weekEnd}
+            onWeekStartChange={handleWeekStartChange}
+            onWeekEndChange={handleWeekEndChange}
+          />
+        )}
+
+        {step === 3 && (
+          <Step3
+            slotPortions={slotPortions}
+            totalNeeded={totalNeeded}
+            onPortionChange={(day, meal, val) =>
+              setSlotPortions((prev) => ({
+                ...prev,
+                [day]: { ...prev[day], [meal]: val },
+              }))
+            }
+          />
+        )}
+
+        {step === 4 && (
+          <Step4
+            totalNeeded={totalNeeded}
+            totalPlanned={totalPlanned}
+            leftoverServings={leftoverServings}
+            newRecipes={newRecipes}
+            recipes={filtered}
+            search={search}
+            searchFocused={searchFocused}
+            selectedRecipe={selectedRecipe}
+            servings={servings}
+            searchRef={searchRef}
+            showDropdown={showDropdown}
+            onSearchChange={(v) => {
+              setSearch(v);
+              if (selectedRecipe) setSelectedRecipe(null);
+            }}
+            onSearchFocus={() => setSearchFocused(true)}
+            onSearchBlur={handleSearchBlur}
+            onSearchCancel={handleSearchCancel}
+            onSelectRecipe={selectRecipe}
+            onServingsChange={setServings}
+            onAddRecipe={addNewRecipe}
+            onRemoveRecipe={removeNewRecipe}
+            onDropdownPointerDown={() => {
+              dropdownPressedRef.current = true;
+            }}
+            onCancelPointerDown={() => {
+              cancelPressedRef.current = true;
+            }}
+          />
+        )}
+
+        {step === 5 && (
+          <Step5
+            weekStart={weekStart}
+            weekEnd={weekEnd}
+            leftoverServings={leftoverServings}
+            newRecipes={newRecipes}
+            totalPlanned={totalPlanned}
+            totalNeeded={totalNeeded}
+            error={error}
+          />
+        )}
+      </div>
+
+      {/* Pinned navigation footer — always visible */}
+      <div className="px-4 pb-8 pt-3 border-t shrink-0">
+        {step < 5 ? (
+          <Button
+            className="w-full"
+            variant={nextVariant}
+            disabled={isNextDisabled}
+            onClick={() => setStep((s) => (s + 1) as typeof step)}
+          >
+            {nextLabel}
+          </Button>
+        ) : (
+          <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
+            {submitting ? "Starting week…" : "Start Week"}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
