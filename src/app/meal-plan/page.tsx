@@ -7,7 +7,7 @@ import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Minus, Plus, ShoppingCart, Trash2, X } from "lucide-react";
+import { CalendarDays, Minus, Plus, Trash2, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -282,7 +282,7 @@ export default function MealPlanPage() {
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
-        <div className="flex items-center justify-between mb-5">
+        <div className="mb-5">
           <h1 className="text-2xl font-bold">Meal Plan</h1>
           <div className="flex items-center gap-2">
             <Button
@@ -293,16 +293,6 @@ export default function MealPlanPage() {
             >
               New Week
             </Button>
-            <Link href="/grocery-list">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5 active:scale-95 transition-transform"
-              >
-                <ShoppingCart size={15} />
-                Grocery List
-              </Button>
-            </Link>
           </div>
         </div>
 
