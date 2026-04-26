@@ -503,112 +503,6 @@ export default function StartNewWeekWizard({
         )}
       </div>
 
-      {/* Slot picker overlay (Step 5) — fixed so it also covers the independent footer */}
-      {pickerDate && pickerMealType && (
-        <div
-          className="fixed inset-0 bg-black/40 flex items-end z-[52]"
-          onClick={closePicker}
-        >
-          <div
-            className="w-full bg-background rounded-t-2xl p-5 max-h-[80dvh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-sm">
-                {formatDay(pickerDate)} · {pickerMealType}
-              </h3>
-              <button onClick={closePicker} className="text-muted-foreground p-1">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Pick a recipe or add a custom note
-            </p>
-
-            {scheduleSources.length > 0 && (
-              <div className="border rounded-xl divide-y overflow-hidden mb-4">
-                {scheduleSources.map((src, i) => {
-                  const remaining = remainingForSource(src);
-                  const disabled = remaining <= 0;
-                  const selected =
-                    pickerSource != null &&
-                    src.existingEntryId === pickerSource.existingEntryId &&
-                    src.newRecipeId === pickerSource.newRecipeId;
-                  return (
-                    <button
-                      key={i}
-                      disabled={disabled}
-                      onClick={() => {
-                        if (disabled) return;
-                        setPickerSource(src);
-                        setPickerServings(Math.min(2, remaining));
-                        setPickerNote("");
-                      }}
-                      className={`w-full text-left px-4 py-3 transition-colors ${
-                        selected ? "bg-primary/10" : "hover:bg-muted active:bg-muted"
-                      } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
-                    >
-                      <div className="font-medium text-sm">{src.recipeName}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {remaining} of {src.totalServings} servings remaining
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {pickerSource && (
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-sm flex-1">Servings</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPickerServings((s) => Math.max(1, s - 1))}
-                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="text-sm font-semibold w-8 text-center tabular-nums">
-                    {pickerServings}
-                  </span>
-                  <button
-                    onClick={() => {
-                      const remaining = remainingForSource(pickerSource);
-                      setPickerServings((s) => Math.min(s + 1, remaining));
-                    }}
-                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Custom note */}
-            <div className="mb-4">
-              <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-                {scheduleSources.length > 0 ? "Or add a custom note" : "Custom note"}
-              </label>
-              <Input
-                placeholder="e.g. Eating outside, Dinner with friends…"
-                value={pickerNote}
-                onChange={(e) => {
-                  setPickerNote(e.target.value);
-                  if (e.target.value) setPickerSource(null);
-                }}
-              />
-            </div>
-
-            <Button
-              className="w-full active:scale-95 transition-transform"
-              disabled={!pickerSource && !pickerNote.trim()}
-              onClick={confirmPickerSlot}
-            >
-              Confirm
-            </Button>
-          </div>
-        </div>
-      )}
     </div>
 
     {/* Footer — completely independent fixed element, cannot be pushed off-screen */}
@@ -632,6 +526,113 @@ export default function StartNewWeekWizard({
         </Button>
       )}
     </div>
+
+    {/* Slot picker overlay — at root level so z-[52] beats the footer at z-[51] */}
+    {pickerDate && pickerMealType && (
+      <div
+        className="fixed inset-0 bg-black/40 flex items-end z-[52]"
+        onClick={closePicker}
+      >
+        <div
+          className="w-full bg-background rounded-t-2xl p-5 max-h-[80dvh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-sm">
+              {formatDay(pickerDate)} · {pickerMealType}
+            </h3>
+            <button onClick={closePicker} className="text-muted-foreground p-1">
+              <X size={18} />
+            </button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Pick a recipe or add a custom note
+          </p>
+
+          {scheduleSources.length > 0 && (
+            <div className="border rounded-xl divide-y overflow-hidden mb-4">
+              {scheduleSources.map((src, i) => {
+                const remaining = remainingForSource(src);
+                const disabled = remaining <= 0;
+                const selected =
+                  pickerSource != null &&
+                  src.existingEntryId === pickerSource.existingEntryId &&
+                  src.newRecipeId === pickerSource.newRecipeId;
+                return (
+                  <button
+                    key={i}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (disabled) return;
+                      setPickerSource(src);
+                      setPickerServings(Math.min(2, remaining));
+                      setPickerNote("");
+                    }}
+                    className={`w-full text-left px-4 py-3 transition-colors ${
+                      selected ? "bg-primary/10" : "hover:bg-muted active:bg-muted"
+                    } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
+                  >
+                    <div className="font-medium text-sm">{src.recipeName}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {remaining} of {src.totalServings} servings remaining
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {pickerSource && (
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-sm flex-1">Servings</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPickerServings((s) => Math.max(1, s - 1))}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-sm font-semibold w-8 text-center tabular-nums">
+                  {pickerServings}
+                </span>
+                <button
+                  onClick={() => {
+                    const remaining = remainingForSource(pickerSource);
+                    setPickerServings((s) => Math.min(s + 1, remaining));
+                  }}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Custom note */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+              {scheduleSources.length > 0 ? "Or add a custom note" : "Custom note"}
+            </label>
+            <Input
+              placeholder="e.g. Eating outside, Dinner with friends…"
+              value={pickerNote}
+              onChange={(e) => {
+                setPickerNote(e.target.value);
+                if (e.target.value) setPickerSource(null);
+              }}
+            />
+          </div>
+
+          <Button
+            className="w-full active:scale-95 transition-transform"
+            disabled={!pickerSource && !pickerNote.trim()}
+            onClick={confirmPickerSlot}
+          >
+            Confirm
+          </Button>
+        </div>
+      </div>
+    )}
     </>
   );
 }
