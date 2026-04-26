@@ -378,13 +378,15 @@ export default function StartNewWeekWizard({
   const scheduleDays = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
 
   return (
+    <>
+    {/* Main overlay — header + scrollable content only, NO footer here */}
     <div
-      className="fixed inset-0 z-50 bg-background grid grid-rows-[auto_1fr_auto]"
+      className="fixed inset-0 z-50 bg-background overflow-hidden"
       aria-modal="true"
       role="dialog"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b">
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background">
         <button
           onClick={() => onClose()}
           className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
@@ -398,8 +400,8 @@ export default function StartNewWeekWizard({
         </span>
       </div>
 
-      {/* Scrollable step content */}
-      <div className="overflow-y-auto px-4 pt-4 pb-4">
+      {/* Scrollable step content — pb-28 so content never hides behind the footer */}
+      <div className="overflow-y-auto h-full px-4 pt-4 pb-28">
         {step > 1 && (
           <button
             onClick={() => setStep((s) => (s - 1) as typeof step)}
@@ -501,32 +503,10 @@ export default function StartNewWeekWizard({
         )}
       </div>
 
-      {/* Pinned navigation footer — always visible */}
-      <div
-        className="px-4 pt-3 border-t"
-        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
-      >
-        {step < 6 && (
-          <Button
-            className="w-full"
-            variant={nextVariant}
-            disabled={isNextDisabled}
-            onClick={() => setStep((s) => (s + 1) as typeof step)}
-          >
-            {nextLabel}
-          </Button>
-        )}
-        {step === 6 && (
-          <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Starting week…" : "Start Week"}
-          </Button>
-        )}
-      </div>
-
-      {/* Slot picker overlay (Step 5) */}
+      {/* Slot picker overlay (Step 5) — fixed so it also covers the independent footer */}
       {pickerDate && pickerMealType && (
         <div
-          className="absolute inset-0 bg-black/40 flex items-end z-10"
+          className="fixed inset-0 bg-black/40 flex items-end z-[52]"
           onClick={closePicker}
         >
           <div
@@ -630,6 +610,29 @@ export default function StartNewWeekWizard({
         </div>
       )}
     </div>
+
+    {/* Footer — completely independent fixed element, cannot be pushed off-screen */}
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[51] bg-background border-t px-4 pt-3"
+      style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+    >
+      {step < 6 && (
+        <Button
+          className="w-full"
+          variant={nextVariant}
+          disabled={isNextDisabled}
+          onClick={() => setStep((s) => (s + 1) as typeof step)}
+        >
+          {nextLabel}
+        </Button>
+      )}
+      {step === 6 && (
+        <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
+          {submitting ? "Starting week…" : "Start Week"}
+        </Button>
+      )}
+    </div>
+    </>
   );
 }
 
