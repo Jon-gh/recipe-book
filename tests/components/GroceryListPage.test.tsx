@@ -178,6 +178,20 @@ describe("GroceryListPage — staples", () => {
     expect(screen.getByText("cumin")).toBeInTheDocument();
     expect(screen.getByText("Hide staples")).toBeInTheDocument();
   });
+
+  it("always shows manually added shopping list items even if their category is a staple", async () => {
+    const ketchupShoppingItem = {
+      id: 42,
+      quantity: 1,
+      unit: "bottle",
+      product: { id: 10, name: "Ketchup", category: "condiments & sauces", defaultUnit: "", defaultQuantity: 1 },
+    };
+    setupFetch({ shoppingList: [ketchupShoppingItem] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Ketchup")).toBeInTheDocument());
+    // Staple toggle should not count manually added items
+    expect(screen.queryByText(/Show staples/)).not.toBeInTheDocument();
+  });
 });
 
 describe("GroceryListPage — checking items", () => {

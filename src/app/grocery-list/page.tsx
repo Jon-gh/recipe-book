@@ -205,10 +205,10 @@ export default function GroceryListPage() {
   const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
   const checkedItems = allItems.filter((item) => checkedKeys.has(itemKey(item)));
   const totalCount = allItems.length;
-  const stapleCount = allItems.filter((i) => categoryIsStaple(i.category)).length;
+  const stapleCount = allItems.filter((i) => categoryIsStaple(i.category) && i.shoppingListId == null).length;
 
   const visibleUncheckedGroups = groupByCategory(uncheckedItems).filter(
-    (g) => showStaples || !g.isStaple
+    (g) => showStaples || !g.isStaple || g.items.some((i) => i.shoppingListId != null)
   );
 
   return (
