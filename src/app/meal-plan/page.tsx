@@ -282,6 +282,7 @@ export default function MealPlanPage() {
   const days = daysInRange(scheduleFrom, scheduleTo);
 
   return (
+    <>
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="mb-5 flex items-center justify-between gap-3">
@@ -591,17 +592,11 @@ export default function MealPlanPage() {
           </>
         )}
 
-        {/* ── New week wizard ──────────────────────────────────────────────── */}
-        <StartNewWeekWizard
-          open={showNewWeekWizard}
-          entries={entries ?? []}
-          recipes={recipes ?? []}
-          checkedKeys={checkedKeys}
-          onClose={handleWizardClose}
-        />
+      </div>
+    </PullToRefresh>
 
-        {/* ── Add slot bottom sheet ─────────────────────────────────────────── */}
-        {slotDate && slotMealType && (
+    {/* ── Add slot bottom sheet — outside PullToRefresh so transform doesn't break fixed positioning ── */}
+    {slotDate && slotMealType && (
           <div
             className="fixed inset-0 z-50 flex items-end bg-black/40"
             onClick={() => setSlotDate(null)}
@@ -718,7 +713,14 @@ export default function MealPlanPage() {
             </div>
           </div>
         )}
-      </div>
-    </PullToRefresh>
+
+    <StartNewWeekWizard
+      open={showNewWeekWizard}
+      entries={entries ?? []}
+      recipes={recipes ?? []}
+      checkedKeys={checkedKeys}
+      onClose={handleWizardClose}
+    />
+    </>
   );
 }
