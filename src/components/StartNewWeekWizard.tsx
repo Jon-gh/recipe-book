@@ -56,23 +56,24 @@ type SlotPortions = Record<string, { lunch: number; dinner: number }>;
 
 type NewRecipeEntry = { recipe: Recipe; targetServings: number };
 
-// A recipe source available for scheduling in Step 5
 type ScheduleSource = {
   recipeName: string;
   totalServings: number;
-  existingEntryId?: number; // leftover entry from current plan
-  newRecipeId?: string;     // new recipe added in step 4
+  existingEntryId?: number;
+  newRecipeId?: string;
 };
 
-// A locally planned meal slot (not persisted until "Start Week")
 type PlanSlot = {
   id: string;
   date: string;
   mealType: "lunch" | "dinner";
   servings: number;
-  recipeName: string;
+  // Recipe slot (one of these set)
+  recipeName?: string;
   existingEntryId?: number;
   newRecipeId?: string;
+  // Custom note slot
+  customNote?: string;
 };
 
 interface Props {
@@ -117,6 +118,7 @@ export default function StartNewWeekWizard({
   const [pickerMealType, setPickerMealType] = useState<"lunch" | "dinner" | null>(null);
   const [pickerSource, setPickerSource] = useState<ScheduleSource | null>(null);
   const [pickerServings, setPickerServings] = useState(2);
+  const [pickerNote, setPickerNote] = useState("");
 
   // Step 6 — submit
   const [submitting, setSubmitting] = useState(false);
@@ -273,29 +275,47 @@ export default function StartNewWeekWizard({
     setPickerMealType(mealType);
     setPickerSource(null);
     setPickerServings(2);
+    setPickerNote("");
   }
 
   function closePicker() {
     setPickerDate(null);
     setPickerMealType(null);
     setPickerSource(null);
+    setPickerNote("");
   }
 
   function confirmPickerSlot() {
-    if (!pickerSource || !pickerDate || !pickerMealType) return;
+    if (!pickerDate || !pickerMealType) return;
     const id = String(Date.now());
-    setPlanSlots((prev) => [
-      ...prev,
-      {
-        id,
-        date: pickerDate,
-        mealType: pickerMealType,
-        servings: pickerServings,
-        recipeName: pickerSource.recipeName,
-        existingEntryId: pickerSource.existingEntryId,
-        newRecipeId: pickerSource.newRecipeId,
-      },
-    ]);
+
+    if (pickerNote.trim()) {
+      setPlanSlots((prev) => [
+        ...prev,
+        {
+          id,
+          date: pickerDate,
+          mealType: pickerMealType,
+          servings: 1,
+          customNote: pickerNote.trim(),
+        },
+      ]);
+    } else if (pickerSource) {
+      setPlanSlots((prev) => [
+        ...prev,
+        {
+          id,
+          date: pickerDate,
+          mealType: pickerMealType,
+          servings: pickerServings,
+          recipeName: pickerSource.recipeName,
+          existingEntryId: pickerSource.existingEntryId,
+          newRecipeId: pickerSource.newRecipeId,
+        },
+      ]);
+    } else {
+      return;
+    }
     closePicker();
   }
 
@@ -328,6 +348,7 @@ export default function StartNewWeekWizard({
             servings: s.servings,
             existingEntryId: s.existingEntryId,
             newRecipeId: s.newRecipeId,
+            note: s.customNote,
           })),
         }),
       });
@@ -357,13 +378,15 @@ export default function StartNewWeekWizard({
   const scheduleDays = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
 
   return (
+    <>
+    {/* Main overlay — header + scrollable content only, NO footer here */}
     <div
-      className="fixed inset-0 z-50 bg-background flex flex-col"
+      className="fixed inset-0 z-50 bg-background overflow-hidden"
       aria-modal="true"
       role="dialog"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background">
         <button
           onClick={() => onClose()}
           className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
@@ -377,8 +400,8 @@ export default function StartNewWeekWizard({
         </span>
       </div>
 
-      {/* Scrollable step content */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
+      {/* Scrollable step content — pb-28 so content never hides behind the footer */}
+      <div className="overflow-y-auto h-full px-4 pt-4 pb-28">
         {step > 1 && (
           <button
             onClick={() => setStep((s) => (s - 1) as typeof step)}
@@ -459,6 +482,7 @@ export default function StartNewWeekWizard({
             scheduleSources={scheduleSources}
             planSlots={planSlots}
             scheduleDays={scheduleDays}
+            slotPortions={slotPortions}
             getPlanSlot={getPlanSlot}
             onOpenPicker={openPicker}
             onRemoveSlot={removePlanSlot}
@@ -479,47 +503,53 @@ export default function StartNewWeekWizard({
         )}
       </div>
 
-      {/* Pinned navigation footer — always visible */}
-      <div className="px-4 pb-8 pt-3 border-t shrink-0">
-        {step < 6 && (
-          <Button
-            className="w-full"
-            variant={nextVariant}
-            disabled={isNextDisabled}
-            onClick={() => setStep((s) => (s + 1) as typeof step)}
-          >
-            {nextLabel}
-          </Button>
-        )}
-        {step === 6 && (
-          <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Starting week…" : "Start Week"}
-          </Button>
-        )}
-      </div>
+    </div>
 
-      {/* Slot picker overlay (Step 5) */}
-      {pickerDate && pickerMealType && (
-        <div
-          className="absolute inset-0 bg-black/40 flex items-end z-10"
-          onClick={closePicker}
+    {/* Footer — completely independent fixed element, cannot be pushed off-screen */}
+    <div
+      className="fixed bottom-0 left-0 right-0 z-[51] bg-background border-t px-4 pt-3"
+      style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+    >
+      {step < 6 && (
+        <Button
+          className="w-full"
+          variant={nextVariant}
+          disabled={isNextDisabled}
+          onClick={() => setStep((s) => (s + 1) as typeof step)}
         >
-          <div
-            className="w-full bg-background rounded-t-2xl p-5 max-h-[70dvh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <h3 className="font-semibold text-sm">
-                {formatDay(pickerDate)} · {pickerMealType}
-              </h3>
-              <button onClick={closePicker} className="text-muted-foreground p-1">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mb-4">
-              Pick a recipe from your plan
-            </p>
+          {nextLabel}
+        </Button>
+      )}
+      {step === 6 && (
+        <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
+          {submitting ? "Starting week…" : "Start Week"}
+        </Button>
+      )}
+    </div>
 
+    {/* Slot picker overlay — at root level so z-[52] beats the footer at z-[51] */}
+    {pickerDate && pickerMealType && (
+      <div
+        className="fixed inset-0 bg-black/40 flex items-end z-[52]"
+        onClick={closePicker}
+      >
+        <div
+          className="w-full bg-background rounded-t-2xl p-5 max-h-[80dvh] overflow-y-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="font-semibold text-sm">
+              {formatDay(pickerDate)} · {pickerMealType}
+            </h3>
+            <button onClick={closePicker} className="text-muted-foreground p-1">
+              <X size={18} />
+            </button>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Pick a recipe or add a custom note
+          </p>
+
+          {scheduleSources.length > 0 && (
             <div className="border rounded-xl divide-y overflow-hidden mb-4">
               {scheduleSources.map((src, i) => {
                 const remaining = remainingForSource(src);
@@ -536,6 +566,7 @@ export default function StartNewWeekWizard({
                       if (disabled) return;
                       setPickerSource(src);
                       setPickerServings(Math.min(2, remaining));
+                      setPickerNote("");
                     }}
                     className={`w-full text-left px-4 py-3 transition-colors ${
                       selected ? "bg-primary/10" : "hover:bg-muted active:bg-muted"
@@ -549,44 +580,60 @@ export default function StartNewWeekWizard({
                 );
               })}
             </div>
+          )}
 
-            {pickerSource && (
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-sm flex-1">Servings</span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPickerServings((s) => Math.max(1, s - 1))}
-                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                  >
-                    <Minus size={14} />
-                  </button>
-                  <span className="text-sm font-semibold w-8 text-center tabular-nums">
-                    {pickerServings}
-                  </span>
-                  <button
-                    onClick={() => {
-                      const remaining = remainingForSource(pickerSource);
-                      setPickerServings((s) => Math.min(s + 1, remaining));
-                    }}
-                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
+          {pickerSource && (
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-sm flex-1">Servings</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPickerServings((s) => Math.max(1, s - 1))}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-sm font-semibold w-8 text-center tabular-nums">
+                  {pickerServings}
+                </span>
+                <button
+                  onClick={() => {
+                    const remaining = remainingForSource(pickerSource);
+                    setPickerServings((s) => Math.min(s + 1, remaining));
+                  }}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Plus size={14} />
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            <Button
-              className="w-full active:scale-95 transition-transform"
-              disabled={!pickerSource}
-              onClick={confirmPickerSlot}
-            >
-              Confirm
-            </Button>
+          {/* Custom note */}
+          <div className="mb-4">
+            <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+              {scheduleSources.length > 0 ? "Or add a custom note" : "Custom note"}
+            </label>
+            <Input
+              placeholder="e.g. Eating outside, Dinner with friends…"
+              value={pickerNote}
+              onChange={(e) => {
+                setPickerNote(e.target.value);
+                if (e.target.value) setPickerSource(null);
+              }}
+            />
           </div>
+
+          <Button
+            className="w-full active:scale-95 transition-transform"
+            disabled={!pickerSource && !pickerNote.trim()}
+            onClick={confirmPickerSlot}
+          >
+            Confirm
+          </Button>
         </div>
-      )}
-    </div>
+      </div>
+    )}
+    </>
   );
 }
 
@@ -962,6 +1009,7 @@ function Step5({
   scheduleSources,
   planSlots,
   scheduleDays,
+  slotPortions,
   getPlanSlot,
   onOpenPicker,
   onRemoveSlot,
@@ -969,6 +1017,7 @@ function Step5({
   scheduleSources: ScheduleSource[];
   planSlots: PlanSlot[];
   scheduleDays: string[];
+  slotPortions: SlotPortions;
   getPlanSlot: (date: string, mealType: "lunch" | "dinner") => PlanSlot | undefined;
   onOpenPicker: (date: string, mealType: "lunch" | "dinner") => void;
   onRemoveSlot: (id: string) => void;
@@ -980,86 +1029,102 @@ function Step5({
         Assign recipes to meal slots. You can skip this and schedule later.
       </p>
 
-      {scheduleSources.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          No recipes in plan yet.
-        </p>
-      ) : (
-        <>
-          {/* Allocation summary */}
-          <div className="border rounded-xl divide-y overflow-hidden mb-4 text-sm">
-            {scheduleSources.map((src, i) => {
-              const allocated = planSlots
-                .filter((s) =>
-                  src.existingEntryId != null
-                    ? s.existingEntryId === src.existingEntryId
-                    : s.newRecipeId === src.newRecipeId
-                )
-                .reduce((sum, s) => sum + s.servings, 0);
-              return (
-                <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                  <span className="truncate flex-1 mr-2 text-sm">{src.recipeName}</span>
-                  <span className={`text-xs shrink-0 ${allocated >= src.totalServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
-                    {allocated}/{src.totalServings}p
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Day × meal grid */}
-          <div className="border rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">Day</th>
-                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Lunch</th>
-                  <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Dinner</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {scheduleDays.map((day) => (
-                  <tr key={day}>
-                    <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
-                      {formatDay(day)}
-                    </td>
-                    {(["lunch", "dinner"] as const).map((mealType) => {
-                      const slot = getPlanSlot(day, mealType);
-                      return (
-                        <td key={mealType} className="py-2 px-2 align-top">
-                          {slot ? (
-                            <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
-                              <span className="text-xs leading-tight flex-1 min-w-0">
-                                <span className="font-medium line-clamp-1">{slot.recipeName}</span>
-                                <span className="text-muted-foreground block">{slot.servings}p</span>
-                              </span>
-                              <button
-                                onClick={() => onRemoveSlot(slot.id)}
-                                className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                                aria-label="Remove slot"
-                              >
-                                <X size={12} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => onOpenPicker(day, mealType)}
-                              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 py-1 px-1 rounded active:scale-95 transition-transform"
-                            >
-                              <Plus size={12} />
-                              Add
-                            </button>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
+      {scheduleSources.length > 0 && (
+        <div className="border rounded-xl divide-y overflow-hidden mb-4 text-sm">
+          {scheduleSources.map((src, i) => {
+            const allocated = planSlots
+              .filter((s) =>
+                src.existingEntryId != null
+                  ? s.existingEntryId === src.existingEntryId
+                  : s.newRecipeId === src.newRecipeId
+              )
+              .reduce((sum, s) => sum + s.servings, 0);
+            return (
+              <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                <span className="truncate flex-1 mr-2 text-sm">{src.recipeName}</span>
+                <span className={`text-xs shrink-0 ${allocated >= src.totalServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                  {allocated}/{src.totalServings}p
+                </span>
+              </div>
+            );
+          })}
+        </div>
       )}
+
+      {/* Day × meal grid */}
+      <div className="border rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-muted/50">
+            <tr>
+              <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">Day</th>
+              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Lunch</th>
+              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Dinner</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y">
+            {scheduleDays.map((day) => (
+              <tr key={day}>
+                <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
+                  {formatDay(day)}
+                </td>
+                {(["lunch", "dinner"] as const).map((mealType) => {
+                  const slot = getPlanSlot(day, mealType);
+                  const targetPortions = slotPortions[day]?.[mealType];
+                  return (
+                    <td key={mealType} className="py-2 px-2 align-top">
+                      {slot ? (
+                        slot.customNote ? (
+                          <div className="flex items-start gap-1 bg-muted/60 rounded-lg px-2 py-1.5">
+                            <span className="text-xs leading-tight flex-1 min-w-0 italic text-muted-foreground line-clamp-2">
+                              {slot.customNote}
+                            </span>
+                            <button
+                              onClick={() => onRemoveSlot(slot.id)}
+                              className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                              aria-label="Remove slot"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
+                            <span className="text-xs leading-tight flex-1 min-w-0">
+                              <span className="font-medium line-clamp-1">{slot.recipeName}</span>
+                              <span className="text-muted-foreground block">{slot.servings}p</span>
+                            </span>
+                            <button
+                              onClick={() => onRemoveSlot(slot.id)}
+                              className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                              aria-label="Remove slot"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => onOpenPicker(day, mealType)}
+                          className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1 px-1 rounded active:scale-95 transition-transform"
+                        >
+                          <span className="flex items-center gap-0.5">
+                            <Plus size={12} />
+                            Add
+                          </span>
+                          {targetPortions != null && targetPortions > 0 && (
+                            <span className="text-muted-foreground/60 block mt-0.5">
+                              {targetPortions}p needed
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

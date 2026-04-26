@@ -7,7 +7,7 @@ import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, Minus, Plus, Trash2, X } from "lucide-react";
+import { CalendarDays, CalendarPlus, Minus, Plus, Trash2, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -99,6 +99,7 @@ export default function MealPlanPage() {
   const [slotMealType, setSlotMealType] = useState<"lunch" | "dinner" | null>(null);
   const [slotEntryId, setSlotEntryId] = useState<number | null>(null);
   const [slotServings, setSlotServings] = useState(2);
+  const [slotNote, setSlotNote] = useState("");
   const [addingSlot, setAddingSlot] = useState(false);
   const [slotError, setSlotError] = useState<string | null>(null);
 
@@ -236,27 +237,28 @@ export default function MealPlanPage() {
     setSlotMealType(mealType);
     setSlotEntryId(null);
     setSlotServings(2);
+    setSlotNote("");
     setSlotError(null);
   }
 
   async function confirmAddSlot() {
-    if (!slotEntryId || !slotDate || !slotMealType) return;
+    if (!slotDate || !slotMealType) return;
+    if (!slotEntryId && !slotNote.trim()) return;
     setAddingSlot(true);
     setSlotError(null);
+    const body = slotNote.trim()
+      ? { note: slotNote.trim(), date: slotDate, mealType: slotMealType, servings: 1 }
+      : { mealPlanEntryId: slotEntryId, date: slotDate, mealType: slotMealType, servings: slotServings };
     const res = await fetch("/api/scheduled-meals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mealPlanEntryId: slotEntryId,
-        date: slotDate,
-        mealType: slotMealType,
-        servings: slotServings,
-      }),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       await Promise.all([mutateSchedule(), mutateEntries()]);
       setSlotDate(null);
       setSlotMealType(null);
+      setSlotNote("");
     } else {
       const err = await res.json();
       setSlotError(err.error ?? "Failed to add");
@@ -280,20 +282,19 @@ export default function MealPlanPage() {
   const days = daysInRange(scheduleFrom, scheduleTo);
 
   return (
+    <>
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
-        <div className="mb-5">
+        <div className="mb-5 flex items-center justify-between gap-3">
           <h1 className="text-2xl font-bold">Meal Plan</h1>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 active:scale-95 transition-transform"
-              onClick={() => setShowNewWeekWizard(true)}
-            >
-              New Week
-            </Button>
-          </div>
+          <Button
+            size="sm"
+            className="gap-1.5 active:scale-95 transition-transform shrink-0"
+            onClick={() => setShowNewWeekWizard(true)}
+          >
+            <CalendarPlus size={15} />
+            New Week
+          </Button>
         </div>
 
         {/* ── Basket: search + add ─────────────────────────────────────────── */}
@@ -539,23 +540,38 @@ export default function MealPlanPage() {
                         return (
                           <td key={mealType} className="py-2 px-2 align-top">
                             {meal ? (
-                              <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
-                                <span className="text-xs leading-tight flex-1 min-w-0">
-                                  <span className="font-medium line-clamp-1">
-                                    {meal.mealPlanEntry.recipe.name}
+                              meal.note ? (
+                                <div className="flex items-start gap-1 bg-muted/60 rounded-lg px-2 py-1.5">
+                                  <span className="text-xs leading-tight flex-1 min-w-0 italic text-muted-foreground line-clamp-2">
+                                    {meal.note}
                                   </span>
-                                  <span className="text-muted-foreground block">
-                                    {meal.servings}p
+                                  <button
+                                    onClick={() => removeSlot(meal.id)}
+                                    className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                                    aria-label="Remove slot"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
+                                  <span className="text-xs leading-tight flex-1 min-w-0">
+                                    <span className="font-medium line-clamp-1">
+                                      {meal.mealPlanEntry?.recipe.name}
+                                    </span>
+                                    <span className="text-muted-foreground block">
+                                      {meal.servings}p
+                                    </span>
                                   </span>
-                                </span>
-                                <button
-                                  onClick={() => removeSlot(meal.id)}
-                                  className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                                  aria-label="Remove slot"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
+                                  <button
+                                    onClick={() => removeSlot(meal.id)}
+                                    className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                                    aria-label="Remove slot"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              )
                             ) : (
                               <button
                                 onClick={() => openAddSlot(day, mealType)}
@@ -576,17 +592,11 @@ export default function MealPlanPage() {
           </>
         )}
 
-        {/* ── New week wizard ──────────────────────────────────────────────── */}
-        <StartNewWeekWizard
-          open={showNewWeekWizard}
-          entries={entries ?? []}
-          recipes={recipes ?? []}
-          checkedKeys={checkedKeys}
-          onClose={handleWizardClose}
-        />
+      </div>
+    </PullToRefresh>
 
-        {/* ── Add slot bottom sheet ─────────────────────────────────────────── */}
-        {slotDate && slotMealType && (
+    {/* ── Add slot bottom sheet — outside PullToRefresh so transform doesn't break fixed positioning ── */}
+    {slotDate && slotMealType && (
           <div
             className="fixed inset-0 z-50 flex items-end bg-black/40"
             onClick={() => setSlotDate(null)}
@@ -607,40 +617,43 @@ export default function MealPlanPage() {
                 </button>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Pick a recipe from your basket
+                Pick a recipe or add a custom note
               </p>
 
-              <div className="border rounded-xl divide-y overflow-hidden mb-4">
-                {(entries ?? []).map((entry) => {
-                  const allocated = allocatedForEntry(entry.id);
-                  const remaining = entry.targetServings - allocated;
-                  const disabled = remaining <= 0;
-                  return (
-                    <button
-                      key={entry.id}
-                      disabled={disabled}
-                      onClick={() => {
-                        if (disabled) return;
-                        setSlotEntryId(entry.id);
-                        setSlotServings(Math.min(2, remaining));
-                        setSlotError(null);
-                      }}
-                      className={`w-full text-left px-4 py-3 transition-colors ${
-                        slotEntryId === entry.id
-                          ? "bg-primary/10"
-                          : "hover:bg-muted active:bg-muted"
-                      } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
-                    >
-                      <div className="font-medium text-sm">
-                        {entry.recipe.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {remaining} of {entry.targetServings} servings remaining
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+              {(entries ?? []).length > 0 && (
+                <div className="border rounded-xl divide-y overflow-hidden mb-4">
+                  {(entries ?? []).map((entry) => {
+                    const allocated = allocatedForEntry(entry.id);
+                    const remaining = entry.targetServings - allocated;
+                    const disabled = remaining <= 0;
+                    return (
+                      <button
+                        key={entry.id}
+                        disabled={disabled}
+                        onClick={() => {
+                          if (disabled) return;
+                          setSlotEntryId(entry.id);
+                          setSlotServings(Math.min(2, remaining));
+                          setSlotNote("");
+                          setSlotError(null);
+                        }}
+                        className={`w-full text-left px-4 py-3 transition-colors ${
+                          slotEntryId === entry.id
+                            ? "bg-primary/10"
+                            : "hover:bg-muted active:bg-muted"
+                        } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
+                      >
+                        <div className="font-medium text-sm">
+                          {entry.recipe.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {remaining} of {entry.targetServings} servings remaining
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               {slotEntryId && (
                 <div className="flex items-center gap-3 mb-4">
@@ -671,13 +684,28 @@ export default function MealPlanPage() {
                 </div>
               )}
 
+              {/* Custom note */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  {(entries ?? []).length > 0 ? "Or add a custom note" : "Custom note"}
+                </label>
+                <Input
+                  placeholder="e.g. Eating outside, Dinner with friends…"
+                  value={slotNote}
+                  onChange={(e) => {
+                    setSlotNote(e.target.value);
+                    if (e.target.value) setSlotEntryId(null);
+                  }}
+                />
+              </div>
+
               {slotError && (
                 <p className="text-sm text-destructive mb-3">{slotError}</p>
               )}
 
               <Button
                 className="w-full active:scale-95 transition-transform"
-                disabled={!slotEntryId || addingSlot}
+                disabled={(!slotEntryId && !slotNote.trim()) || addingSlot}
                 onClick={confirmAddSlot}
               >
                 {addingSlot ? "Adding…" : "Confirm"}
@@ -685,7 +713,14 @@ export default function MealPlanPage() {
             </div>
           </div>
         )}
-      </div>
-    </PullToRefresh>
+
+    <StartNewWeekWizard
+      open={showNewWeekWizard}
+      entries={entries ?? []}
+      recipes={recipes ?? []}
+      checkedKeys={checkedKeys}
+      onClose={handleWizardClose}
+    />
+    </>
   );
 }

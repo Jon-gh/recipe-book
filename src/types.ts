@@ -32,7 +32,7 @@ export type Recipe = {
 export type ScheduledMealBrief = {
   id: number;
   servings: number;
-  mealPlanEntryId: number;
+  mealPlanEntryId: number | null;
 };
 
 export type MealPlanEntry = {
@@ -48,8 +48,9 @@ export type ScheduledMeal = {
   date: string;
   mealType: "lunch" | "dinner";
   servings: number;
-  mealPlanEntryId: number;
-  mealPlanEntry: MealPlanEntry;
+  note: string | null;
+  mealPlanEntryId: number | null;
+  mealPlanEntry: MealPlanEntry | null;
 };
 
 export type GroceryItem = {

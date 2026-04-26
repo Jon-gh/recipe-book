@@ -21,7 +21,21 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { mealPlanEntryId, date, mealType, servings } = await req.json();
+  const { mealPlanEntryId, date, mealType, servings, note } = await req.json();
+
+  // Custom note slot — no basket entry needed
+  if (note) {
+    const meal = await prisma.scheduledMeal.create({
+      data: {
+        date: new Date(date),
+        mealType,
+        servings: servings ?? 1,
+        note,
+      },
+      include: { mealPlanEntry: { include: { recipe: true } } },
+    });
+    return NextResponse.json(meal, { status: 201 });
+  }
 
   const entry = await prisma.mealPlanEntry.findUnique({
     where: { id: mealPlanEntryId },

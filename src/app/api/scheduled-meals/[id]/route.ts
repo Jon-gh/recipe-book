@@ -19,6 +19,10 @@ export async function PATCH(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  if (!current.mealPlanEntry) {
+    return NextResponse.json({ error: "Cannot update servings on a custom note slot" }, { status: 400 });
+  }
+
   const otherAllocated = current.mealPlanEntry.scheduledMeals
     .filter((s) => s.id !== id)
     .reduce((sum, s) => sum + s.servings, 0);
