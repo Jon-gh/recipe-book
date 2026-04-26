@@ -379,7 +379,7 @@ export default function StartNewWeekWizard({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-background flex flex-col"
+      className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden"
       aria-modal="true"
       role="dialog"
     >
@@ -502,7 +502,10 @@ export default function StartNewWeekWizard({
       </div>
 
       {/* Pinned navigation footer — always visible */}
-      <div className="px-4 pt-3 border-t shrink-0 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div
+        className="px-4 pt-3 border-t shrink-0"
+        style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
+      >
         {step < 6 && (
           <Button
             className="w-full"
