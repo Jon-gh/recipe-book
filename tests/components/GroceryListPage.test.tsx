@@ -186,11 +186,21 @@ describe("GroceryListPage — staples", () => {
       unit: "bottle",
       product: { id: 10, name: "Ketchup", category: "condiments & sauces", defaultUnit: "", defaultQuantity: 1 },
     };
-    setupFetch({ shoppingList: [ketchupShoppingItem] });
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "cumin", quantity: 1, unit: "tsp", category: "condiments & sauces" },
+      ],
+      shoppingList: [ketchupShoppingItem],
+    });
     renderPage();
-    await waitFor(() => expect(screen.getByText("Ketchup")).toBeInTheDocument());
-    // Staple toggle should not count manually added items
-    expect(screen.queryByText(/Show staples/)).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    // Manually added Ketchup is visible even though staples are hidden
+    expect(screen.getByText("Ketchup")).toBeInTheDocument();
+    // Meal-plan item in the same staple category remains hidden
+    expect(screen.queryByText("cumin")).not.toBeInTheDocument();
+    // Only the meal-plan staple item counts toward the toggle
+    expect(screen.getByText("Show staples (1)")).toBeInTheDocument();
   });
 });
 

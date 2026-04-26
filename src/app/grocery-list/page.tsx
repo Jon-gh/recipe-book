@@ -207,9 +207,12 @@ export default function GroceryListPage() {
   const totalCount = allItems.length;
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category) && i.shoppingListId == null).length;
 
-  const visibleUncheckedGroups = groupByCategory(uncheckedItems).filter(
-    (g) => showStaples || !g.isStaple || g.items.some((i) => i.shoppingListId != null)
-  );
+  const visibleUncheckedGroups = groupByCategory(uncheckedItems)
+    .map((g) => ({
+      ...g,
+      items: showStaples || !g.isStaple ? g.items : g.items.filter((i) => i.shoppingListId != null),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <>
