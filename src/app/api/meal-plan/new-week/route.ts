@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
     weekStart: string;
     weekEnd: string;
     newEntries: { recipeId: string; targetServings: number }[];
-    slots?: { date: string; mealType: string; servings: number; existingEntryId?: number; newRecipeId?: string }[];
+    slots?: { date: string; mealType: string; servings: number; existingEntryId?: number; newRecipeId?: string; note?: string }[];
   };
 
   if (!weekStart || !weekEnd) {
@@ -68,6 +68,17 @@ export async function POST(req: NextRequest) {
 
     // Create scheduled meals from wizard slots
     for (const slot of slots ?? []) {
+      if (slot.note) {
+        await tx.scheduledMeal.create({
+          data: {
+            date: new Date(slot.date + "T00:00:00"),
+            mealType: slot.mealType,
+            servings: slot.servings,
+            note: slot.note,
+          },
+        });
+        continue;
+      }
       const entryId =
         slot.existingEntryId ?? (slot.newRecipeId ? newEntryMap[slot.newRecipeId] : undefined);
       if (!entryId) continue;

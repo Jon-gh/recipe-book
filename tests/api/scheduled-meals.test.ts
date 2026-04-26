@@ -65,6 +65,24 @@ describe("GET /api/scheduled-meals", () => {
 });
 
 describe("POST /api/scheduled-meals", () => {
+  it("creates a custom note slot without a meal plan entry", async () => {
+    const noteMeal = { ...mockMeal, mealPlanEntryId: null, mealPlanEntry: null, note: "Eating outside" };
+    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue(noteMeal as never);
+
+    const req = new NextRequest("http://localhost/api/scheduled-meals", {
+      method: "POST",
+      body: JSON.stringify({
+        note: "Eating outside",
+        date: "2026-04-21",
+        mealType: "dinner",
+        servings: 1,
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(201);
+    expect(prisma.mealPlanEntry.findUnique).not.toHaveBeenCalled();
+  });
+
   it("creates a slot when budget allows", async () => {
     vi.mocked(prisma.mealPlanEntry.findUnique).mockResolvedValue(mockEntry as never);
     vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(null);
@@ -140,6 +158,18 @@ describe("POST /api/scheduled-meals", () => {
 });
 
 describe("PATCH /api/scheduled-meals/[id]", () => {
+  it("returns 400 when patching a custom note slot", async () => {
+    const noteMeal = { ...mockMeal, mealPlanEntryId: null, mealPlanEntry: null, note: "Eating outside" };
+    vi.mocked(prisma.scheduledMeal.findUnique).mockResolvedValue(noteMeal as never);
+
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
+      method: "PATCH",
+      body: JSON.stringify({ servings: 2 }),
+    });
+    const res = await PATCH(req, { params: { id: "10" } });
+    expect(res.status).toBe(400);
+  });
+
   it("updates servings when budget allows", async () => {
     const current = {
       ...mockMeal,

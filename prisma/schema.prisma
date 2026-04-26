@@ -63,12 +63,13 @@ model MealPlanEntry {
 }
 
 model ScheduledMeal {
-  id              Int           @id @default(autoincrement())
-  date            DateTime      @db.Date
+  id              Int            @id @default(autoincrement())
+  date            DateTime       @db.Date
   mealType        String
   servings        Int
-  mealPlanEntry   MealPlanEntry @relation(fields: [mealPlanEntryId], references: [id], onDelete: Cascade)
-  mealPlanEntryId Int
+  note            String?
+  mealPlanEntry   MealPlanEntry? @relation(fields: [mealPlanEntryId], references: [id], onDelete: Cascade)
+  mealPlanEntryId Int?
 }
 
 model ShoppingSession {

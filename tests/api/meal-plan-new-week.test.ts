@@ -233,4 +233,30 @@ describe("POST /api/meal-plan/new-week", () => {
       data: { targetServings: 6 },
     });
   });
+
+  it("creates a custom note slot when slot has a note field", async () => {
+    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
+    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
+
+    await POST(
+      makeReq({
+        consumed: [],
+        weekStart: "2026-04-28",
+        weekEnd: "2026-05-04",
+        newEntries: [],
+        slots: [{ date: "2026-04-28", mealType: "dinner", servings: 1, note: "Eating outside" }],
+      })
+    );
+
+    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+      data: {
+        date: new Date("2026-04-28T00:00:00"),
+        mealType: "dinner",
+        servings: 1,
+        note: "Eating outside",
+      },
+    });
+  });
 });
