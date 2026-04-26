@@ -379,12 +379,12 @@ export default function StartNewWeekWizard({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden"
+      className="fixed inset-0 z-50 bg-background grid grid-rows-[auto_1fr_auto]"
       aria-modal="true"
       role="dialog"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b">
         <button
           onClick={() => onClose()}
           className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
@@ -399,7 +399,7 @@ export default function StartNewWeekWizard({
       </div>
 
       {/* Scrollable step content */}
-      <div className="flex-1 overflow-y-auto min-h-0 px-4 pt-4 pb-4">
+      <div className="overflow-y-auto px-4 pt-4 pb-4">
         {step > 1 && (
           <button
             onClick={() => setStep((s) => (s - 1) as typeof step)}
@@ -503,7 +503,7 @@ export default function StartNewWeekWizard({
 
       {/* Pinned navigation footer — always visible */}
       <div
-        className="px-4 pt-3 border-t shrink-0"
+        className="px-4 pt-3 border-t"
         style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
       >
         {step < 6 && (
