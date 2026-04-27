@@ -53,6 +53,11 @@ beforeEach(() => {
 });
 
 describe("StartNewWeekWizard", () => {
+  it("renders nothing when open=false", () => {
+    const { container } = render(<StartNewWeekWizard {...defaultProps} open={false} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
   it("renders step 1 when opened", () => {
     render(<StartNewWeekWizard {...defaultProps} />);
     expect(screen.getByText("What did you eat?")).toBeInTheDocument();
@@ -82,6 +87,17 @@ describe("StartNewWeekWizard", () => {
     expect(screen.getByText("What did you eat?")).toBeInTheDocument();
   });
 
+  it("step 3 shows day cards with Lunch and Dinner labels", async () => {
+    const user = userEvent.setup();
+    render(<StartNewWeekWizard {...defaultProps} />);
+    // step 1 → 2 → 3
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() => expect(screen.getByText("Portions per meal")).toBeInTheDocument());
+    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Dinner").length).toBeGreaterThan(0);
+  });
+
   it("shows portion tally in step 4", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} />);
@@ -102,6 +118,18 @@ describe("StartNewWeekWizard", () => {
     }
     expect(screen.getByText("Schedule meals")).toBeInTheDocument();
     expect(screen.getByText("Step 5 of 6")).toBeInTheDocument();
+  });
+
+  it("step 5 shows day cards with Lunch and Dinner labels", async () => {
+    const user = userEvent.setup();
+    render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
+    // Steps 1 → 2 → 3 → 4 → 5
+    for (let i = 0; i < 4; i++) {
+      await user.click(screen.getByRole("button", { name: /Next/ }));
+    }
+    await waitFor(() => expect(screen.getByText("Schedule meals")).toBeInTheDocument());
+    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Dinner").length).toBeGreaterThan(0);
   });
 
   it("shows confirm summary on step 6", async () => {

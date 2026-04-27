@@ -7,7 +7,7 @@ import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, List, Plus } from "lucide-react";
+import { Users, List, Plus, Search } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
@@ -73,15 +73,18 @@ export default function RecipesPage() {
         </div>
 
         <div className="flex items-center gap-2 mb-5">
-          <Input
-            ref={inputRef}
-            placeholder="Search by name, tag or ingredient…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            onFocus={() => setSearchFocused(true)}
-            onBlur={() => { if (!cancelPressedRef.current) setSearchFocused(false); }}
-            className="flex-1"
-          />
+          <div className="relative flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              ref={inputRef}
+              placeholder="Search by name, tag or ingredient…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => { if (!cancelPressedRef.current) setSearchFocused(false); }}
+              className="pl-9"
+            />
+          </div>
           <div
             className={`overflow-hidden transition-all duration-200 shrink-0 ${
               searchFocused ? "max-w-0 opacity-0" : "max-w-[160px] opacity-100"

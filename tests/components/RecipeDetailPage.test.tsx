@@ -12,15 +12,21 @@ import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import RecipeDetailPage from "@/app/recipes/[id]/page";
 
+const mockPush = vi.fn();
+
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({ push: mockPush, refresh: vi.fn() }),
   useParams: () => ({ id: "1" }),
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: React.ReactNode }) => (
-    <a href={href}>{children}</a>
+  default: ({ href, children, className, "aria-label": ariaLabel }: { href: string; children: React.ReactNode; className?: string; "aria-label"?: string }) => (
+    <a href={href} className={className} aria-label={ariaLabel}>{children}</a>
   ),
+}));
+
+vi.mock("@/components/RecipeForm", () => ({
+  default: () => <div data-testid="recipe-form">RecipeForm</div>,
 }));
 
 const mockFetch = vi.fn();
@@ -32,7 +38,17 @@ const mockRecipe = {
   servings: 4,
   tags: ["Italian"],
   favourite: false,
-  ingredients: [{ id: 1, productId: 1, quantity: 3, unit: "", preparation: "", recipeId: "1", product: { id: 1, name: "eggs", category: "other", defaultUnit: "", defaultQuantity: 1 } }],
+  ingredients: [
+    {
+      id: 1,
+      productId: 1,
+      quantity: 3,
+      unit: "",
+      preparation: "",
+      recipeId: "1",
+      product: { id: 1, name: "eggs", category: "other", defaultUnit: "", defaultQuantity: 1 },
+    },
+  ],
   instructions: "Cook pasta.",
   notes: null,
 };
@@ -47,11 +63,9 @@ function renderPage() {
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({
-    ok: true,
-    json: async () => mockRecipe,
-  });
+  mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipe });
   mockVibrate.mockClear();
+  mockPush.mockClear();
 });
 
 describe("RecipeDetailPage — favourite toggle", () => {
@@ -76,37 +90,94 @@ describe("RecipeDetailPage — favourite toggle", () => {
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
-
     await userEvent.click(screen.getByRole("button", { name: "Add to favourites" }));
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/recipes/1",
-      expect.objectContaining({
-        method: "PUT",
-        body: expect.stringContaining('"favourite":true'),
-      })
+      expect.objectContaining({ method: "PUT", body: expect.stringContaining('"favourite":true') })
     );
   });
 
   it("calls PUT with favourite:false when toggling off", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ ...mockRecipe, favourite: true }),
-    });
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ...mockRecipe, favourite: false }) });
-
     await userEvent.click(screen.getByRole("button", { name: "Remove from favourites" }));
 
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/recipes/1",
-      expect.objectContaining({
-        method: "PUT",
-        body: expect.stringContaining('"favourite":false'),
-      })
+      expect.objectContaining({ method: "PUT", body: expect.stringContaining('"favourite":false') })
     );
+  });
+});
+
+describe("RecipeDetailPage — ⋯ actions menu", () => {
+  it("back link navigates to /recipes", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Back to recipes" })).toHaveAttribute("href", "/recipes");
+  });
+
+  it("opens with Edit Recipe, Duplicate and Delete Recipe options", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Edit Recipe" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Duplicate" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Delete Recipe" })).toBeInTheDocument();
+    });
+  });
+
+  it("Edit Recipe opens the edit bottom sheet", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Edit Recipe" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Edit Recipe" })).toBeInTheDocument();
+    });
+  });
+
+  it("Duplicate calls POST /duplicate and navigates to the copy", async () => {
+    const copy = { ...mockRecipe, id: "2", name: "Pasta Carbonara (copy)" };
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipe }) // initial load
+      .mockResolvedValueOnce({ ok: true, json: async () => copy });       // POST /duplicate
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Duplicate" }));
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/recipes/1/duplicate", { method: "POST" });
+      expect(mockPush).toHaveBeenCalledWith("/recipes/2");
+    });
+  });
+
+  it("Delete Recipe shows confirmation sheet then calls DELETE", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+    const allDeleteBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(allDeleteBtns[0]);
+
+    // Confirmation sheet appears
+    const confirmBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith("/api/recipes/1", { method: "DELETE" });
+    });
   });
 });
 
@@ -124,9 +195,11 @@ describe("RecipeDetailPage — haptic feedback", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /delete/i }));
-    const confirmBtn = await screen.findByRole("button", { name: "Delete Recipe" });
-    await userEvent.click(confirmBtn);
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+    const allDeleteBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(allDeleteBtns[0]);
+    const confirmBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
 
     expect(mockVibrate).toHaveBeenCalled();
   });
@@ -138,8 +211,6 @@ describe("RecipeDetailPage — haptic feedback", () => {
     await userEvent.click(screen.getByRole("button", { name: /add to meal plan/i }));
 
     mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
-    // Two "Add to Meal Plan" buttons exist when the sheet is open — the page button and the sheet confirm button.
-    // The confirm button is the last one rendered.
     const allAddBtns = await screen.findAllByRole("button", { name: "Add to Meal Plan" });
     await userEvent.click(allAddBtns[allAddBtns.length - 1]);
 
