@@ -45,7 +45,73 @@ beforeEach(() => {
   mockFetch.mockClear();
 });
 
-describe("MealPlanPage", () => {
+describe("MealPlanPage — tabs", () => {
+  it("shows Plan tab as active by default", () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+    expect(screen.getByRole("tab", { name: "Plan" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Schedule" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("shows search input on Plan tab and hides it on Schedule tab", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    expect(screen.getByPlaceholderText("Search recipes to add…")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
+
+    expect(screen.queryByPlaceholderText("Search recipes to add…")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Schedule" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("shows schedule empty state when switching to Schedule tab with no entries", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
+      expect(screen.getByText("Add recipes in the Plan tab first")).toBeInTheDocument();
+    });
+  });
+
+  it("shows the schedule grid on Schedule tab when entries exist", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
+      .mockResolvedValue({ ok: true, json: async () => [] });             // scheduled-meals + session
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
+
+    expect(screen.getByText("Lunch")).toBeInTheDocument();
+    expect(screen.getByText("Dinner")).toBeInTheDocument();
+    // Plan list is hidden
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
+  });
+
+  it("switching back to Plan tab restores the entries list", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
+      .mockResolvedValue({ ok: true, json: async () => [] });
+
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("tab", { name: "Plan" }));
+    expect(screen.getByText("Pasta")).toBeInTheDocument();
+  });
+});
+
+describe("MealPlanPage — Plan tab", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
@@ -116,7 +182,7 @@ describe("MealPlanPage", () => {
     expect(mockFetch).toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
   });
 
-  it("adds entry when selecting a recipe and clicking Add to Plan, then shows it after revalidation", async () => {
+  it("adds entry when selecting a recipe and clicking Add, then shows it after revalidation", async () => {
     const newEntry = {
       id: 2,
       targetServings: 4,

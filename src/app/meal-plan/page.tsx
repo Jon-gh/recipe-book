@@ -7,7 +7,7 @@ import { MealPlanEntry, Recipe, ScheduledMeal } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CalendarDays, CalendarPlus, Minus, Plus, Trash2, X } from "lucide-react";
+import { CalendarPlus, Minus, Plus, Trash2, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -281,6 +281,8 @@ export default function MealPlanPage() {
   const showCancel = searchFocused || !!selectedRecipe;
   const days = daysInRange(scheduleFrom, scheduleTo);
 
+  const [activeTab, setActiveTab] = useState<"plan" | "schedule">("plan");
+
   return (
     <>
     <PullToRefresh onRefresh={handleRefresh}>
@@ -297,298 +299,344 @@ export default function MealPlanPage() {
           </Button>
         </div>
 
-        {/* ── Basket: search + add ─────────────────────────────────────────── */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2">
-            <Input
-              ref={inputRef}
-              placeholder="Search recipes to add…"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                if (selectedRecipe) setSelectedRecipe(null);
-              }}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={handleBlur}
-              className="flex-1"
-            />
-            <button
-              onPointerDown={() => {
-                cancelPressedRef.current = true;
-              }}
-              onPointerCancel={() => {
-                cancelPressedRef.current = false;
-              }}
-              onClick={handleCancel}
-              className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
-                showCancel
-                  ? "max-w-[72px] opacity-100"
-                  : "max-w-0 opacity-0 pointer-events-none"
-              }`}
-            >
-              Cancel
-            </button>
-          </div>
-
-          {showDropdown && (
-            <div className="mt-1 border rounded-xl shadow-sm divide-y overflow-hidden">
-              {filtered.length === 0 ? (
-                <p className="p-3 text-sm text-muted-foreground">
-                  No recipes found.
-                </p>
-              ) : (
-                filtered.map((r) => (
-                  <button
-                    key={r.id}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-muted active:bg-muted transition-colors min-h-[44px]"
-                    onPointerDown={() => {
-                      dropdownPressedRef.current = true;
-                    }}
-                    onPointerCancel={() => {
-                      dropdownPressedRef.current = false;
-                    }}
-                    onClick={() => selectRecipe(r)}
-                  >
-                    <span className="font-medium">{r.name}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">
-                      {r.servings} servings
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          )}
-
-          {selectedRecipe && (
-            <div className="mt-3 flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl">
-              <span className="flex-1 text-sm font-medium truncate">
-                {selectedRecipe.name}
-              </span>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setServings((s) => Math.max(1, s - 1))}
-                  className="w-8 h-8 rounded-full bg-background border flex items-center justify-center active:scale-95 transition-transform"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="text-sm font-semibold w-8 text-center tabular-nums">
-                  {servings}
-                </span>
-                <button
-                  onClick={() => setServings((s) => s + 1)}
-                  className="w-8 h-8 rounded-full bg-background border flex items-center justify-center active:scale-95 transition-transform"
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-              <Button
-                size="sm"
-                onClick={addEntry}
-                disabled={adding}
-                className="active:scale-95 transition-transform shrink-0"
-              >
-                {adding ? "Adding…" : "Add"}
-              </Button>
-            </div>
-          )}
+        {/* ── Tab bar ─────────────────────────────────────────────────────── */}
+        <div role="tablist" className="flex gap-1 bg-muted rounded-lg p-1 mb-6">
+          <button
+            role="tab"
+            aria-selected={activeTab === "plan"}
+            onClick={() => setActiveTab("plan")}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeTab === "plan"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            Plan
+          </button>
+          <button
+            role="tab"
+            aria-selected={activeTab === "schedule"}
+            onClick={() => setActiveTab("schedule")}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              activeTab === "schedule"
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground"
+            }`}
+          >
+            Schedule
+          </button>
         </div>
 
-        {/* ── Basket entries ───────────────────────────────────────────────── */}
-        {loadingEntries ? (
-          <p className="text-muted-foreground">Loading…</p>
-        ) : (entries ?? []).length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-5xl mb-4">🍽️</p>
-            <p className="font-medium text-foreground">No recipes planned yet</p>
-            <p className="text-sm mt-1">
-              Search above to add recipes to your plan
-            </p>
-          </div>
-        ) : (
+        {/* ── Plan tab ─────────────────────────────────────────────────────── */}
+        {activeTab === "plan" && (
           <>
-            <p className="text-sm text-muted-foreground mb-3">
-              {entries!.length} recipe{entries!.length !== 1 ? "s" : ""} ·{" "}
-              {totalServings} total servings
-            </p>
-            <div className="border rounded-xl overflow-hidden divide-y mb-8">
-              {entries!.map((entry) => {
-                const allocated = allocatedForEntry(entry.id);
-                const ready = isReadyToCook(entry);
-                return (
-                  <div key={entry.id} className={`flex items-center gap-3 px-4 py-3 ${ready ? "bg-green-50 dark:bg-green-950/20" : ""}`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <Link
-                          href={`/recipes/${entry.recipe.id}`}
-                          className="font-medium text-sm leading-snug hover:underline line-clamp-1"
-                        >
-                          {entry.recipe.name}
-                        </Link>
-                        {ready && (
-                          <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full">
-                            Ready
-                          </span>
-                        )}
-                      </div>
-                      {entry.recipe.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {entry.recipe.tags.slice(0, 3).map((tag) => (
-                            <Badge
-                              key={tag}
-                              variant="secondary"
-                              className="text-xs py-0"
-                            >
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      {allocated > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {allocated}/{entry.targetServings} servings scheduled
-                        </p>
-                      )}
-                    </div>
+            {/* Search + add */}
+            <div className="mb-6">
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={inputRef}
+                  placeholder="Search recipes to add…"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    if (selectedRecipe) setSelectedRecipe(null);
+                  }}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={handleBlur}
+                  className="flex-1"
+                />
+                <button
+                  onPointerDown={() => {
+                    cancelPressedRef.current = true;
+                  }}
+                  onPointerCancel={() => {
+                    cancelPressedRef.current = false;
+                  }}
+                  onClick={handleCancel}
+                  className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
+                    showCancel
+                      ? "max-w-[72px] opacity-100"
+                      : "max-w-0 opacity-0 pointer-events-none"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+              {showDropdown && (
+                <div className="mt-1 border rounded-xl shadow-sm divide-y overflow-hidden">
+                  {filtered.length === 0 ? (
+                    <p className="p-3 text-sm text-muted-foreground">
+                      No recipes found.
+                    </p>
+                  ) : (
+                    filtered.map((r) => (
                       <button
-                        onClick={() =>
-                          updateServings(
-                            entry.id,
-                            Math.max(1, entry.targetServings - 1)
-                          )
-                        }
-                        className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        aria-label="Decrease servings"
+                        key={r.id}
+                        className="w-full text-left px-4 py-3 text-sm hover:bg-muted active:bg-muted transition-colors min-h-[44px]"
+                        onPointerDown={() => {
+                          dropdownPressedRef.current = true;
+                        }}
+                        onPointerCancel={() => {
+                          dropdownPressedRef.current = false;
+                        }}
+                        onClick={() => selectRecipe(r)}
                       >
-                        <Minus size={13} />
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-muted-foreground ml-2 text-xs">
+                          {r.servings} servings
+                        </span>
                       </button>
-                      <span className="text-sm font-semibold w-6 text-center tabular-nums">
-                        {entry.targetServings}
-                      </span>
-                      <button
-                        onClick={() =>
-                          updateServings(entry.id, entry.targetServings + 1)
-                        }
-                        className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        aria-label="Increase servings"
-                      >
-                        <Plus size={13} />
-                      </button>
-                    </div>
+                    ))
+                  )}
+                </div>
+              )}
 
+              {selectedRecipe && (
+                <div className="mt-3 flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl">
+                  <span className="flex-1 text-sm font-medium truncate">
+                    {selectedRecipe.name}
+                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
-                      onClick={() => removeEntry(entry.id)}
-                      className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
-                      aria-label="Remove from plan"
+                      onClick={() => setServings((s) => Math.max(1, s - 1))}
+                      className="w-8 h-8 rounded-full bg-background border flex items-center justify-center active:scale-95 transition-transform"
                     >
-                      <Trash2 size={16} />
+                      <Minus size={14} />
+                    </button>
+                    <span className="text-sm font-semibold w-8 text-center tabular-nums">
+                      {servings}
+                    </span>
+                    <button
+                      onClick={() => setServings((s) => s + 1)}
+                      className="w-8 h-8 rounded-full bg-background border flex items-center justify-center active:scale-95 transition-transform"
+                    >
+                      <Plus size={14} />
                     </button>
                   </div>
-                );
-              })}
+                  <Button
+                    size="sm"
+                    onClick={addEntry}
+                    disabled={adding}
+                    className="active:scale-95 transition-transform shrink-0"
+                  >
+                    {adding ? "Adding…" : "Add"}
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* ── Schedule grid ──────────────────────────────────────────────── */}
-            <div className="mb-2 flex items-center gap-2">
-              <CalendarDays size={16} className="text-muted-foreground shrink-0" />
-              <h2 className="font-semibold text-sm">Schedule</h2>
-            </div>
-
-            {/* Date range picker */}
-            <div className="flex items-center gap-2 mb-4 text-sm">
-              <input
-                type="date"
-                value={scheduleFrom}
-                onChange={(e) => setScheduleFrom(e.target.value)}
-                className="border rounded-lg px-2 py-1.5 text-sm bg-background"
-              />
-              <span className="text-muted-foreground">→</span>
-              <input
-                type="date"
-                value={scheduleTo}
-                min={scheduleFrom}
-                onChange={(e) => setScheduleTo(e.target.value)}
-                className="border rounded-lg px-2 py-1.5 text-sm bg-background"
-              />
-            </div>
-
-            {/* Day × meal grid */}
-            <div className="border rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">
-                      Day
-                    </th>
-                    <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">
-                      Lunch
-                    </th>
-                    <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">
-                      Dinner
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {days.map((day) => (
-                    <tr key={day}>
-                      <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
-                        {formatDay(day)}
-                      </td>
-                      {(["lunch", "dinner"] as const).map((mealType) => {
-                        const meal = getMeal(day, mealType);
-                        return (
-                          <td key={mealType} className="py-2 px-2 align-top">
-                            {meal ? (
-                              meal.note ? (
-                                <div className="flex items-start gap-1 bg-muted/60 rounded-lg px-2 py-1.5">
-                                  <span className="text-xs leading-tight flex-1 min-w-0 italic text-muted-foreground line-clamp-2">
-                                    {meal.note}
-                                  </span>
-                                  <button
-                                    onClick={() => removeSlot(meal.id)}
-                                    className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                                    aria-label="Remove slot"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
-                                  <span className="text-xs leading-tight flex-1 min-w-0">
-                                    <span className="font-medium line-clamp-1">
-                                      {meal.mealPlanEntry?.recipe.name}
-                                    </span>
-                                    <span className="text-muted-foreground block">
-                                      {meal.servings}p
-                                    </span>
-                                  </span>
-                                  <button
-                                    onClick={() => removeSlot(meal.id)}
-                                    className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                                    aria-label="Remove slot"
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                </div>
-                              )
-                            ) : (
-                              <button
-                                onClick={() => openAddSlot(day, mealType)}
-                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 py-1 px-1 rounded active:scale-95 transition-transform"
-                              >
-                                <Plus size={12} />
-                                Add
-                              </button>
+            {/* Entries list */}
+            {loadingEntries ? (
+              <p className="text-muted-foreground">Loading…</p>
+            ) : (entries ?? []).length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-5xl mb-4">🍽️</p>
+                <p className="font-medium text-foreground">No recipes planned yet</p>
+                <p className="text-sm mt-1">
+                  Search above to add recipes to your plan
+                </p>
+              </div>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {entries!.length} recipe{entries!.length !== 1 ? "s" : ""} ·{" "}
+                  {totalServings} total servings
+                </p>
+                <div className="border rounded-xl overflow-hidden divide-y">
+                  {entries!.map((entry) => {
+                    const allocated = allocatedForEntry(entry.id);
+                    const ready = isReadyToCook(entry);
+                    return (
+                      <div key={entry.id} className={`flex items-center gap-3 px-4 py-3 ${ready ? "bg-green-50 dark:bg-green-950/20" : ""}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Link
+                              href={`/recipes/${entry.recipe.id}`}
+                              className="font-medium text-sm leading-snug hover:underline line-clamp-1"
+                            >
+                              {entry.recipe.name}
+                            </Link>
+                            {ready && (
+                              <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full">
+                                Ready
+                              </span>
                             )}
+                          </div>
+                          {entry.recipe.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {entry.recipe.tags.slice(0, 3).map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="secondary"
+                                  className="text-xs py-0"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {allocated > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {allocated}/{entry.targetServings} servings scheduled
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            onClick={() =>
+                              updateServings(
+                                entry.id,
+                                Math.max(1, entry.targetServings - 1)
+                              )
+                            }
+                            className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                            aria-label="Decrease servings"
+                          >
+                            <Minus size={13} />
+                          </button>
+                          <span className="text-sm font-semibold w-6 text-center tabular-nums">
+                            {entry.targetServings}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updateServings(entry.id, entry.targetServings + 1)
+                            }
+                            className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                            aria-label="Increase servings"
+                          >
+                            <Plus size={13} />
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => removeEntry(entry.id)}
+                          className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
+                          aria-label="Remove from plan"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {/* ── Schedule tab ─────────────────────────────────────────────────── */}
+        {activeTab === "schedule" && (
+          <>
+            {loadingEntries ? (
+              <p className="text-muted-foreground">Loading…</p>
+            ) : (entries ?? []).length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <p className="text-5xl mb-4">📅</p>
+                <p className="font-medium text-foreground">No recipes in your plan yet</p>
+                <p className="text-sm mt-1">
+                  Add recipes in the Plan tab first
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Date range picker */}
+                <div className="flex items-center gap-2 mb-4 text-sm">
+                  <input
+                    type="date"
+                    value={scheduleFrom}
+                    onChange={(e) => setScheduleFrom(e.target.value)}
+                    className="border rounded-lg px-2 py-1.5 text-sm bg-background"
+                  />
+                  <span className="text-muted-foreground">→</span>
+                  <input
+                    type="date"
+                    value={scheduleTo}
+                    min={scheduleFrom}
+                    onChange={(e) => setScheduleTo(e.target.value)}
+                    className="border rounded-lg px-2 py-1.5 text-sm bg-background"
+                  />
+                </div>
+
+                {/* Day × meal grid */}
+                <div className="border rounded-xl overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">
+                          Day
+                        </th>
+                        <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">
+                          Lunch
+                        </th>
+                        <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">
+                          Dinner
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {days.map((day) => (
+                        <tr key={day}>
+                          <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
+                            {formatDay(day)}
                           </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          {(["lunch", "dinner"] as const).map((mealType) => {
+                            const meal = getMeal(day, mealType);
+                            return (
+                              <td key={mealType} className="py-2 px-2 align-top">
+                                {meal ? (
+                                  meal.note ? (
+                                    <div className="flex items-start gap-1 bg-muted/60 rounded-lg px-2 py-1.5">
+                                      <span className="text-xs leading-tight flex-1 min-w-0 italic text-muted-foreground line-clamp-2">
+                                        {meal.note}
+                                      </span>
+                                      <button
+                                        onClick={() => removeSlot(meal.id)}
+                                        className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                                        aria-label="Remove slot"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
+                                      <span className="text-xs leading-tight flex-1 min-w-0">
+                                        <span className="font-medium line-clamp-1">
+                                          {meal.mealPlanEntry?.recipe.name}
+                                        </span>
+                                        <span className="text-muted-foreground block">
+                                          {meal.servings}p
+                                        </span>
+                                      </span>
+                                      <button
+                                        onClick={() => removeSlot(meal.id)}
+                                        className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
+                                        aria-label="Remove slot"
+                                      >
+                                        <X size={12} />
+                                      </button>
+                                    </div>
+                                  )
+                                ) : (
+                                  <button
+                                    onClick={() => openAddSlot(day, mealType)}
+                                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-0.5 py-1 px-1 rounded active:scale-95 transition-transform"
+                                  >
+                                    <Plus size={12} />
+                                    Add
+                                  </button>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
           </>
         )}
 
