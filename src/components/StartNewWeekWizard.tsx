@@ -780,57 +780,45 @@ function Step3({
         How many portions does each meal need?
       </p>
 
-      <div className="border rounded-xl overflow-hidden mb-4">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground">
-                Day
-              </th>
-              <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">
-                Lunch
-              </th>
-              <th className="text-center py-2 px-2 text-xs font-medium text-muted-foreground">
-                Dinner
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {days.map((day) => {
-              const p = slotPortions[day] ?? { lunch: 2, dinner: 2 };
-              return (
-                <tr key={day}>
-                  <td className="py-2 px-3 text-xs text-muted-foreground">
-                    {formatDay(day)}
-                  </td>
-                  {(["lunch", "dinner"] as const).map((meal) => (
-                    <td key={meal} className="py-1.5 px-2">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() =>
-                            onPortionChange(day, meal, Math.max(0, p[meal] - 1))
-                          }
-                          className="w-6 h-6 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        >
-                          <Minus size={11} />
-                        </button>
-                        <span className="text-sm font-semibold w-5 text-center tabular-nums">
-                          {p[meal]}
-                        </span>
-                        <button
-                          onClick={() => onPortionChange(day, meal, p[meal] + 1)}
-                          className="w-6 h-6 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        >
-                          <Plus size={11} />
-                        </button>
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="space-y-3 mb-4">
+        {days.map((day) => {
+          const p = slotPortions[day] ?? { lunch: 2, dinner: 2 };
+          return (
+            <div key={day} className="border rounded-xl overflow-hidden">
+              <div className="bg-muted/50 px-4 py-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {formatDay(day)}
+                </p>
+              </div>
+              <div className="divide-y">
+                {(["lunch", "dinner"] as const).map((meal) => (
+                  <div key={meal} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
+                    <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
+                      {meal === "lunch" ? "Lunch" : "Dinner"}
+                    </span>
+                    <div className="flex items-center gap-2 ml-auto">
+                      <button
+                        onClick={() => onPortionChange(day, meal, Math.max(0, p[meal] - 1))}
+                        className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                      >
+                        <Minus size={13} />
+                      </button>
+                      <span className="text-sm font-semibold w-7 text-center tabular-nums">
+                        {p[meal]}
+                      </span>
+                      <button
+                        onClick={() => onPortionChange(day, meal, p[meal] + 1)}
+                        className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                      >
+                        <Plus size={13} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <p className="text-sm text-muted-foreground text-center mb-4">
@@ -1051,79 +1039,68 @@ function Step5({
         </div>
       )}
 
-      {/* Day × meal grid */}
-      <div className="border rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="text-left py-2 px-3 text-xs font-medium text-muted-foreground w-28">Day</th>
-              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Lunch</th>
-              <th className="text-left py-2 px-2 text-xs font-medium text-muted-foreground w-[42%]">Dinner</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {scheduleDays.map((day) => (
-              <tr key={day}>
-                <td className="py-2.5 px-3 text-xs text-muted-foreground align-top pt-3 leading-tight">
-                  {formatDay(day)}
-                </td>
-                {(["lunch", "dinner"] as const).map((mealType) => {
-                  const slot = getPlanSlot(day, mealType);
-                  const targetPortions = slotPortions[day]?.[mealType];
-                  return (
-                    <td key={mealType} className="py-2 px-2 align-top">
-                      {slot ? (
-                        slot.customNote ? (
-                          <div className="flex items-start gap-1 bg-muted/60 rounded-lg px-2 py-1.5">
-                            <span className="text-xs leading-tight flex-1 min-w-0 italic text-muted-foreground line-clamp-2">
+      {/* Day cards */}
+      <div className="space-y-3">
+        {scheduleDays.map((day) => (
+          <div key={day} className="border rounded-xl overflow-hidden">
+            <div className="bg-muted/50 px-4 py-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                {formatDay(day)}
+              </p>
+            </div>
+            <div className="divide-y">
+              {(["lunch", "dinner"] as const).map((mealType) => {
+                const slot = getPlanSlot(day, mealType);
+                const targetPortions = slotPortions[day]?.[mealType];
+                return (
+                  <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
+                    <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
+                      {mealType === "lunch" ? "Lunch" : "Dinner"}
+                    </span>
+                    {slot ? (
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
+                          {slot.customNote ? (
+                            <p className="text-sm italic text-muted-foreground leading-snug">
                               {slot.customNote}
-                            </span>
-                            <button
-                              onClick={() => onRemoveSlot(slot.id)}
-                              className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                              aria-label="Remove slot"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-1 bg-primary/8 rounded-lg px-2 py-1.5">
-                            <span className="text-xs leading-tight flex-1 min-w-0">
-                              <span className="font-medium line-clamp-1">{slot.recipeName}</span>
-                              <span className="text-muted-foreground block">{slot.servings}p</span>
-                            </span>
-                            <button
-                              onClick={() => onRemoveSlot(slot.id)}
-                              className="text-muted-foreground hover:text-destructive mt-0.5 shrink-0"
-                              aria-label="Remove slot"
-                            >
-                              <X size={12} />
-                            </button>
-                          </div>
-                        )
-                      ) : (
-                        <button
-                          onClick={() => onOpenPicker(day, mealType)}
-                          className="w-full text-left text-xs text-muted-foreground hover:text-foreground py-1 px-1 rounded active:scale-95 transition-transform"
-                        >
-                          <span className="flex items-center gap-0.5">
-                            <Plus size={12} />
-                            Add
-                          </span>
-                          {targetPortions != null && targetPortions > 0 && (
-                            <span className="text-muted-foreground/60 block mt-0.5">
-                              {targetPortions}p needed
-                            </span>
+                            </p>
+                          ) : (
+                            <>
+                              <p className="text-sm font-medium leading-snug">{slot.recipeName}</p>
+                              <p className="text-xs text-muted-foreground">{slot.servings} serving{slot.servings !== 1 ? "s" : ""}</p>
+                            </>
                           )}
+                        </div>
+                        <button
+                          onClick={() => onRemoveSlot(slot.id)}
+                          className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
+                          aria-label="Remove slot"
+                        >
+                          <X size={14} />
                         </button>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => onOpenPicker(day, mealType)}
+                        className="flex flex-col active:scale-95 transition-transform"
+                      >
+                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+                          <Plus size={14} />
+                          Add meal
+                        </span>
+                        {targetPortions != null && targetPortions > 0 && (
+                          <span className="text-xs text-muted-foreground/60 ml-[22px]">
+                            {targetPortions}p needed
+                          </span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

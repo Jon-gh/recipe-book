@@ -124,9 +124,12 @@ describe("RecipeDetailPage — haptic feedback", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /delete/i }));
-    const confirmBtn = await screen.findByRole("button", { name: "Delete Recipe" });
-    await userEvent.click(confirmBtn);
+    // Open the ⋯ actions menu, then pick Delete Recipe, then confirm
+    await userEvent.click(screen.getByRole("button", { name: "More options" }));
+    const allDeleteBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(allDeleteBtns[0]);
+    const confirmBtns = await screen.findAllByRole("button", { name: "Delete Recipe" });
+    await userEvent.click(confirmBtns[confirmBtns.length - 1]);
 
     expect(mockVibrate).toHaveBeenCalled();
   });

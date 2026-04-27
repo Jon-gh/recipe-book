@@ -17,20 +17,22 @@ import { usePathname } from "next/navigation";
 const mockUsePathname = vi.mocked(usePathname);
 
 describe("BottomNav", () => {
-  it("renders all three tabs", () => {
+  it("renders all four tabs", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
     expect(screen.getByText("Recipes")).toBeInTheDocument();
-    expect(screen.getByText("Meal Plan")).toBeInTheDocument();
-    expect(screen.getByText("Grocery List")).toBeInTheDocument();
+    expect(screen.getByText("Plan")).toBeInTheDocument();
+    expect(screen.getByText("Schedule")).toBeInTheDocument();
+    expect(screen.getByText("Grocery")).toBeInTheDocument();
   });
 
   it("each tab links to the correct href", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
     expect(screen.getByText("Recipes").closest("a")).toHaveAttribute("href", "/recipes");
-    expect(screen.getByText("Meal Plan").closest("a")).toHaveAttribute("href", "/meal-plan");
-    expect(screen.getByText("Grocery List").closest("a")).toHaveAttribute("href", "/grocery-list");
+    expect(screen.getByText("Plan").closest("a")).toHaveAttribute("href", "/meal-plan");
+    expect(screen.getByText("Schedule").closest("a")).toHaveAttribute("href", "/schedule");
+    expect(screen.getByText("Grocery").closest("a")).toHaveAttribute("href", "/grocery-list");
   });
 
   it("highlights Recipes tab when on /recipes", () => {
@@ -38,7 +40,7 @@ describe("BottomNav", () => {
     render(<BottomNav />);
     const recipesLink = screen.getByText("Recipes").closest("a")!;
     expect(recipesLink.className).toContain("text-green-600");
-    expect(screen.getByText("Meal Plan").closest("a")!.className).not.toContain("text-green-600");
+    expect(screen.getByText("Plan").closest("a")!.className).not.toContain("text-green-600");
   });
 
   it("highlights Recipes tab when on a recipe detail page", () => {
@@ -48,18 +50,26 @@ describe("BottomNav", () => {
     expect(recipesLink.className).toContain("text-green-600");
   });
 
-  it("highlights Meal Plan tab when on /meal-plan", () => {
+  it("highlights Plan tab when on /meal-plan", () => {
     mockUsePathname.mockReturnValue("/meal-plan");
     render(<BottomNav />);
-    const mealPlanLink = screen.getByText("Meal Plan").closest("a")!;
-    expect(mealPlanLink.className).toContain("text-green-600");
+    const planLink = screen.getByText("Plan").closest("a")!;
+    expect(planLink.className).toContain("text-green-600");
     expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
   });
 
-  it("highlights Grocery List tab when on /grocery-list", () => {
+  it("highlights Schedule tab when on /schedule", () => {
+    mockUsePathname.mockReturnValue("/schedule");
+    render(<BottomNav />);
+    const scheduleLink = screen.getByText("Schedule").closest("a")!;
+    expect(scheduleLink.className).toContain("text-green-600");
+    expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
+  });
+
+  it("highlights Grocery tab when on /grocery-list", () => {
     mockUsePathname.mockReturnValue("/grocery-list");
     render(<BottomNav />);
-    const groceryLink = screen.getByText("Grocery List").closest("a")!;
+    const groceryLink = screen.getByText("Grocery").closest("a")!;
     expect(groceryLink.className).toContain("text-green-600");
     expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
   });

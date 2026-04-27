@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import useSWR, { mutate } from "swr";
 import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Minus, Plus } from "lucide-react";
+import { ChevronLeft, Minus, MoreHorizontal, Plus } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
@@ -17,6 +18,7 @@ import RecipeForm from "@/components/RecipeForm";
 export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const [showActionsSheet, setShowActionsSheet] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [showPlanSheet, setShowPlanSheet] = useState(false);
@@ -88,50 +90,33 @@ export default function RecipeDetailPage() {
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-start justify-between gap-4 mb-2">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-2xl font-bold">{recipe.name}</h1>
-            <button
-              onClick={handleToggleFavourite}
-              className="text-2xl leading-none active:scale-95 transition-transform"
-              aria-label={recipe.favourite ? "Remove from favourites" : "Add to favourites"}
-            >
-              {recipe.favourite ? "★" : "☆"}
-            </button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""}
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] active:scale-95 transition-transform"
-            onClick={() => setShowEditSheet(true)}
-          >
-            Edit
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-[44px] active:scale-95 transition-transform"
-            onClick={handleDuplicate}
-          >
-            Duplicate
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="min-h-[44px] active:scale-95 transition-transform"
-            onClick={() => setShowDeleteSheet(true)}
-            disabled={deleting}
-          >
-            {deleting ? "Deleting…" : "Delete"}
-          </Button>
-        </div>
+      <div className="flex items-start gap-1 mb-3 -mx-1.5">
+        <Link
+          href="/recipes"
+          className="p-1.5 mt-0.5 rounded-lg text-muted-foreground active:bg-muted transition-colors shrink-0"
+          aria-label="Back to recipes"
+        >
+          <ChevronLeft size={22} />
+        </Link>
+        <h1 className="flex-1 text-xl font-bold leading-snug pt-1">{recipe.name}</h1>
+        <button
+          onClick={handleToggleFavourite}
+          className="p-1.5 mt-0.5 shrink-0 text-xl leading-none active:scale-95 transition-transform"
+          aria-label={recipe.favourite ? "Remove from favourites" : "Add to favourites"}
+        >
+          {recipe.favourite ? "★" : "☆"}
+        </button>
+        <button
+          onClick={() => setShowActionsSheet(true)}
+          className="p-1.5 mt-0.5 rounded-lg active:bg-muted transition-colors shrink-0"
+          aria-label="More options"
+        >
+          <MoreHorizontal size={20} />
+        </button>
       </div>
+      <p className="text-sm text-muted-foreground mb-3 pl-1">
+        {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""} · {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? "s" : ""}
+      </p>
 
       {recipe.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-4">
@@ -195,6 +180,18 @@ export default function RecipeDetailPage() {
       >
         Add to Meal Plan
       </Button>
+
+      {/* Actions sheet (⋯ menu) */}
+      <ActionSheet
+        open={showActionsSheet}
+        onClose={() => setShowActionsSheet(false)}
+        title={recipe.name}
+        actions={[
+          { label: "Edit Recipe", onClick: () => setShowEditSheet(true) },
+          { label: "Duplicate", onClick: handleDuplicate },
+          { label: "Delete Recipe", onClick: () => setShowDeleteSheet(true), destructive: true },
+        ]}
+      />
 
       {/* Edit sheet */}
       <BottomSheet

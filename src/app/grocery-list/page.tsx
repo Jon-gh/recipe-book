@@ -347,7 +347,7 @@ export default function GroceryListPage() {
     <button
       onClick={openAddSheet}
       aria-label="Add to shopping list"
-      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
     >
       <Plus size={26} strokeWidth={2.5} />
     </button>

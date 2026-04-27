@@ -45,72 +45,6 @@ beforeEach(() => {
   mockFetch.mockClear();
 });
 
-describe("MealPlanPage — tabs", () => {
-  it("shows Plan tab as active by default", () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
-    renderPage();
-    expect(screen.getByRole("tab", { name: "Plan" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Schedule" })).toHaveAttribute("aria-selected", "false");
-  });
-
-  it("shows search input on Plan tab and hides it on Schedule tab", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
-    renderPage();
-
-    expect(screen.getByPlaceholderText("Search recipes to add…")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
-
-    expect(screen.queryByPlaceholderText("Search recipes to add…")).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Schedule" })).toHaveAttribute("aria-selected", "true");
-  });
-
-  it("shows schedule empty state when switching to Schedule tab with no entries", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
-    renderPage();
-
-    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
-
-    await waitFor(() => {
-      expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
-      expect(screen.getByText("Add recipes in the Plan tab first")).toBeInTheDocument();
-    });
-  });
-
-  it("shows the schedule grid on Schedule tab when entries exist", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValue({ ok: true, json: async () => [] });             // scheduled-meals + session
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
-
-    expect(screen.getByText("Lunch")).toBeInTheDocument();
-    expect(screen.getByText("Dinner")).toBeInTheDocument();
-    // Plan list is hidden
-    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
-  });
-
-  it("switching back to Plan tab restores the entries list", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
-      .mockResolvedValue({ ok: true, json: async () => [] });
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("tab", { name: "Schedule" }));
-    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("tab", { name: "Plan" }));
-    expect(screen.getByText("Pasta")).toBeInTheDocument();
-  });
-});
-
 describe("MealPlanPage — Plan tab", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
@@ -130,7 +64,7 @@ describe("MealPlanPage — Plan tab", () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValue({ ok: true, json: async () => [] }); // scheduled-meals
+      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -141,7 +75,7 @@ describe("MealPlanPage — Plan tab", () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
-      .mockResolvedValue({ ok: true, json: async () => [] }); // scheduled-meals
+      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
     renderPage();
     await waitFor(() => {
       expect(screen.getByText(/1 recipe · 4 total servings/)).toBeInTheDocument();
@@ -150,12 +84,11 @@ describe("MealPlanPage — Plan tab", () => {
 
   it("filters recipe search results", async () => {
     mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] }) // scheduled-meals
+      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // initial meal-plan
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })  // recipes
       .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "pasta");
     expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -166,7 +99,7 @@ describe("MealPlanPage — Plan tab", () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // initial meal-plan
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })          // scheduled-meals
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ checkedKeys: [] }) }) // shopping-session
       .mockResolvedValueOnce({ status: 204, json: async () => null })     // DELETE
       .mockResolvedValue({ ok: true, json: async () => [] });             // revalidations
 
@@ -175,7 +108,6 @@ describe("MealPlanPage — Plan tab", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remove from plan" }));
 
-    // UI updates from the revalidation response (empty list)
     await waitFor(() => {
       expect(screen.getByText("No recipes planned yet")).toBeInTheDocument();
     });
@@ -194,19 +126,17 @@ describe("MealPlanPage — Plan tab", () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => [] })           // initial meal-plan
       .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })  // recipes
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // scheduled-meals
       .mockResolvedValueOnce({ ok: true, json: async () => ({ checkedKeys: [] }) }) // shopping-session
       .mockResolvedValueOnce({ ok: true, json: async () => newEntry })     // POST response
       .mockResolvedValue({ ok: true, json: async () => [newEntry] });      // revalidations
 
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "Pasta");
     await userEvent.click(screen.getByText("Pasta"));
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
 
-    // UI updates from the revalidation response (new entry appears)
     await waitFor(() => {
       expect(screen.getByText("1 recipe · 4 total servings")).toBeInTheDocument();
     });
