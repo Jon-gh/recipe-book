@@ -24,7 +24,6 @@ export default function RecipeDetailPage() {
   const [showPlanSheet, setShowPlanSheet] = useState(false);
   const [planServings, setPlanServings] = useState(2);
   const [addingToPlan, setAddingToPlan] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(
     `/api/recipes/${id}`,
@@ -51,7 +50,6 @@ export default function RecipeDetailPage() {
 
   async function handleDelete() {
     haptic([10, 50, 10]);
-    setDeleting(true);
     await fetch(`/api/recipes/${id}`, { method: "DELETE" });
     mutate(
       (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes"),

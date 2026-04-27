@@ -263,6 +263,7 @@ export default function SchedulePage() {
             <button
               onClick={() => setSlotDate(null)}
               className="text-muted-foreground p-1"
+              aria-label="Close slot picker"
             >
               <X size={18} />
             </button>
