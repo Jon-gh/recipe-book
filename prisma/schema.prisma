@@ -29,6 +29,7 @@ model Product {
   category          String             @default("other")
   defaultUnit       String             @default("")
   defaultQuantity   Float              @default(1)
+  source            String             @default("system")
   recipeIngredients RecipeIngredient[]
   shoppingListItems ShoppingListItem[]
 

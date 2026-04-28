@@ -1,10 +1,10 @@
-export type GroceryItem = { name: string; quantity: number; unit: string; category: string };
+export type GroceryItem = { name: string; quantity: number; unit: string; category: string; productId: number; source: string };
 
 export type MealPlanEntryWithRecipe = {
   targetServings: number;
   recipe: {
     servings: number;
-    ingredients: { product: { name: string; category: string }; quantity: number; unit: string }[];
+    ingredients: { product: { id: number; name: string; category: string; source: string }; quantity: number; unit: string }[];
   };
 };
 
@@ -67,7 +67,7 @@ export function aggregateGroceryList(entries: MealPlanEntryWithRecipe[]): Grocer
     const factor = entry.targetServings / entry.recipe.servings;
 
     for (const ing of entry.recipe.ingredients) {
-      const { name, category } = ing.product;
+      const { id: productId, name, category, source } = ing.product;
       if (TRIVIAL_INGREDIENTS.has(name.trim().toLowerCase())) continue;
 
       const { canonical, factor: unitFactor } = normalizeUnit(ing.unit);
@@ -77,7 +77,7 @@ export function aggregateGroceryList(entries: MealPlanEntryWithRecipe[]): Grocer
       if (aggregated.has(key)) {
         aggregated.get(key)!.quantity += scaled;
       } else {
-        aggregated.set(key, { name, quantity: scaled, unit: canonical, category });
+        aggregated.set(key, { name, quantity: scaled, unit: canonical, category, productId, source });
       }
     }
   }
