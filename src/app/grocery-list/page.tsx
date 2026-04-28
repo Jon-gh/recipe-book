@@ -265,7 +265,11 @@ export default function GroceryListPage() {
           <div className="flex items-center gap-2">
             <Link href="/products" aria-label="Manage my items">
               <Button variant="ghost" size="icon" className="text-muted-foreground h-9 w-9">
+<<<<<<< HEAD
                 <PencilLine size={18} />
+=======
+                <Package size={18} />
+>>>>>>> main
               </Button>
             </Link>
             {checkedItems.length > 0 && (
