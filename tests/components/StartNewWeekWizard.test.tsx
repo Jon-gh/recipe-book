@@ -26,7 +26,7 @@ const mockRecipe: Recipe = {
       preparation: "",
       productId: 1,
       recipeId: "r1",
-      product: { id: 1, name: "tomatoes", category: "produce", defaultUnit: "g", defaultQuantity: 1 },
+      product: { id: 1, name: "tomatoes", category: "produce", defaultUnit: "g", defaultQuantity: 1, source: "system" },
     },
   ],
 };

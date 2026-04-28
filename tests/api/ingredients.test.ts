@@ -48,12 +48,12 @@ describe("GET /api/products", () => {
     );
   });
 
-  it("omits where clause when q is not provided", async () => {
+  it("uses empty where clause when no filters provided", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue(mockProducts as never);
     const req = new NextRequest("http://localhost/api/products");
     await GET(req);
     expect(prisma.product.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: undefined })
+      expect.objectContaining({ where: {} })
     );
   });
 

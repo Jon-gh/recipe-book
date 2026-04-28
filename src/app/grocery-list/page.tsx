@@ -11,14 +11,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
-import { Plus } from "lucide-react";
+import SwipeableRow from "@/components/SwipeableRow";
+import { Package, Plus } from "lucide-react";
 
 type SessionState = {
   checkedKeys: string[];
   showStaples: boolean;
 };
 
-type DisplayItem = GroceryItem & { shoppingListId?: number };
+type DisplayItem = GroceryItem & {
+  shoppingListId?: number;
+  productDefaultUnit?: string;
+};
 
 function itemKey(item: { name: string; unit: string; shoppingListId?: number }): string {
   if (item.shoppingListId != null) return `sl_${item.shoppingListId}`;
@@ -52,7 +56,10 @@ function shoppingItemToDisplay(item: ShoppingListItem): DisplayItem {
     quantity: item.quantity,
     unit: item.unit,
     category: item.product.category,
+    productId: item.product.id,
+    source: item.product.source,
     shoppingListId: item.id,
+    productDefaultUnit: item.product.defaultUnit,
   };
 }
 
@@ -75,11 +82,25 @@ export default function GroceryListPage() {
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: globalMutate } = useSWRConfig();
+
+  // Add sheet state
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState(1);
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
+
+  // Edit product sheet state
+  const [editingProduct, setEditingProduct] = useState<{
+    id: number;
+    name: string;
+    category: string;
+    defaultUnit: string;
+  } | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editCategory, setEditCategory] = useState("other");
+  const [editUnit, setEditUnit] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const nameInputRef = useRef<HTMLInputElement>(null);
   const isSelectedRef = useRef(false);
@@ -169,6 +190,13 @@ export default function GroceryListPage() {
     setShowAddSheet(true);
   }
 
+  function openEditSheet(item: DisplayItem) {
+    setEditingProduct({ id: item.productId, name: item.name, category: item.category, defaultUnit: item.productDefaultUnit ?? "" });
+    setEditName(item.name);
+    setEditCategory(item.category);
+    setEditUnit(item.productDefaultUnit ?? "");
+  }
+
   async function addItem() {
     const name = newItemName.trim();
     if (!name) return;
@@ -179,6 +207,20 @@ export default function GroceryListPage() {
       body: JSON.stringify({ name, quantity: newItemQty, unit: newItemUnit, category: newItemCategory }),
     });
     mutateSl();
+  }
+
+  async function saveEdit() {
+    if (!editingProduct) return;
+    setEditSaving(true);
+    await fetch(`/api/products/${editingProduct.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName, category: editCategory, defaultUnit: editUnit }),
+    });
+    setEditSaving(false);
+    setEditingProduct(null);
+    mutateSl();
+    mutateMp();
   }
 
   async function removeShoppingItem(id: number) {
@@ -220,22 +262,29 @@ export default function GroceryListPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">Grocery List</h1>
-          {checkedItems.length > 0 && (
-            <Button
-              variant="outline"
-              className="active:scale-95 transition-transform"
-              onClick={clearChecked}
-            >
-              Clear
-            </Button>
-          )}
-          {!isLoading && totalCount === 0 && (
-            <Link href="/meal-plan">
-              <Button variant="outline" className="active:scale-95 transition-transform">
-                ← Meal Plan
+          <div className="flex items-center gap-2">
+            <Link href="/products" aria-label="Manage my items">
+              <Button variant="ghost" size="icon" className="text-muted-foreground h-9 w-9">
+                <Package size={18} />
               </Button>
             </Link>
-          )}
+            {checkedItems.length > 0 && (
+              <Button
+                variant="outline"
+                className="active:scale-95 transition-transform"
+                onClick={clearChecked}
+              >
+                Clear
+              </Button>
+            )}
+            {!isLoading && totalCount === 0 && (
+              <Link href="/meal-plan">
+                <Button variant="outline" className="active:scale-95 transition-transform">
+                  ← Meal Plan
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         {isLoading ? (
@@ -271,7 +320,8 @@ export default function GroceryListPage() {
                     <ul className="divide-y">
                       {catItems.map((item) => {
                         const key = itemKey(item);
-                        return (
+                        const isUserProduct = item.source === "user" && item.shoppingListId != null;
+                        const row = (
                           <li key={key}>
                             <div className="flex items-center gap-2 py-3 min-h-[44px]">
                               <button
@@ -298,6 +348,11 @@ export default function GroceryListPage() {
                             </div>
                           </li>
                         );
+                        return isUserProduct ? (
+                          <SwipeableRow key={key} onEdit={() => openEditSheet(item)}>
+                            {row}
+                          </SwipeableRow>
+                        ) : row;
                       })}
                     </ul>
                   </CardContent>
@@ -352,6 +407,7 @@ export default function GroceryListPage() {
       <Plus size={26} strokeWidth={2.5} />
     </button>
 
+    {/* Add item sheet */}
     <BottomSheet
       open={showAddSheet}
       onClose={() => setShowAddSheet(false)}
@@ -418,6 +474,53 @@ export default function GroceryListPage() {
           disabled={!newItemName.trim()}
         >
           Add to List
+        </Button>
+      </div>
+    </BottomSheet>
+
+    {/* Edit product sheet */}
+    <BottomSheet
+      open={editingProduct !== null}
+      onClose={() => setEditingProduct(null)}
+      title="Edit Item"
+    >
+      <div className="px-4 py-4 space-y-4 pb-8">
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Name</label>
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            autoFocus
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Category</label>
+          <select
+            value={editCategory}
+            onChange={(e) => setEditCategory(e.target.value)}
+            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+          >
+            {CATEGORY_NAMES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Default unit</label>
+          <Input
+            placeholder="g, ml, tbsp…"
+            value={editUnit}
+            onChange={(e) => setEditUnit(e.target.value)}
+          />
+        </div>
+        <Button
+          className="w-full"
+          onClick={saveEdit}
+          disabled={!editName.trim() || editSaving}
+        >
+          {editSaving ? "Saving…" : "Save"}
         </Button>
       </div>
     </BottomSheet>

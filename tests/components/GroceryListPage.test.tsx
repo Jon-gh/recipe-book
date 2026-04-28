@@ -15,16 +15,16 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 const mockMealPlanItems = [
-  { name: "Pasta", quantity: 400, unit: "g", category: "grains & pulses" },
-  { name: "Eggs", quantity: 4, unit: "", category: "dairy & eggs" },
-  { name: "Flour", quantity: 0.5, unit: "kg", category: "baking & sweeteners" },
+  { name: "Pasta", quantity: 400, unit: "g", category: "grains & pulses", productId: 1, source: "system" },
+  { name: "Eggs", quantity: 4, unit: "", category: "dairy & eggs", productId: 2, source: "system" },
+  { name: "Flour", quantity: 0.5, unit: "kg", category: "baking & sweeteners", productId: 3, source: "system" },
 ];
 
 const mockShoppingItem = {
   id: 99,
   quantity: 2,
   unit: "pack",
-  product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1 },
+  product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1, source: "user" },
 };
 
 const defaultSession = { id: "session", checkedKeys: [], showStaples: false };
@@ -47,6 +47,9 @@ function setupFetch({
     }
     if (/\/api\/shopping-list\/\d+/.test(url) && method === "DELETE") {
       return Promise.resolve({ status: 204 });
+    }
+    if (/\/api\/products\/\d+/.test(url) && method === "PUT") {
+      return Promise.resolve({ json: async () => ({}) });
     }
     if (url === "/api/shopping-session" && method === "GET") {
       return Promise.resolve({ json: async () => session });
@@ -156,7 +159,7 @@ describe("GroceryListPage — staples", () => {
     setupFetch({
       groceryList: [
         ...mockMealPlanItems,
-        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
+        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
       ],
     });
     renderPage();
@@ -169,7 +172,7 @@ describe("GroceryListPage — staples", () => {
     setupFetch({
       groceryList: [
         ...mockMealPlanItems,
-        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs" },
+        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
       ],
     });
     renderPage();
@@ -184,12 +187,12 @@ describe("GroceryListPage — staples", () => {
       id: 42,
       quantity: 1,
       unit: "bottle",
-      product: { id: 10, name: "Ketchup", category: "condiments & sauces", defaultUnit: "", defaultQuantity: 1 },
+      product: { id: 10, name: "Ketchup", category: "condiments & sauces", defaultUnit: "", defaultQuantity: 1, source: "user" },
     };
     setupFetch({
       groceryList: [
         ...mockMealPlanItems,
-        { name: "cumin", quantity: 1, unit: "tsp", category: "condiments & sauces" },
+        { name: "cumin", quantity: 1, unit: "tsp", category: "condiments & sauces", productId: 11, source: "system" },
       ],
       shoppingList: [ketchupShoppingItem],
     });

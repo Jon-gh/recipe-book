@@ -58,7 +58,7 @@ describe("POST /api/shopping-list", () => {
     });
   });
 
-  it("creates a new ingredient when none exists, defaulting to 'other' category", async () => {
+  it("creates a new ingredient when none exists, defaulting to 'other' category with source 'user'", async () => {
     vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
@@ -71,11 +71,11 @@ describe("POST /api/shopping-list", () => {
 
     expect(res.status).toBe(201);
     expect(prisma.product.create).toHaveBeenCalledWith({
-      data: { name: "garlic", category: "other" },
+      data: { name: "garlic", category: "other", source: "user" },
     });
   });
 
-  it("creates a new ingredient with the provided category", async () => {
+  it("creates a new ingredient with the provided category and source 'user'", async () => {
     vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
@@ -87,7 +87,7 @@ describe("POST /api/shopping-list", () => {
     await POST(req);
 
     expect(prisma.product.create).toHaveBeenCalledWith({
-      data: { name: "garlic", category: "fruit & veg" },
+      data: { name: "garlic", category: "fruit & veg", source: "user" },
     });
   });
 

@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   });
   if (!product) {
     product = await prisma.product.create({
-      data: { name: name.trim(), category },
+      data: { name: name.trim(), category, source: "user" },
     });
   }
 

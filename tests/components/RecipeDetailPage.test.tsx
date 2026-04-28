@@ -46,7 +46,7 @@ const mockRecipe = {
       unit: "",
       preparation: "",
       recipeId: "1",
-      product: { id: 1, name: "eggs", category: "other", defaultUnit: "", defaultQuantity: 1 },
+      product: { id: 1, name: "eggs", category: "other", defaultUnit: "", defaultQuantity: 1, source: "system" },
     },
   ],
   instructions: "Cook pasta.",

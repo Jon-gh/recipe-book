@@ -6,11 +6,15 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q");
+  const source = searchParams.get("source");
 
   const products = await prisma.product.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
+    where: {
+      ...(q && { name: { contains: q, mode: "insensitive" } }),
+      ...(source && { source }),
+    },
     orderBy: { name: "asc" },
-    take: 10,
+    take: source ? undefined : 10,
   });
 
   return NextResponse.json(products);

@@ -4,6 +4,7 @@ export type Product = {
   category: string;
   defaultUnit: string;
   defaultQuantity: number;
+  source: string;
 };
 
 export type RecipeIngredient = {
@@ -58,6 +59,8 @@ export type GroceryItem = {
   quantity: number;
   unit: string;
   category: string;
+  productId: number;
+  source: string;
 };
 
 export type ShoppingListItem = {
