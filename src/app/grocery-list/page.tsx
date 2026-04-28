@@ -12,7 +12,7 @@ import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import SwipeableRow from "@/components/SwipeableRow";
-import { Package, Plus } from "lucide-react";
+import { PencilLine, Plus } from "lucide-react";
 
 type SessionState = {
   checkedKeys: string[];
@@ -265,7 +265,7 @@ export default function GroceryListPage() {
           <div className="flex items-center gap-2">
             <Link href="/products" aria-label="Manage my items">
               <Button variant="ghost" size="icon" className="text-muted-foreground h-9 w-9">
-                <Package size={18} />
+                <PencilLine size={18} />
               </Button>
             </Link>
             {checkedItems.length > 0 && (

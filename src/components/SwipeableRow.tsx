@@ -85,11 +85,11 @@ export default function SwipeableRow({ onEdit, children }: Props) {
         </button>
       </div>
       <div
+        className="bg-background"
         style={{
           transform: `translateX(-${offset}px)`,
           transition: animatingRef.current ? "transform 0.2s ease" : "none",
           willChange: "transform",
-          background: "var(--background, white)",
         }}
       >
         {children}
