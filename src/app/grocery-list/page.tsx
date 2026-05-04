@@ -143,7 +143,7 @@ export default function GroceryListPage() {
       );
       nameInputRef.current?.blur();
     }
-  }, [newItemName, suggestions]);
+  }, [newItemName, suggestions, globalMutate]);
 
   const sessionInitialised = useRef(false);
   useEffect(() => {
@@ -254,11 +254,6 @@ export default function GroceryListPage() {
     mutateSl();
   }
 
-  function clearChecked() {
-    setCheckedKeys(new Set());
-    syncSession(new Set(), showStaples);
-  }
-
   async function handleRefresh() {
     await Promise.all([mutateMp(), mutateSl(), mutateSession()]);
   }
@@ -287,16 +282,7 @@ export default function GroceryListPage() {
                 <PencilLine size={18} />
               </Button>
             </Link>
-            {checkedItems.length > 0 && (
-              <Button
-                variant="outline"
-                className="active:scale-95 transition-transform"
-                onClick={clearChecked}
-              >
-                Clear
-              </Button>
-            )}
-            {!isLoading && totalCount === 0 && (
+{!isLoading && totalCount === 0 && (
               <Link href="/meal-plan">
                 <Button variant="outline" className="active:scale-95 transition-transform">
                   ← Meal Plan

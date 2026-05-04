@@ -9,15 +9,15 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
-    recipeIngredient: { updateMany: vi.fn() },
-    shoppingListItem: { updateMany: vi.fn() },
+    recipeIngredient: { updateMany: vi.fn(), deleteMany: vi.fn() },
+    shoppingListItem: { updateMany: vi.fn(), deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
 
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/products/route";
-import { PUT } from "@/app/api/products/[id]/route";
+import { PUT, DELETE } from "@/app/api/products/[id]/route";
 import { NextRequest } from "next/server";
 
 const userProduct = { id: 1, name: "tomatoe", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "user" };
@@ -44,6 +44,38 @@ describe("GET /api/products", () => {
     expect(prisma.product.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { source: "user" }, take: undefined })
     );
+  });
+});
+
+describe("DELETE /api/products/[id]", () => {
+  it("returns 400 for non-numeric id", async () => {
+    const req = new NextRequest("http://localhost/api/products/abc", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "abc" } });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 404 when product not found", async () => {
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/products/99", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "99" } });
+    expect(res.status).toBe(404);
+  });
+
+  it("returns 403 for system products", async () => {
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(systemProduct as never);
+    const req = new NextRequest("http://localhost/api/products/2", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "2" } });
+    expect(res.status).toBe(403);
+  });
+
+  it("deletes a user product and its references", async () => {
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(userProduct as never);
+    vi.mocked(prisma.$transaction).mockResolvedValue([]);
+    const req = new NextRequest("http://localhost/api/products/1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "1" } });
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    expect(prisma.$transaction).toHaveBeenCalled();
   });
 });
 
