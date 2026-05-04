@@ -143,7 +143,7 @@ export default function GroceryListPage() {
       );
       nameInputRef.current?.blur();
     }
-  }, [newItemName, suggestions]);
+  }, [newItemName, suggestions, globalMutate]);
 
   const sessionInitialised = useRef(false);
   useEffect(() => {
@@ -252,11 +252,6 @@ export default function GroceryListPage() {
   async function removeShoppingItem(id: number) {
     await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
     mutateSl();
-  }
-
-  function clearChecked() {
-    setCheckedKeys(new Set());
-    syncSession(new Set(), showStaples);
   }
 
   async function handleRefresh() {
