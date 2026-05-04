@@ -170,6 +170,16 @@ export default function GroceryListPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionData]);
 
+  // Commit any pending delete immediately if the user navigates away
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timerId);
+        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
+      }
+    };
+  }, []);
+
   const isLoading = mpLoading || slLoading || sessionLoading;
 
   const syncSession = useCallback(
@@ -514,7 +524,7 @@ export default function GroceryListPage() {
 
     {/* Undo toast */}
     {pendingDeleteItem && (
-      <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+5.5rem)] left-4 right-4 z-40 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
+      <div className="fixed top-[calc(env(safe-area-inset-top)+0.5rem)] left-4 right-4 z-50 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
         <span className="text-sm">{pendingDeleteItem.name} removed</span>
         <button
           onClick={undoDelete}

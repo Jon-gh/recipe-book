@@ -169,6 +169,19 @@ describe("GroceryListPage — shopping list undo", () => {
     expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
   });
 
+  it("DELETE is called immediately when the component unmounts with a pending delete", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    const { unmount } = renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
+
+    unmount();
+
+    expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+  });
+
   it("DELETE is called after the undo window expires", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     setupFetch({ shoppingList: [mockShoppingItem] });
