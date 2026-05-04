@@ -184,7 +184,21 @@ export default function GroceryListPage() {
   const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
   const allItems: DisplayItem[] = [...mpItems, ...slItems];
 
-  function toggleItem(key: string) {
+  function toggleItem(item: DisplayItem) {
+    if (item.shoppingListId != null) {
+      fetch(`/api/shopping-list/${item.shoppingListId}`, { method: "DELETE" });
+      setCheckedKeys((prev) => {
+        const key = itemKey(item);
+        if (!prev.has(key)) return prev;
+        const next = new Set(prev);
+        next.delete(key);
+        syncSession(next, showStaples);
+        return next;
+      });
+      mutateSl();
+      return;
+    }
+    const key = itemKey(item);
     setCheckedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -240,14 +254,7 @@ export default function GroceryListPage() {
     mutateSl();
   }
 
-  async function clearChecked() {
-    const checkedSlItems = slItems.filter((i) => checkedKeys.has(itemKey(i)));
-    await Promise.all(
-      checkedSlItems.map((i) =>
-        fetch(`/api/shopping-list/${i.shoppingListId}`, { method: "DELETE" })
-      )
-    );
-    if (checkedSlItems.length > 0) mutateSl();
+  function clearChecked() {
     setCheckedKeys(new Set());
     syncSession(new Set(), showStaples);
   }
@@ -338,7 +345,7 @@ export default function GroceryListPage() {
                             <div className="flex items-center gap-2 py-3 min-h-[44px]">
                               <button
                                 className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
-                                onClick={() => toggleItem(key)}
+                                onClick={() => toggleItem(item)}
                               >
                                 <span className="font-medium">{item.name}</span>
                                 <span className="text-muted-foreground text-sm ml-auto">
@@ -386,7 +393,7 @@ export default function GroceryListPage() {
                           <li key={key}>
                             <button
                               className="w-full flex items-baseline gap-2 py-3 text-left min-h-[44px] active:bg-muted transition-colors"
-                              onClick={() => toggleItem(key)}
+                              onClick={() => toggleItem(item)}
                             >
                               <span className="font-medium line-through text-muted-foreground">
                                 {item.name}
