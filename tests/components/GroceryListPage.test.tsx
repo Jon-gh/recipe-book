@@ -258,18 +258,16 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
   });
 
-  it("clicking Clear sends DELETE for checked shopping list items", async () => {
+  it("tapping a shopping list item immediately DELETEs it (no In Trolley)", async () => {
     setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
     await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
     const butterButtons = screen.getAllByRole("button", { name: /Butter/ });
     await userEvent.click(butterButtons[0]);
-    expect(screen.getByText("In Trolley")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
 
     expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 
   it("clicking Clear does not DELETE meal plan items", async () => {
