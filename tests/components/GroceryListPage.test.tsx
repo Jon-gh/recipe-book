@@ -235,29 +235,6 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 
-  it("Clear button appears when items are checked", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-
-    expect(screen.getByRole("button", { name: "Clear" })).toBeInTheDocument();
-  });
-
-  it("clicking Clear resets checked items and removes In Trolley section", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    expect(screen.getByText("In Trolley")).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-
-    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Clear" })).not.toBeInTheDocument();
-  });
-
   it("tapping a shopping list item immediately DELETEs it (no In Trolley)", async () => {
     setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
@@ -270,21 +247,6 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 
-  it("clicking Clear does not DELETE meal plan items", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-
-    const deleteCalls = mockFetch.mock.calls.filter(
-      (args: unknown[]) =>
-        typeof args[0] === "string" &&
-        args[0].startsWith("/api/shopping-list/") &&
-        (args[1] as RequestInit)?.method === "DELETE"
-    );
-    expect(deleteCalls).toHaveLength(0);
-  });
 });
 
 describe("GroceryListPage — server session persistence", () => {
@@ -310,27 +272,6 @@ describe("GroceryListPage — server session persistence", () => {
     );
   });
 
-  it("sends PUT with empty checkedKeys after Clear", async () => {
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    await userEvent.click(screen.getByRole("button", { name: "Clear" }));
-
-    await waitFor(
-      () => {
-        const putCalls = mockFetch.mock.calls.filter(
-          (args: unknown[]) =>
-            args[0] === "/api/shopping-session" &&
-            (args[1] as RequestInit)?.method === "PUT"
-        );
-        expect(putCalls.length).toBeGreaterThan(0);
-        const lastBody = JSON.parse(putCalls[putCalls.length - 1][1].body as string);
-        expect(lastBody.checkedKeys).toEqual([]);
-      },
-      { timeout: 2000 }
-    );
-  });
 });
 
 describe("GroceryListPage — add to shopping list", () => {

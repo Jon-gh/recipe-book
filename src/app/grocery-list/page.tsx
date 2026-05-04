@@ -287,16 +287,7 @@ export default function GroceryListPage() {
                 <PencilLine size={18} />
               </Button>
             </Link>
-            {checkedItems.length > 0 && (
-              <Button
-                variant="outline"
-                className="active:scale-95 transition-transform"
-                onClick={clearChecked}
-              >
-                Clear
-              </Button>
-            )}
-            {!isLoading && totalCount === 0 && (
+{!isLoading && totalCount === 0 && (
               <Link href="/meal-plan">
                 <Button variant="outline" className="active:scale-95 transition-transform">
                   ← Meal Plan

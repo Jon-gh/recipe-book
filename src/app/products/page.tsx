@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import BottomSheet from "@/components/BottomSheet";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 
 export default function ProductsPage() {
   const { data: products, isLoading, mutate } = useSWR<Product[]>(
@@ -23,12 +23,20 @@ export default function ProductsPage() {
   const [editCategory, setEditCategory] = useState("other");
   const [editUnit, setEditUnit] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   function openEdit(product: Product) {
     setEditingProduct(product);
     setEditName(product.name);
     setEditCategory(product.category);
     setEditUnit(product.defaultUnit);
+  }
+
+  async function deleteProduct(id: number) {
+    setDeletingId(id);
+    await fetch(`/api/products/${id}`, { method: "DELETE" });
+    setDeletingId(null);
+    mutate();
   }
 
   async function saveEdit() {
@@ -82,6 +90,14 @@ export default function ProductsPage() {
                         className="text-muted-foreground hover:text-foreground p-1 shrink-0"
                       >
                         <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => deleteProduct(product.id)}
+                        aria-label={`Delete ${product.name}`}
+                        disabled={deletingId === product.id}
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0 disabled:opacity-40"
+                      >
+                        <Trash2 size={16} />
                       </button>
                     </div>
                   </li>

@@ -3,6 +3,28 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const id = parseInt(params.id);
+  if (isNaN(id)) return NextResponse.json({ error: "invalid id" }, { status: 400 });
+
+  const product = await prisma.product.findUnique({ where: { id } });
+  if (!product) return NextResponse.json({ error: "not found" }, { status: 404 });
+  if (product.source !== "user") {
+    return NextResponse.json({ error: "cannot delete system products" }, { status: 403 });
+  }
+
+  await prisma.$transaction([
+    prisma.shoppingListItem.deleteMany({ where: { productId: id } }),
+    prisma.recipeIngredient.deleteMany({ where: { productId: id } }),
+    prisma.product.delete({ where: { id } }),
+  ]);
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
