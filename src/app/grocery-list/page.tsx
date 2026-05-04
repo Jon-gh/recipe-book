@@ -74,7 +74,8 @@ export default function GroceryListPage() {
   );
   const { data: sessionData, isLoading: sessionLoading } = useSWR<SessionState>(
     "/api/shopping-session",
-    noCacheFetcher
+    noCacheFetcher,
+    { refreshInterval: 15000 }
   );
 
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
@@ -86,7 +87,7 @@ export default function GroceryListPage() {
   // Add sheet state
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
-  const [newItemQty, setNewItemQty] = useState(1);
+  const [newItemQty, setNewItemQty] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
@@ -131,7 +132,7 @@ export default function GroceryListPage() {
     if (match) {
       setNewItemCategory(match.category);
       if (match.defaultUnit) setNewItemUnit(match.defaultUnit);
-      if (match.defaultQuantity !== 1) setNewItemQty(match.defaultQuantity);
+      if (match.defaultQuantity !== 1) setNewItemQty(String(match.defaultQuantity));
       isSelectedRef.current = true;
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
       setDebouncedName("");
@@ -152,18 +153,29 @@ export default function GroceryListPage() {
     setShowStaples(sessionData.showStaples);
   }, [sessionData, sessionLoading]);
 
+  // Pick up session changes from other users on each SWR background refresh.
+  // Skip if there are local changes still pending upload (to avoid clobbering).
+  useEffect(() => {
+    if (!sessionInitialised.current || !sessionData) return;
+    if (sessionSyncTimer.current !== null) return;
+    setCheckedKeys(new Set(sessionData.checkedKeys));
+    setShowStaples(sessionData.showStaples);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionData]);
+
   const isLoading = mpLoading || slLoading || sessionLoading;
 
   const syncSession = useCallback(
     (keys: Set<string>, staples: boolean) => {
       if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
       sessionSyncTimer.current = setTimeout(() => {
+        sessionSyncTimer.current = null;
         fetch("/api/shopping-session", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ checkedKeys: Array.from(keys), showStaples: staples }),
         });
-      }, 800);
+      }, 300);
     },
     []
   );
@@ -184,7 +196,7 @@ export default function GroceryListPage() {
 
   function openAddSheet() {
     setNewItemName("");
-    setNewItemQty(1);
+    setNewItemQty("1");
     setNewItemUnit("");
     setNewItemCategory("other");
     setShowAddSheet(true);
@@ -204,7 +216,7 @@ export default function GroceryListPage() {
     await fetch("/api/shopping-list", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, quantity: newItemQty, unit: newItemUnit, category: newItemCategory }),
+      body: JSON.stringify({ name, quantity: parseFloat(newItemQty) || 1, unit: newItemUnit, category: newItemCategory }),
     });
     mutateSl();
   }
@@ -440,7 +452,7 @@ export default function GroceryListPage() {
               min={0}
               step="any"
               value={newItemQty}
-              onChange={(e) => setNewItemQty(Number(e.target.value))}
+              onChange={(e) => setNewItemQty(e.target.value)}
             />
           </div>
           <div className="flex-1 space-y-1">

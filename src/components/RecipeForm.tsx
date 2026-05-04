@@ -184,7 +184,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
-    const body = { ...form, tags };
+    const body = { ...form, tags, servings: form.servings || 1 };
     const url = isEdit ? `/api/recipes/${initial!.id}` : "/api/recipes";
     const method = isEdit ? "PUT" : "POST";
     const res = await fetch(url, {
@@ -278,8 +278,11 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 type="number"
                 min={1}
                 required
-                value={form.servings}
-                onChange={(e) => setField("servings", parseInt(e.target.value) || 1)}
+                value={form.servings || ""}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value);
+                  setField("servings", isNaN(n) ? 0 : n);
+                }}
               />
             </div>
             <div className="space-y-1">
