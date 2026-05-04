@@ -72,7 +72,7 @@ export default function GroceryListPage() {
     "/api/shopping-list",
     noCacheFetcher
   );
-  const { data: sessionData, isLoading: sessionLoading } = useSWR<SessionState>(
+  const { data: sessionData, isLoading: sessionLoading, mutate: mutateSession } = useSWR<SessionState>(
     "/api/shopping-session",
     noCacheFetcher,
     { refreshInterval: 15000 }
@@ -253,7 +253,7 @@ export default function GroceryListPage() {
   }
 
   async function handleRefresh() {
-    await Promise.all([mutateMp(), mutateSl()]);
+    await Promise.all([mutateMp(), mutateSl(), mutateSession()]);
   }
 
   const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
