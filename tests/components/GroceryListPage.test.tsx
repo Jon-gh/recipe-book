@@ -154,6 +154,52 @@ describe("GroceryListPage — remove shopping list item", () => {
   });
 });
 
+describe("GroceryListPage — shopping list undo", () => {
+  it("tapping Undo dismisses the toast without deleting", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument());
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+  });
+
+  it("DELETE is called immediately when the component unmounts with a pending delete", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    const { unmount } = renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
+
+    unmount();
+
+    expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+  });
+
+  it("DELETE is called after the undo window expires", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
+
+    vi.runAllTimers();
+    vi.useRealTimers();
+
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" })
+    );
+  });
+});
+
 describe("GroceryListPage — staples", () => {
   it("hides staple items by default and shows toggle", async () => {
     setupFetch({
@@ -235,15 +281,18 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 
-  it("tapping a shopping list item immediately DELETEs it (no In Trolley)", async () => {
+  it("tapping a shopping list item optimistically removes it and shows undo toast", async () => {
     setupFetch({ shoppingList: [mockShoppingItem] });
     renderPage();
     await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
-    const butterButtons = screen.getAllByRole("button", { name: /Butter/ });
-    await userEvent.click(butterButtons[0]);
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+    await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    // DELETE not called immediately
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
+    // Does not move to In Trolley
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
   });
 

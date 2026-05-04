@@ -85,6 +85,13 @@ export default function GroceryListPage() {
   const { mutate: globalMutate } = useSWRConfig();
 
   // Add sheet state
+  // Undo-delete state for shopping list items
+  const pendingDeleteRef = useRef<{
+    item: DisplayItem;
+    timerId: ReturnType<typeof setTimeout>;
+  } | null>(null);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<DisplayItem | null>(null);
+
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
@@ -163,6 +170,16 @@ export default function GroceryListPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionData]);
 
+  // Commit any pending delete immediately if the user navigates away
+  useEffect(() => {
+    return () => {
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timerId);
+        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
+      }
+    };
+  }, []);
+
   const isLoading = mpLoading || slLoading || sessionLoading;
 
   const syncSession = useCallback(
@@ -186,16 +203,30 @@ export default function GroceryListPage() {
 
   function toggleItem(item: DisplayItem) {
     if (item.shoppingListId != null) {
-      fetch(`/api/shopping-list/${item.shoppingListId}`, { method: "DELETE" });
-      setCheckedKeys((prev) => {
-        const key = itemKey(item);
-        if (!prev.has(key)) return prev;
-        const next = new Set(prev);
-        next.delete(key);
-        syncSession(next, showStaples);
-        return next;
-      });
-      mutateSl();
+      // Commit any in-flight pending delete before starting a new one
+      if (pendingDeleteRef.current) {
+        clearTimeout(pendingDeleteRef.current.timerId);
+        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
+        pendingDeleteRef.current = null;
+        setPendingDeleteItem(null);
+      }
+
+      // Optimistically remove from SWR cache
+      mutateSl(
+        (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.shoppingListId),
+        { revalidate: false }
+      );
+
+      // Schedule actual deletion after undo window
+      const timerId = setTimeout(() => {
+        fetch(`/api/shopping-list/${item.shoppingListId}`, { method: "DELETE" });
+        pendingDeleteRef.current = null;
+        setPendingDeleteItem(null);
+        mutateSl();
+      }, 10000);
+
+      pendingDeleteRef.current = { item, timerId };
+      setPendingDeleteItem(item);
       return;
     }
     const key = itemKey(item);
@@ -206,6 +237,14 @@ export default function GroceryListPage() {
       syncSession(next, showStaples);
       return next;
     });
+  }
+
+  function undoDelete() {
+    if (!pendingDeleteRef.current) return;
+    clearTimeout(pendingDeleteRef.current.timerId);
+    pendingDeleteRef.current = null;
+    setPendingDeleteItem(null);
+    mutateSl(); // re-fetch; server still has the item
   }
 
   function openAddSheet() {
@@ -482,6 +521,19 @@ export default function GroceryListPage() {
         </Button>
       </div>
     </BottomSheet>
+
+    {/* Undo toast */}
+    {pendingDeleteItem && (
+      <div className="fixed top-[calc(env(safe-area-inset-top)+0.5rem)] left-4 right-4 z-50 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
+        <span className="text-sm">{pendingDeleteItem.name} removed</span>
+        <button
+          onClick={undoDelete}
+          className="text-sm font-semibold ml-4 shrink-0"
+        >
+          Undo
+        </button>
+      </div>
+    )}
 
     {/* Edit product sheet */}
     <BottomSheet
