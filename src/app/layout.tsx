@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
+import Providers from "@/components/Providers";
 
 export const viewport: Viewport = {
   themeColor: "#16a34a",
@@ -34,10 +35,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans")}>
       <body className="antialiased bg-background text-foreground min-h-screen">
-        <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
-          {children}
-        </main>
-        <BottomNav />
+        <Providers>
+          <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+            {children}
+          </main>
+          <BottomNav />
+        </Providers>
       </body>
     </html>
   );

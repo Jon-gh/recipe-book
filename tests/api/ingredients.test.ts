@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     product: {
@@ -9,18 +11,34 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/products/route";
 
+const mockGetServerSession = vi.mocked(getServerSession);
+
 const mockProducts = [
-  { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1 },
-  { id: 2, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 500 },
-  { id: 3, name: "parmesan", category: "dairy & eggs", defaultUnit: "g", defaultQuantity: 100 },
+  { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "system", userId: null },
+  { id: 2, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 500, source: "system", userId: null },
+  { id: 3, name: "parmesan", category: "dairy & eggs", defaultUnit: "g", defaultQuantity: 100, source: "system", userId: null },
 ];
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockGetServerSession.mockResolvedValue({
+    user: { id: "user-1", email: "test@example.com", name: "Test" },
+    expires: "2099-01-01",
+  } as never);
+});
 
 describe("GET /api/products", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/products");
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
   it("returns all products sorted alphabetically", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue(mockProducts as never);
     const req = new NextRequest("http://localhost/api/products");
@@ -37,23 +55,29 @@ describe("GET /api/products", () => {
     expect(await res.json()).toEqual([]);
   });
 
+  it("includes OR clause for system and user products", async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue(mockProducts as never);
+    const req = new NextRequest("http://localhost/api/products");
+    await GET(req);
+    expect(prisma.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: [{ userId: null }, { userId: "user-1" }],
+        }),
+      })
+    );
+  });
+
   it("passes q filter as case-insensitive name search", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([mockProducts[0]] as never);
     const req = new NextRequest("http://localhost/api/products?q=garlic");
     await GET(req);
     expect(prisma.product.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { name: { contains: "garlic", mode: "insensitive" } },
+        where: expect.objectContaining({
+          name: { contains: "garlic", mode: "insensitive" },
+        }),
       })
-    );
-  });
-
-  it("uses empty where clause when no filters provided", async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue(mockProducts as never);
-    const req = new NextRequest("http://localhost/api/products");
-    await GET(req);
-    expect(prisma.product.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: {} })
     );
   });
 

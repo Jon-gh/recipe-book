@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import BottomNav from "@/components/BottomNav";
 
@@ -13,17 +13,43 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+vi.mock("next-auth/react", () => ({
+  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
+  signOut: vi.fn(),
+}));
+
+vi.mock("next/image", () => ({
+  default: ({ src, alt, width, height, className }: { src: string; alt: string; width: number; height: number; className?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} width={width} height={height} className={className} />
+  ),
+}));
+
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 const mockUsePathname = vi.mocked(usePathname);
+const mockUseSession = vi.mocked(useSession);
+
+beforeEach(() => {
+  mockUseSession.mockReturnValue({ data: null, status: "unauthenticated", update: vi.fn() });
+});
 
 describe("BottomNav", () => {
-  it("renders all four tabs", () => {
+  it("renders all four nav tabs plus sign-out button", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
     expect(screen.getByText("Recipes")).toBeInTheDocument();
     expect(screen.getByText("Plan")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Grocery")).toBeInTheDocument();
+    expect(screen.getByText("Sign out")).toBeInTheDocument();
+  });
+
+  it("shows user's first name on sign-out button when session is active", () => {
+    mockUsePathname.mockReturnValue("/recipes");
+    mockUseSession.mockReturnValue({ data: { user: { id: "user-1", name: "Jon Doe", email: "jon@example.com" }, expires: "2099-01-01" }, status: "authenticated", update: vi.fn() });
+    render(<BottomNav />);
+    expect(screen.getByText("Jon")).toBeInTheDocument();
   });
 
   it("each tab links to the correct href", () => {

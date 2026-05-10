@@ -30,6 +30,12 @@ Copy `.env.example` to `.env`:
 DATABASE_URL=      # Neon pooled (?pgbouncer=true&connection_limit=1) — runtime queries
 DIRECT_URL=        # Neon direct — Prisma migrations only
 ANTHROPIC_API_KEY= # Required for AI import features
+NEXTAUTH_URL=      # Full public URL (http://localhost:3000 locally)
+NEXTAUTH_SECRET=   # openssl rand -base64 32
+GOOGLE_CLIENT_ID=  # Google Cloud Console OAuth client
+GOOGLE_CLIENT_SECRET=
+EMAIL_SERVER=      # smtp://user:pass@smtp.example.com:587
+EMAIL_FROM=        # "Recipe Book <noreply@yourdomain.com>"
 ```
 
 ## Rules for Claude
@@ -96,17 +102,24 @@ After making code changes:
 ## Data Flow
 ```
 Browser
+  → src/middleware.ts (NextAuth — redirects unauthenticated to /auth/signin)
   → Next.js pages (App Router — mostly client components for interactivity)
-  → /api/* route handlers → Prisma ORM → Neon Postgres
+  → /api/* route handlers → requireUserId() → Prisma ORM → Neon Postgres
   → /api/recipes/import/* → Anthropic SDK → Claude Haiku (AI extraction)
   → /api/grocery-list → src/lib/grocery-list.ts (scale + aggregate ingredients)
-  → /api/ingredients → list/search shared Ingredient records
+  → /api/auth/[...nextauth] → NextAuth.js (sign-in, OAuth callback, sign-out)
 ```
 
 ## Key Design Decisions
 
 ### `Ingredient` is a shared canonical entity
 `Ingredient` (id, name, category) is normalised out of `RecipeIngredient` so the same ingredient is represented once across all recipes. `RecipeIngredient` holds only the per-recipe fields: `quantity`, `unit`, `preparation`, and `ingredientId` (FK). On recipe save the API resolves ingredient name → `Ingredient` via case-insensitive find-or-create; **first-write wins** for category — later imports never overwrite an existing ingredient's category. See `docs/architecture.md` for full detail.
+
+### Authentication — per-user data isolation
+All data (recipes, meal plan, shopping list, scheduled meals, shopping session) is scoped to the authenticated user. The `requireUserId()` helper in `src/lib/auth.ts` handles auth guard + userId extraction in a single call. Every API route must call it and return early if the result is a `NextResponse`.
+
+### `Product` — system vs. user products
+Products created during recipe import (`source: "system"`) are shared across all users and read-only via the API. Products created via the shopping list (`source: "user"`) belong to the creating user only. The shopping list POST resolves a product name via: (1) the user's own product → (2) a system product → (3) create a new user product.
 
 ## Key Gotchas
 
@@ -123,6 +136,20 @@ Three independent cache layers exist. Missing any one causes stale data for the 
 | Browser Cache | HTTP response cache | `fetch(url, { cache: "no-store" })` in client component |
 
 **Apply all three to any new page that fetches live data.** The grocery list page is the reference implementation.
+
+### API route tests — always mock `next-auth`
+Every API test file must mock `next-auth` and set a default authenticated session in `beforeEach`, otherwise tests that don't explicitly set the session will get an undefined user and fail unpredictably:
+```typescript
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+import { getServerSession } from "next-auth";
+beforeEach(() => {
+  vi.mocked(getServerSession).mockResolvedValue({
+    user: { id: "user-1", email: "test@example.com", name: "Test" },
+    expires: "2099-01-01",
+  } as never);
+});
+```
+Each test file must also include a `returns 401 when not authenticated` case with `mockResolvedValue(null)`.
 
 ### Prisma Client
 Generated into `src/generated/prisma` — not committed to git. Run `npx prisma generate` after any schema change. Vercel rebuilds this automatically via `prisma generate && next build` in `package.json`.

@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     shoppingSession: {
@@ -9,20 +11,42 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { GET, PUT } from "@/app/api/shopping-session/route";
 import { NextRequest } from "next/server";
 
+const mockGetServerSession = vi.mocked(getServerSession);
+
 const mockSession = {
-  id: "session",
+  id: "sess-cuid",
+  userId: "user-1",
   checkedKeys: ["milk__l", "eggs__"],
   showStaples: false,
   updatedAt: new Date(),
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockGetServerSession.mockResolvedValue({
+    user: { id: "user-1", email: "test@example.com", name: "Test" },
+    expires: "2099-01-01",
+  } as never);
+});
 
 describe("GET /api/shopping-session", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+
+  it("queries by userId", async () => {
+    vi.mocked(prisma.shoppingSession.findUnique).mockResolvedValue(mockSession as never);
+    await GET();
+    expect(prisma.shoppingSession.findUnique).toHaveBeenCalledWith({ where: { userId: "user-1" } });
+  });
+
   it("returns the stored session", async () => {
     vi.mocked(prisma.shoppingSession.findUnique).mockResolvedValue(mockSession as never);
     const res = await GET();
@@ -35,12 +59,25 @@ describe("GET /api/shopping-session", () => {
     vi.mocked(prisma.shoppingSession.findUnique).mockResolvedValue(null);
     const res = await GET();
     const body = await res.json();
-    expect(body).toEqual({ id: "session", checkedKeys: [], showStaples: false, weekStart: null, weekEnd: null });
+    expect(body.checkedKeys).toEqual([]);
+    expect(body.showStaples).toBe(false);
+    expect(body.weekStart).toBeNull();
+    expect(body.weekEnd).toBeNull();
   });
 });
 
 describe("PUT /api/shopping-session", () => {
-  it("upserts the session and returns it", async () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/shopping-session", {
+      method: "PUT",
+      body: JSON.stringify({ checkedKeys: [], showStaples: false }),
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("upserts by userId and returns session", async () => {
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
@@ -48,7 +85,9 @@ describe("PUT /api/shopping-session", () => {
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);
-    expect(prisma.shoppingSession.upsert).toHaveBeenCalled();
+    expect(prisma.shoppingSession.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { userId: "user-1" } })
+    );
   });
 
   it("persists weekStart and weekEnd when provided", async () => {

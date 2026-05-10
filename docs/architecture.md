@@ -6,11 +6,12 @@ This document covers the directory structure, data layer decisions, and caching 
 ## Data Flow
 ```
 Browser
+  → src/middleware.ts (NextAuth — redirects unauthenticated to /auth/signin)
   → Next.js pages (App Router — mostly client components)
-  → /api/* route handlers
-      → Prisma ORM → Neon Postgres        (data persistence)
+  → /api/* route handlers → requireUserId() → Prisma ORM → Neon Postgres
       → Anthropic SDK → Claude Haiku      (AI recipe extraction)
       → src/lib/grocery-list.ts           (ingredient scaling + aggregation)
+  → /api/auth/[...nextauth] (NextAuth session endpoints — sign-in, callbacks, sign-out)
 ```
 
 ## Key Directories
@@ -19,14 +20,22 @@ Browser
 |------|---------|
 | `src/types.ts` | Shared TypeScript types: `Ingredient`, `Recipe`, `RecipeIngredient`, `MealPlanEntry`, `GroceryItem`, `RecipeFormData` |
 | `src/lib/prisma.ts` | Prisma client singleton — prevents too-many-connections in dev/serverless |
+| `src/lib/auth.ts` | `authOptions` (NextAuth config) + `requireUserId()` helper — call at the top of every API route handler |
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
 | `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper |
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
-| `src/app/api/recipes/` | REST: list/create, get/update/delete, duplicate, import (text/url/image) |
+| `src/middleware.ts` | NextAuth middleware — redirects unauthenticated requests to `/auth/signin`; excludes `/auth/*`, `/api/auth/*`, and static assets |
+| `src/types/next-auth.d.ts` | Module augmentation — adds `user.id` to the NextAuth `Session` type |
+| `src/components/Providers.tsx` | Client-side `SessionProvider` + `SWRConfig`; redirects to `/auth/signin` on any 401 response |
+| `src/app/api/auth/[...nextauth]/` | NextAuth catch-all route (sign-in, sign-out, OAuth callback) |
+| `src/app/api/recipes/` | REST: list/create, get/update/delete, duplicate, import (text/url/image) — all scoped to authenticated user |
 | `src/app/api/ingredients/` | GET — list/search all shared `Ingredient` records |
-| `src/app/api/meal-plan/` | REST: list entries, add entry, delete entry |
+| `src/app/api/meal-plan/` | REST: list entries, add entry, delete entry — scoped to authenticated user |
 | `src/app/api/grocery-list/` | GET — aggregated grocery list; `force-dynamic` to bypass Next.js Data Cache |
+| `src/app/api/products/` | GET/PUT/DELETE — ingredient product catalog; system products shared, user products personal |
+| `src/app/auth/signin/` | Custom sign-in page: "Continue with Google" + email magic link form |
+| `src/app/auth/verify-request/` | Static "Check your email" page shown after magic link is sent |
 | `src/app/recipes/` | Recipe list page (search + favourite filter) |
 | `src/app/recipes/[id]/` | Recipe detail page (view, delete, duplicate, add to meal plan) |
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
@@ -36,10 +45,10 @@ Browser
 | `src/app/api/shopping-list/` | REST: list/add/delete persistent shopping list items |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
-| `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Meal Plan / Grocery List); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
+| `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
-| `prisma/schema.prisma` | DB schema: `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ShoppingListItem` |
+| `prisma/schema.prisma` | DB schema: `User`, `Account`, `Session`, `VerificationToken` (NextAuth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ShoppingListItem`, `Product`, `ShoppingSession` |
 | `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
 
 ## Database Schema — Key Decisions
@@ -59,6 +68,28 @@ Browser
 
 ### `Ingredient.category` — supermarket aisle grouping
 **Why:** Ingredients are grouped by category on the grocery list so users can shop efficiently by aisle (all produce together, all meat together, etc.). Categories are defined in `src/lib/categories.ts`. Two categories (`spices & herbs`, `condiments & sauces`) are flagged `isStaple: true` and hidden by default on the grocery list — they're things you likely already have.
+
+### Authentication — NextAuth.js with per-user data isolation
+**Why:** Multiple users can now sign in and each sees only their own recipes, meal plan, and shopping list. Authentication uses NextAuth.js v4 with two sign-in methods: Google OAuth and email magic links.
+
+- `User`, `Account`, `Session`, `VerificationToken` models follow the NextAuth + PrismaAdapter schema exactly.
+- Every API route calls `requireUserId()` from `src/lib/auth.ts` at the top. The helper returns `{ userId: string }` on success or a `NextResponse` 401 on failure. The caller checks `instanceof NextResponse` and returns early.
+- All Prisma queries on `Recipe`, `MealPlanEntry`, `ShoppingListItem`, `ScheduledMeal`, and `ShoppingSession` are scoped with `where: { userId }` so rows from other users are never returned.
+- `src/middleware.ts` redirects unauthenticated browser requests to `/auth/signin` before they reach any page or API route (except `/api/auth/*` and static assets).
+
+### `Product` — system vs. user products
+**Why:** Ingredients added during recipe imports (AI or manual) are shared across all users (`source: "system"`, `userId: null`). Ingredients added individually via the shopping list are personal to the user who created them (`source: "user"`, `userId`).
+
+- Two partial unique indexes enforce this: system product names are globally unique; user product names are unique per user.
+- `GET /api/products` returns system products + the current user's personal products via `OR: [{ userId: null }, { userId }]`.
+- `PUT` and `DELETE` on `/api/products/[id]` are only permitted for user-owned products. System products return 403.
+- When the shopping list POST resolves a product name, it checks: (1) user's own product, (2) system product, (3) create a new user product.
+
+### `ShoppingSession` — per-user (not singleton)
+**Why:** Previously a singleton row with `id = "session"`. With multiple users, each user needs their own shopping session state (checked items, week dates, show-staples flag).
+
+- Changed from `@id @default("session")` to `id String @id @default(cuid())` with `userId String @unique`.
+- All upserts now use `where: { userId }` instead of `where: { id: "session" }`.
 
 ### `ShoppingListItem` — persistent user-added grocery extras
 **Why:** Users want to add items to the grocery list at any time (not just during a shopping session) and have them persist across devices. `ShoppingListItem` links to `Ingredient` via FK so category assignment is automatic and items sort into the correct aisle. The same find-or-create logic used on recipe save is applied here.

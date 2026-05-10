@@ -4,6 +4,7 @@ A mobile-friendly web app for managing recipes, meal planning, and grocery list 
 
 ## Features
 
+- **Multi-user login** — Google OAuth and email magic links via NextAuth.js; each user's data is fully private
 - Browse, search, and filter recipes (by name, tag, ingredient, or favourite)
 - Add and edit recipes manually or import via AI (paste text, URL, or photo)
 - Mark recipes as favourites
@@ -17,7 +18,8 @@ A mobile-friendly web app for managing recipes, meal planning, and grocery list 
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
 - **Prisma 5** + **Neon Postgres** (serverless, AWS eu-west-2)
 - **Anthropic SDK** (`claude-haiku-4-5-20251001`) for AI recipe extraction
-- **Vitest** + **React Testing Library** — 106 tests across unit, API, and component suites
+- **NextAuth.js v4** — Google OAuth + email magic links, database sessions
+- **Vitest** + **React Testing Library** — unit, API, and component test suites
 - **Vercel** for deployment
 
 ## Getting Started
@@ -41,6 +43,12 @@ cp .env.example .env
 | `DATABASE_URL` | Neon Postgres **pooled** connection string (`?pgbouncer=true&connection_limit=1`) |
 | `DIRECT_URL` | Neon Postgres **direct** connection string (used by Prisma migrations) |
 | `ANTHROPIC_API_KEY` | Required for AI import features |
+| `NEXTAUTH_URL` | Full public URL — `http://localhost:3000` locally, your Vercel URL in production |
+| `NEXTAUTH_SECRET` | Random secret — generate with `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID (Google Cloud Console) |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `EMAIL_SERVER` | SMTP URL for magic-link emails — e.g. `smtp://user:pass@smtp.example.com:587` |
+| `EMAIL_FROM` | From address — e.g. `"Recipe Book <noreply@yourdomain.com>"` |
 
 Get a free Postgres database at [neon.tech](https://neon.tech) and an API key at [console.anthropic.com](https://console.anthropic.com).
 
@@ -77,27 +85,38 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ```
 src/
   app/
-    api/              # REST API routes
+    api/              # REST API routes (all require authentication)
+      auth/           # NextAuth catch-all (sign-in, sign-out, OAuth callback)
       recipes/        # CRUD, duplicate, import (text/url/image)
       meal-plan/      # Add/list/delete meal plan entries
       grocery-list/   # Aggregated grocery list (force-dynamic)
+      products/       # Ingredient product catalog (GET/PUT/DELETE)
+    auth/
+      signin/         # Custom sign-in page (Google + magic link)
+      verify-request/ # "Check your email" page
     recipes/          # Recipe list, detail, new, edit pages
     meal-plan/        # Meal plan page
     grocery-list/     # Grocery list page
     manifest.ts       # PWA manifest
   components/
+    Providers.tsx     # SessionProvider + SWR 401 redirect
+    BottomNav.tsx     # Tab bar with sign-out button
     RecipeForm.tsx    # Shared add/edit form with AI import panel
     ui/               # shadcn/ui components
   lib/
+    auth.ts           # authOptions + requireUserId() helper
     prisma.ts         # Prisma client singleton
     grocery-list.ts   # Ingredient scaling and aggregation
     extract-recipe.ts # Claude API extraction helpers
     url-import.ts     # URL + JSON-LD parsing helpers
+  middleware.ts       # NextAuth middleware — redirects unauthenticated requests
   types.ts            # Shared TypeScript types
+  types/
+    next-auth.d.ts    # Adds user.id to Session type
 prisma/
-  schema.prisma       # Database schema (Recipe, RecipeIngredient, MealPlanEntry)
+  schema.prisma       # Full schema including NextAuth + per-user models
 tests/
-  api/                # API route tests (Prisma mocked)
+  api/                # API route tests (Prisma mocked, getServerSession mocked)
   lib/                # Pure function unit tests
   components/         # React component tests (jsdom)
 public/
@@ -106,13 +125,9 @@ public/
 
 ## Deployment
 
-Deployed on Vercel. Set the following environment variables in the Vercel dashboard:
+Deployed on Vercel. Set all environment variables from the table above in the Vercel dashboard (Production + Preview environments). The build command (`prisma generate && next build`) runs automatically on deploy.
 
-- `DATABASE_URL` — pooled Neon connection string
-- `DIRECT_URL` — direct Neon connection string
-- `ANTHROPIC_API_KEY` — Anthropic API key
-
-The build command (`prisma generate && next build`) runs automatically on deploy.
+**Google OAuth redirect URI:** add `https://your-app.vercel.app/api/auth/callback/google` in Google Cloud Console alongside your localhost redirect URI.
 
 ## Installing on iPhone
 
@@ -126,9 +141,9 @@ The app opens fullscreen without the Safari browser UI.
 ## Git Workflow
 
 ```
-feature branch → preview deploy → user tests → PR → dev → PR → main
+feature branch → preview deploy → user tests → PR → main
 ```
 
-- All work on feature branches — never commit directly to `dev` or `main`
+- All work on feature branches — never commit directly to `main`
 - PRs require explicit approval before merging
 - Preview deployments are used to verify fixes before merging

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart } from "lucide-react";
+import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart, LogOut } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
 
 const tabs = [
   { href: "/recipes", label: "Recipes", icon: UtensilsCrossed },
@@ -13,6 +15,7 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t pb-[env(safe-area-inset-bottom)]">
@@ -32,6 +35,24 @@ export default function BottomNav() {
             </Link>
           );
         })}
+
+        <button
+          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          className="flex flex-1 flex-col items-center justify-center gap-1 text-xs text-muted-foreground active:opacity-70"
+        >
+          {session?.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt=""
+              width={24}
+              height={24}
+              className="rounded-full"
+            />
+          ) : (
+            <LogOut size={22} strokeWidth={1.5} />
+          )}
+          <span>{session?.user?.name?.split(" ")[0] ?? "Sign out"}</span>
+        </button>
       </div>
     </nav>
   );

@@ -1,31 +1,36 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     scheduledMeal: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
-      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
     },
     mealPlanEntry: {
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
     },
   },
 }));
 
+import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/scheduled-meals/route";
 import { PATCH, DELETE } from "@/app/api/scheduled-meals/[id]/route";
+
+const mockGetServerSession = vi.mocked(getServerSession);
 
 const mockRecipe = { id: "r1", name: "Spag. Bol.", servings: 4 };
 const mockEntry = {
   id: 1,
   targetServings: 8,
   recipeId: "r1",
+  userId: "user-1",
   recipe: mockRecipe,
   scheduledMeals: [],
 };
@@ -35,13 +40,27 @@ const mockMeal = {
   mealType: "dinner",
   servings: 4,
   mealPlanEntryId: 1,
+  userId: "user-1",
   mealPlanEntry: { ...mockEntry, recipe: mockRecipe },
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockGetServerSession.mockResolvedValue({
+    user: { id: "user-1", email: "test@example.com", name: "Test" },
+    expires: "2099-01-01",
+  } as never);
+});
 
 describe("GET /api/scheduled-meals", () => {
-  it("returns all scheduled meals", async () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/scheduled-meals");
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns all scheduled meals scoped to user", async () => {
     vi.mocked(prisma.scheduledMeal.findMany).mockResolvedValue([mockMeal] as never);
     const req = new NextRequest("http://localhost/api/scheduled-meals");
     const res = await GET(req);
@@ -65,6 +84,16 @@ describe("GET /api/scheduled-meals", () => {
 });
 
 describe("POST /api/scheduled-meals", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/scheduled-meals", {
+      method: "POST",
+      body: JSON.stringify({ note: "test", date: "2026-04-21", mealType: "dinner", servings: 1 }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
   it("creates a custom note slot without a meal plan entry", async () => {
     const noteMeal = { ...mockMeal, mealPlanEntryId: null, mealPlanEntry: null, note: "Eating outside" };
     vi.mocked(prisma.scheduledMeal.create).mockResolvedValue(noteMeal as never);
@@ -80,11 +109,11 @@ describe("POST /api/scheduled-meals", () => {
     });
     const res = await POST(req);
     expect(res.status).toBe(201);
-    expect(prisma.mealPlanEntry.findUnique).not.toHaveBeenCalled();
+    expect(prisma.mealPlanEntry.findFirst).not.toHaveBeenCalled();
   });
 
   it("creates a slot when budget allows", async () => {
-    vi.mocked(prisma.mealPlanEntry.findUnique).mockResolvedValue(mockEntry as never);
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(mockEntry as never);
     vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.scheduledMeal.create).mockResolvedValue(mockMeal as never);
 
@@ -107,7 +136,7 @@ describe("POST /api/scheduled-meals", () => {
       targetServings: 4,
       scheduledMeals: [{ id: 11, servings: 4 }],
     };
-    vi.mocked(prisma.mealPlanEntry.findUnique).mockResolvedValue(fullEntry as never);
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(fullEntry as never);
 
     const req = new NextRequest("http://localhost/api/scheduled-meals", {
       method: "POST",
@@ -125,7 +154,7 @@ describe("POST /api/scheduled-meals", () => {
   });
 
   it("returns 409 when slot already occupied", async () => {
-    vi.mocked(prisma.mealPlanEntry.findUnique).mockResolvedValue(mockEntry as never);
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(mockEntry as never);
     vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(mockMeal as never);
 
     const req = new NextRequest("http://localhost/api/scheduled-meals", {
@@ -141,8 +170,8 @@ describe("POST /api/scheduled-meals", () => {
     expect(res.status).toBe(409);
   });
 
-  it("returns 404 when meal plan entry not found", async () => {
-    vi.mocked(prisma.mealPlanEntry.findUnique).mockResolvedValue(null);
+  it("returns 404 when meal plan entry not found or belongs to another user", async () => {
+    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/scheduled-meals", {
       method: "POST",
       body: JSON.stringify({
@@ -158,9 +187,29 @@ describe("POST /api/scheduled-meals", () => {
 });
 
 describe("PATCH /api/scheduled-meals/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
+      method: "PATCH",
+      body: JSON.stringify({ servings: 2 }),
+    });
+    const res = await PATCH(req, { params: { id: "10" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when meal not found or belongs to another user", async () => {
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
+      method: "PATCH",
+      body: JSON.stringify({ servings: 2 }),
+    });
+    const res = await PATCH(req, { params: { id: "10" } });
+    expect(res.status).toBe(404);
+  });
+
   it("returns 400 when patching a custom note slot", async () => {
     const noteMeal = { ...mockMeal, mealPlanEntryId: null, mealPlanEntry: null, note: "Eating outside" };
-    vi.mocked(prisma.scheduledMeal.findUnique).mockResolvedValue(noteMeal as never);
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(noteMeal as never);
 
     const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
       method: "PATCH",
@@ -176,7 +225,7 @@ describe("PATCH /api/scheduled-meals/[id]", () => {
       servings: 2,
       mealPlanEntry: { ...mockEntry, scheduledMeals: [{ id: 10, servings: 2 }] },
     };
-    vi.mocked(prisma.scheduledMeal.findUnique).mockResolvedValue(current as never);
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(current as never);
     vi.mocked(prisma.scheduledMeal.update).mockResolvedValue({ ...mockMeal, servings: 4 } as never);
 
     const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
@@ -200,7 +249,7 @@ describe("PATCH /api/scheduled-meals/[id]", () => {
         ],
       },
     };
-    vi.mocked(prisma.scheduledMeal.findUnique).mockResolvedValue(current as never);
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(current as never);
 
     const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
       method: "PATCH",
@@ -212,11 +261,24 @@ describe("PATCH /api/scheduled-meals/[id]", () => {
 });
 
 describe("DELETE /api/scheduled-meals/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "10" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when meal belongs to another user", async () => {
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(null as never);
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "10" } });
+    expect(res.status).toBe(404);
+  });
+
   it("deletes and returns 204", async () => {
+    vi.mocked(prisma.scheduledMeal.findFirst).mockResolvedValue(mockMeal as never);
     vi.mocked(prisma.scheduledMeal.delete).mockResolvedValue(mockMeal as never);
-    const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
-      method: "DELETE",
-    });
+    const req = new NextRequest("http://localhost/api/scheduled-meals/10", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "10" } });
     expect(res.status).toBe(204);
   });

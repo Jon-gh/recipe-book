@@ -41,8 +41,16 @@ Set in the Vercel dashboard (Production + Preview environments) and locally in `
 | `DATABASE_URL` | Neon Postgres **pooled** (`?pgbouncer=true&connection_limit=1`) — required for serverless runtime |
 | `DIRECT_URL` | Neon Postgres **direct** — Prisma migrations only; do not use for queries |
 | `ANTHROPIC_API_KEY` | Required for AI recipe import features |
+| `NEXTAUTH_URL` | Full public URL of the app — e.g. `https://your-app.vercel.app` (or `http://localhost:3000` locally) |
+| `NEXTAUTH_SECRET` | Random secret for signing sessions — generate with `openssl rand -base64 32` |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID — from Google Cloud Console |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `EMAIL_SERVER` | SMTP connection string for magic-link emails — e.g. `smtp://user:pass@smtp.example.com:587` |
+| `EMAIL_FROM` | From address for magic-link emails — e.g. `"Recipe Book <noreply@yourdomain.com>"` |
 
 **Why two database URLs:** Neon's PgBouncer pooler is required for Vercel serverless (connection limit per function). But Prisma schema migrations require a direct connection — the pooler can't handle migration DDL. Using the wrong URL for the wrong purpose causes silent failures.
+
+**Setting up Google OAuth:** Create an OAuth 2.0 client in Google Cloud Console. Add your Vercel domain + `localhost:3000` as authorised origins, and `{NEXTAUTH_URL}/api/auth/callback/google` as an authorised redirect URI.
 
 ## Build
 
