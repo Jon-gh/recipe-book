@@ -9,14 +9,12 @@ import { prisma } from "@/lib/prisma";
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-    EmailProvider({
-      server: process.env.EMAIL_SERVER!,
-      from: process.env.EMAIL_FROM!,
-    }),
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+      ? [GoogleProvider({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET })]
+      : []),
+    ...(process.env.EMAIL_SERVER && process.env.EMAIL_FROM
+      ? [EmailProvider({ server: process.env.EMAIL_SERVER, from: process.env.EMAIL_FROM })]
+      : []),
   ],
   session: { strategy: "database" },
   pages: {
