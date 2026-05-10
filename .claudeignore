@@ -1,0 +1,8 @@
+# Generated and dependency directories — never need to be searched
+node_modules/
+.next/
+src/generated/
+
+# Build and deploy artifacts
+.vercel/
+coverage/

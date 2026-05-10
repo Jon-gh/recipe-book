@@ -44,6 +44,30 @@ ANTHROPIC_API_KEY= # Required for AI import features
 - **Tests must pass before every commit or PR** — a failing suite blocks the merge
 - See @docs/testing.md for patterns, mocking examples, and known gotchas
 
+### Documentation Contract (mandatory)
+
+When making any code change:
+
+1. Determine whether behaviour, interfaces, configs, schemas, permissions,
+   data formats, error handling, or user-visible output changed.
+2. If yes, update the relevant files in docs/.
+3. Run the pre-PR checks (see below) before completing the task.
+
+If no documentation update is required, explicitly state why in the PR
+using the format:
+  Docs: not required — <clear reason>
+
+- **Keep CLAUDE.md current throughout development** — update it immediately when a new gotcha, rule, or non-obvious decision is discovered; don't wait for the PR
+- **When updating docs/\*.md or CLAUDE.md, also update README.md** — docs are for AI agents, README.md is for humans; they should stay in sync on project purpose, stack, and setup steps
+
+### Enforcement hook (Claude)
+
+After making code changes:
+
+- Always run the `pre-pr` command.
+- If `pre-pr` fails, stop and fix the issue.
+- Do not consider the task complete until `pre-pr` passes.
+
 ### Git & PRs — Continuous Integration
 - **Create a feature branch before touching any files** — the very first action for any task (bug fix, feature, refactor) is `git checkout main && git pull origin main && git checkout -b feat/my-feature`; never edit files while on `main`
 - **Never commit or push directly to `main`** — always use a short-lived feature branch (`feat/`, `fix/`)
@@ -63,10 +87,6 @@ ANTHROPIC_API_KEY= # Required for AI import features
 ### Design Decisions
 - **Present options with tradeoffs** before any major architectural or library choice — do not pick unilaterally
 - **Provide a summary and next steps** at natural breakpoints in multi-step tasks
-
-### Docs & README
-- **Keep CLAUDE.md current throughout development** — update it immediately when a new gotcha, rule, or non-obvious decision is discovered; don't wait for the PR
-- **When updating CLAUDE.md, also update README.md** — CLAUDE.md is for AI agents, README.md is for humans; they should stay in sync on project purpose, stack, and setup steps
 
 ### Token Efficiency
 - **Grep before launching an Explore agent** — use Grep/Read directly for targeted searches; agents are for open-ended exploration only
