@@ -16,6 +16,8 @@ const tabs = [
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+
+  if (pathname.startsWith("/auth")) return null;
   const { data: session } = authClient.useSession();
 
   return (

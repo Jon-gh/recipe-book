@@ -21,24 +21,28 @@ export default function SignInPage() {
     setError(null);
     setLoading(true);
 
-    if (mode === "signup") {
-      const { error: err } = await authClient.signUp.email({
-        email: email.trim(),
-        password,
-        name: name.trim() || email.trim().split("@")[0],
-        callbackURL: "/recipes",
-      });
-      if (err) setError(err.message ?? "Sign up failed");
-    } else {
-      const { error: err } = await authClient.signIn.email({
-        email: email.trim(),
-        password,
-        callbackURL: "/recipes",
-      });
-      if (err) setError(err.message ?? "Sign in failed");
+    try {
+      if (mode === "signup") {
+        const { error: err } = await authClient.signUp.email({
+          email: email.trim(),
+          password,
+          name: name.trim() || email.trim().split("@")[0],
+          callbackURL: "/recipes",
+        });
+        if (err) setError(err.message ?? "Sign up failed");
+      } else {
+        const { error: err } = await authClient.signIn.email({
+          email: email.trim(),
+          password,
+          callbackURL: "/recipes",
+        });
+        if (err) setError(err.message ?? "Invalid email or password");
+      }
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
