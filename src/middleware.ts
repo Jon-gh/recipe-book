@@ -1,11 +1,15 @@
-import { auth } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
+export function middleware(request: NextRequest) {
+  // Better Auth sets either cookie name depending on whether the connection is HTTPS
+  const session =
+    request.cookies.get("better-auth.session_token") ??
+    request.cookies.get("__Secure-better-auth.session_token");
+
   if (!session) {
     return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
+
   return NextResponse.next();
 }
 
