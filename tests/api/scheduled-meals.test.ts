@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -18,12 +18,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/scheduled-meals/route";
 import { PATCH, DELETE } from "@/app/api/scheduled-meals/[id]/route";
 
-const mockGetServerSession = vi.mocked(getServerSession);
 
 const mockRecipe = { id: "r1", name: "Spag. Bol.", servings: 4 };
 const mockEntry = {
@@ -46,15 +45,14 @@ const mockMeal = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetServerSession.mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 });
 
 describe("GET /api/scheduled-meals", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/scheduled-meals");
     const res = await GET(req);
     expect(res.status).toBe(401);
@@ -85,7 +83,9 @@ describe("GET /api/scheduled-meals", () => {
 
 describe("POST /api/scheduled-meals", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/scheduled-meals", {
       method: "POST",
       body: JSON.stringify({ note: "test", date: "2026-04-21", mealType: "dinner", servings: 1 }),
@@ -188,7 +188,9 @@ describe("POST /api/scheduled-meals", () => {
 
 describe("PATCH /api/scheduled-meals/[id]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/scheduled-meals/10", {
       method: "PATCH",
       body: JSON.stringify({ servings: 2 }),
@@ -262,7 +264,9 @@ describe("PATCH /api/scheduled-meals/[id]", () => {
 
 describe("DELETE /api/scheduled-meals/[id]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/scheduled-meals/10", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "10" } });
     expect(res.status).toBe(401);

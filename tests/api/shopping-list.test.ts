@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -17,28 +17,26 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/shopping-list/route";
 import { DELETE } from "@/app/api/shopping-list/[id]/route";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const mockGetServerSession = vi.mocked(getServerSession);
 
 const mockProduct = { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, userId: "user-1", source: "user" };
 const mockItem = { id: 10, quantity: 2, unit: "clove", userId: "user-1", product: mockProduct };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetServerSession.mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 });
 
 describe("GET /api/shopping-list", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const res = await GET();
     expect(res.status).toBe(401);
   });
@@ -61,7 +59,9 @@ describe("GET /api/shopping-list", () => {
 
 describe("POST /api/shopping-list", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/shopping-list", {
       method: "POST",
       body: JSON.stringify({ name: "garlic" }),
@@ -173,7 +173,9 @@ describe("POST /api/shopping-list", () => {
 
 describe("DELETE /api/shopping-list/[id]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/shopping-list/10", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "10" } });
     expect(res.status).toBe(401);

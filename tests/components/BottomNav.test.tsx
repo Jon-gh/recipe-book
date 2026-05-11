@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import BottomNav from "@/components/BottomNav";
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));
 
 vi.mock("next/link", () => ({
@@ -13,9 +14,14 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-vi.mock("next-auth/react", () => ({
-  useSession: vi.fn(() => ({ data: null, status: "unauthenticated" })),
-  signOut: vi.fn(),
+const mockSignOut = vi.hoisted(() => vi.fn());
+const mockUseSession = vi.hoisted(() => vi.fn(() => ({ data: null, isPending: false })));
+
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    useSession: () => mockUseSession(),
+    signOut: mockSignOut,
+  },
 }));
 
 vi.mock("next/image", () => ({
@@ -26,12 +32,11 @@ vi.mock("next/image", () => ({
 }));
 
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
 const mockUsePathname = vi.mocked(usePathname);
-const mockUseSession = vi.mocked(useSession);
 
 beforeEach(() => {
-  mockUseSession.mockReturnValue({ data: null, status: "unauthenticated", update: vi.fn() });
+  mockUseSession.mockReturnValue({ data: null, isPending: false });
+  mockSignOut.mockReset();
 });
 
 describe("BottomNav", () => {
@@ -47,7 +52,7 @@ describe("BottomNav", () => {
 
   it("shows user's first name on sign-out button when session is active", () => {
     mockUsePathname.mockReturnValue("/recipes");
-    mockUseSession.mockReturnValue({ data: { user: { id: "user-1", name: "Jon Doe", email: "jon@example.com" }, expires: "2099-01-01" }, status: "authenticated", update: vi.fn() });
+    mockUseSession.mockReturnValue({ data: { user: { id: "user-1", name: "Jon Doe", email: "jon@example.com" } }, isPending: false } as never);
     render(<BottomNav />);
     expect(screen.getByText("Jon")).toBeInTheDocument();
   });
@@ -98,5 +103,12 @@ describe("BottomNav", () => {
     const groceryLink = screen.getByText("Grocery").closest("a")!;
     expect(groceryLink.className).toContain("text-green-600");
     expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
+  });
+
+  it("calls signOut when sign-out button is clicked", () => {
+    mockUsePathname.mockReturnValue("/recipes");
+    render(<BottomNav />);
+    fireEvent.click(screen.getByText("Sign out").closest("button")!);
+    expect(mockSignOut).toHaveBeenCalled();
   });
 });

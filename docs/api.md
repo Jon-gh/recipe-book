@@ -5,13 +5,13 @@ All API routes live under `src/app/api/`. They are Next.js App Router route hand
 
 ## Authentication
 
-All routes (except `/api/auth/*`) require an active session. Unauthenticated requests return `401 Unauthorized`. Sessions are managed by NextAuth.js — see `src/lib/auth.ts` for configuration.
+All routes (except `/api/auth/*`) require an active session. Unauthenticated requests return `401 Unauthorized`. Sessions are managed by Better Auth — see `src/lib/auth.ts` for configuration.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET/POST | `/api/auth/[...nextauth]` | NextAuth session endpoints (sign-in, sign-out, callback) |
+| GET/POST | `/api/auth/[...all]` | Better Auth endpoints (sign-in, sign-out, OAuth callback, password reset) |
 
-**Sign-in methods:** Google OAuth and email magic links. Users sign in via `/auth/signin`.
+**Sign-in methods:** Email+password and Google OAuth. Users sign in via `/auth/signin`. Password reset via `/auth/reset-password`.
 
 All data (recipes, meal plan, shopping list) is **scoped to the authenticated user** — each user sees only their own data.
 

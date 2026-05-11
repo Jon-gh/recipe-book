@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -23,11 +23,10 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { POST } from "@/app/api/meal-plan/new-week/route";
 
-const mockGetServerSession = vi.mocked(getServerSession);
 
 const makeEntry = (id: number, targetServings: number) => ({
   id,
@@ -40,10 +39,7 @@ const makeEntry = (id: number, targetServings: number) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetServerSession.mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 
   // Default $transaction: execute the callback with a tx that mirrors the mocked prisma
   vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
@@ -60,7 +56,9 @@ function makeReq(body: object) {
 
 describe("POST /api/meal-plan/new-week", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const res = await POST(makeReq({ consumed: [], weekStart: "2026-04-28", weekEnd: "2026-05-04" }));
     expect(res.status).toBe(401);
   });

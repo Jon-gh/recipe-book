@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart, LogOut } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { authClient } from "@/lib/auth-client";
 import Image from "next/image";
 
 const tabs = [
@@ -15,7 +15,8 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session } = authClient.useSession();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t pb-[env(safe-area-inset-bottom)]">
@@ -37,7 +38,11 @@ export default function BottomNav() {
         })}
 
         <button
-          onClick={() => signOut({ callbackUrl: "/auth/signin" })}
+          onClick={() =>
+            authClient.signOut({
+              fetchOptions: { onSuccess: () => router.push("/auth/signin") },
+            })
+          }
           className="flex flex-1 flex-col items-center justify-center gap-1 text-xs text-muted-foreground active:opacity-70"
         >
           {session?.user?.image ? (

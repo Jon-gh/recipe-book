@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -11,12 +11,11 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET, PUT } from "@/app/api/shopping-session/route";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const mockGetServerSession = vi.mocked(getServerSession);
 
 const mockSession = {
   id: "sess-cuid",
@@ -28,15 +27,14 @@ const mockSession = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetServerSession.mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 });
 
 describe("GET /api/shopping-session", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const res = await GET();
     expect(res.status).toBe(401);
   });
@@ -68,7 +66,9 @@ describe("GET /api/shopping-session", () => {
 
 describe("PUT /api/shopping-session", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
       body: JSON.stringify({ checkedKeys: [], showStaples: false }),

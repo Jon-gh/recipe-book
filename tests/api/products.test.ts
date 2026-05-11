@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -17,28 +17,26 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
-import { getServerSession } from "next-auth";
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/products/route";
 import { PUT, DELETE } from "@/app/api/products/[id]/route";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const mockGetServerSession = vi.mocked(getServerSession);
 
 const userProduct = { id: 1, name: "tomatoe", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "user", userId: "user-1" };
 const systemProduct = { id: 2, name: "tomato", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "system", userId: null };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockGetServerSession.mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 });
 
 describe("GET /api/products", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/products");
     const res = await GET(req);
     expect(res.status).toBe(401);
@@ -70,7 +68,9 @@ describe("GET /api/products", () => {
 
 describe("DELETE /api/products/[id]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/products/1", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "1" } });
     expect(res.status).toBe(401);
@@ -117,7 +117,9 @@ describe("DELETE /api/products/[id]", () => {
 
 describe("PUT /api/products/[id]", () => {
   it("returns 401 when not authenticated", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
     const req = new NextRequest("http://localhost/api/products/1", { method: "PUT", body: JSON.stringify({}) });
     const res = await PUT(req, { params: { id: "1" } });
     expect(res.status).toBe(401);

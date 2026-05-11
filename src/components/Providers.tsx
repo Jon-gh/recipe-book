@@ -1,6 +1,5 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import { SWRConfig } from "swr";
 
 const swrConfig = {
@@ -12,9 +11,5 @@ const swrConfig = {
 };
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  return (
-    <SessionProvider>
-      <SWRConfig value={swrConfig}>{children}</SWRConfig>
-    </SessionProvider>
-  );
+  return <SWRConfig value={swrConfig}>{children}</SWRConfig>;
 }

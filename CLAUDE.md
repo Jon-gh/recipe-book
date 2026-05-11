@@ -10,6 +10,7 @@ Replaces scattered recipe bookmarks with a single structured tool. The core valu
 - **Next.js 14** (App Router) · **TypeScript** · **Tailwind CSS** · **shadcn/ui**
 - **Prisma 5** + **Neon Postgres** (serverless, AWS eu-west-2)
 - **Anthropic SDK** (`claude-haiku-4-5-20251001`) — AI recipe extraction
+- **Better Auth** — email+password and Google OAuth; `src/lib/auth.ts` (server), `src/lib/auth-client.ts` (client)
 - **Vitest** + **React Testing Library** — unit, API, and component tests
 - **Vercel** — deployment and preview environments
 
@@ -27,14 +28,15 @@ npx prisma db push    # push schema to Neon (non-destructive)
 ## Environment
 Copy `.env.example` to `.env`:
 ```
-DATABASE_URL=      # Neon pooled (?pgbouncer=true&connection_limit=1) — runtime queries
-DIRECT_URL=        # Neon direct — Prisma migrations only
-ANTHROPIC_API_KEY= # Required for AI import features
-NEXTAUTH_URL=      # Full public URL (http://localhost:3000 locally)
-NEXTAUTH_SECRET=   # openssl rand -base64 32
-GOOGLE_CLIENT_ID=  # Google Cloud Console OAuth client
+DATABASE_URL=                   # Neon pooled (?pgbouncer=true&connection_limit=1) — runtime queries
+DIRECT_URL=                    # Neon direct — Prisma migrations only
+ANTHROPIC_API_KEY=             # Required for AI import features
+BETTER_AUTH_URL=               # Full public URL (http://localhost:3000 locally)
+BETTER_AUTH_SECRET=            # openssl rand -base64 32
+NEXT_PUBLIC_BETTER_AUTH_URL=   # Same as BETTER_AUTH_URL — needed client-side
+GOOGLE_CLIENT_ID=              # Google Cloud Console OAuth client
 GOOGLE_CLIENT_SECRET=
-EMAIL_SERVER=      # smtp://user:pass@smtp.example.com:587
+EMAIL_SERVER=      # smtp://user:pass@smtp.example.com:587 (optional — for password reset emails)
 EMAIL_FROM=        # "Recipe Book <noreply@yourdomain.com>"
 ```
 
@@ -102,12 +104,12 @@ After making code changes:
 ## Data Flow
 ```
 Browser
-  → src/middleware.ts (NextAuth — redirects unauthenticated to /auth/signin)
+  → src/middleware.ts (Better Auth — redirects unauthenticated to /auth/signin)
   → Next.js pages (App Router — mostly client components for interactivity)
   → /api/* route handlers → requireUserId() → Prisma ORM → Neon Postgres
   → /api/recipes/import/* → Anthropic SDK → Claude Haiku (AI extraction)
   → /api/grocery-list → src/lib/grocery-list.ts (scale + aggregate ingredients)
-  → /api/auth/[...nextauth] → NextAuth.js (sign-in, OAuth callback, sign-out)
+  → /api/auth/[...all] → Better Auth (sign-in, OAuth callback, sign-out, password reset)
 ```
 
 ## Key Design Decisions
@@ -116,7 +118,7 @@ Browser
 `Ingredient` (id, name, category) is normalised out of `RecipeIngredient` so the same ingredient is represented once across all recipes. `RecipeIngredient` holds only the per-recipe fields: `quantity`, `unit`, `preparation`, and `ingredientId` (FK). On recipe save the API resolves ingredient name → `Ingredient` via case-insensitive find-or-create; **first-write wins** for category — later imports never overwrite an existing ingredient's category. See `docs/architecture.md` for full detail.
 
 ### Authentication — per-user data isolation
-All data (recipes, meal plan, shopping list, scheduled meals, shopping session) is scoped to the authenticated user. The `requireUserId()` helper in `src/lib/auth.ts` handles auth guard + userId extraction in a single call. Every API route must call it and return early if the result is a `NextResponse`.
+All data (recipes, meal plan, shopping list, scheduled meals, shopping session) is scoped to the authenticated user. The `requireUserId()` helper in `src/lib/auth.ts` handles auth guard + userId extraction in a single call. Every API route must call it and return early if the result is a `NextResponse`. Auth is powered by **Better Auth** (`src/lib/auth.ts` server config, `src/lib/auth-client.ts` client). Sign-in supports email+password and Google OAuth; password reset via `/auth/reset-password`.
 
 ### `Product` — system vs. user products
 Products created during recipe import (`source: "system"`) are shared across all users and read-only via the API. Products created via the shopping list (`source: "user"`) belong to the creating user only. The shopping list POST resolves a product name via: (1) the user's own product → (2) a system product → (3) create a new user product.
@@ -137,19 +139,22 @@ Three independent cache layers exist. Missing any one causes stale data for the 
 
 **Apply all three to any new page that fetches live data.** The grocery list page is the reference implementation.
 
-### API route tests — always mock `next-auth`
-Every API test file must mock `next-auth` and set a default authenticated session in `beforeEach`, otherwise tests that don't explicitly set the session will get an undefined user and fail unpredictably:
+### API route tests — always mock `@/lib/auth`
+Every API test file must mock `requireUserId` from `@/lib/auth` and set a default authenticated result in `beforeEach`, otherwise tests that don't explicitly set auth will get undefined userId and fail unpredictably:
 ```typescript
-vi.mock("next-auth", () => ({ getServerSession: vi.fn() }));
-import { getServerSession } from "next-auth";
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
+import { requireUserId } from "@/lib/auth";
+import { NextResponse } from "next/server";
 beforeEach(() => {
-  vi.mocked(getServerSession).mockResolvedValue({
-    user: { id: "user-1", email: "test@example.com", name: "Test" },
-    expires: "2099-01-01",
-  } as never);
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 });
 ```
-Each test file must also include a `returns 401 when not authenticated` case with `mockResolvedValue(null)`.
+Each test file must also include a `returns 401 when not authenticated` case:
+```typescript
+vi.mocked(requireUserId).mockResolvedValue(
+  NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+);
+```
 
 ### Prisma Client
 Generated into `src/generated/prisma` — not committed to git. Run `npx prisma generate` after any schema change. Vercel rebuilds this automatically via `prisma generate && next build` in `package.json`.
