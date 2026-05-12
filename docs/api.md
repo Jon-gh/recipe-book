@@ -3,18 +3,35 @@
 ## What
 All API routes live under `src/app/api/`. They are Next.js App Router route handlers and run as Vercel serverless functions in production. All routes return JSON.
 
-## Ingredients
+## Authentication
+
+All routes (except `/api/auth/*`) require an active session. Unauthenticated requests return `401 Unauthorized`. Sessions are managed by Better Auth — see `src/lib/auth.ts` for configuration.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/ingredients` | List all shared ingredient records |
+| GET/POST | `/api/auth/[...all]` | Better Auth endpoints (sign-in, sign-out, OAuth callback, password reset) |
 
-### GET `/api/ingredients` — query params
+**Sign-in methods:** Email+password and Google OAuth. Users sign in via `/auth/signin`. Password reset via `/auth/reset-password`.
+
+All data (recipes, meal plan, shopping list) is **scoped to the authenticated user** — each user sees only their own data.
+
+## Products (Ingredients)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/products` | List products visible to the current user |
+| PUT | `/api/products/[id]` | Update a user-owned product |
+| DELETE | `/api/products/[id]` | Delete a user-owned product |
+
+### GET `/api/products` — query params
 | Param | Type | Description |
 |-------|------|-------------|
-| `q` | string | Case-insensitive search on ingredient name |
+| `q` | string | Case-insensitive search on product name |
+| `source` | `"system"` \| `"user"` | Filter by source |
 
-Ingredients are the canonical, shared entities referenced by recipe ingredients. The same `Ingredient` record (e.g. "garlic") is reused across all recipes that contain it. Results are sorted alphabetically by name.
+Returns **system products** (`userId: null`, shared across all users — created during recipe imports) and the **current user's personal products** (`source: "user"`, created via the shopping list). Results are sorted alphabetically by name, limited to 10 when no `source` filter is applied.
+
+**User products** can be renamed, recategorised, or deleted via PUT/DELETE. System products are read-only.
 
 ## Recipes
 

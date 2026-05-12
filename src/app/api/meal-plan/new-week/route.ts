@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const { userId } = auth;
+
   const { consumed, weekStart, weekEnd, newEntries, slots } = (await req.json()) as {
     consumed: { id: number; consumedServings: number }[];
     weekStart: string;
@@ -15,10 +20,10 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    // Fetch current entries for the ones being updated
+    // Only operate on entries belonging to this user
     const entryIds = consumed.map((c) => c.id);
     const entries = entryIds.length
-      ? await tx.mealPlanEntry.findMany({ where: { id: { in: entryIds } } })
+      ? await tx.mealPlanEntry.findMany({ where: { id: { in: entryIds }, userId } })
       : [];
 
     for (const { id, consumedServings } of consumed) {
@@ -26,10 +31,8 @@ export async function POST(req: NextRequest) {
       if (!entry) continue;
 
       if (consumedServings >= entry.targetServings) {
-        // Fully consumed — delete (cascades ScheduledMeals)
         await tx.mealPlanEntry.delete({ where: { id } });
       } else {
-        // Partially consumed — reduce targetServings and clear old schedule
         await tx.scheduledMeal.deleteMany({ where: { mealPlanEntryId: id } });
         await tx.mealPlanEntry.update({
           where: { id },
@@ -38,9 +41,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Clear ScheduledMeals for any entries not in the consumed list
+    // Clear ScheduledMeals for user's entries not in the consumed list
     const notConsumedIds = await tx.mealPlanEntry.findMany({
-      where: { id: { notIn: entryIds } },
+      where: { id: { notIn: entryIds }, userId },
       select: { id: true },
     });
     if (notConsumedIds.length) {
@@ -49,11 +52,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Add new entries (dedup: if recipe already exists, increment targetServings)
-    // Track recipeId → entryId so slots can resolve new entries to DB IDs
+    // Add new entries (dedup within user's plan)
     const newEntryMap: Record<string, number> = {};
     for (const { recipeId, targetServings } of newEntries ?? []) {
-      const existing = await tx.mealPlanEntry.findFirst({ where: { recipeId } });
+      const existing = await tx.mealPlanEntry.findFirst({ where: { recipeId, userId } });
       if (existing) {
         await tx.mealPlanEntry.update({
           where: { id: existing.id },
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
         });
         newEntryMap[recipeId] = existing.id;
       } else {
-        const created = await tx.mealPlanEntry.create({ data: { recipeId, targetServings } });
+        const created = await tx.mealPlanEntry.create({ data: { recipeId, targetServings, userId } });
         newEntryMap[recipeId] = created.id;
       }
     }
@@ -75,6 +77,7 @@ export async function POST(req: NextRequest) {
             mealType: slot.mealType,
             servings: slot.servings,
             note: slot.note,
+            userId,
           },
         });
         continue;
@@ -88,15 +91,16 @@ export async function POST(req: NextRequest) {
           date: new Date(slot.date + "T00:00:00"),
           mealType: slot.mealType,
           servings: slot.servings,
+          userId,
         },
       });
     }
 
-    // Persist new week dates
+    // Persist new week dates for this user
     const session = await tx.shoppingSession.upsert({
-      where: { id: "session" },
+      where: { userId },
       create: {
-        id: "session",
+        userId,
         weekStart: new Date(weekStart),
         weekEnd: new Date(weekEnd),
       },
@@ -107,6 +111,7 @@ export async function POST(req: NextRequest) {
     });
 
     const remainingEntries = await tx.mealPlanEntry.findMany({
+      where: { userId },
       include: {
         recipe: { include: { ingredients: { include: { product: true } } } },
         scheduledMeals: true,

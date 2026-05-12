@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -7,10 +8,11 @@ const ingredientsInclude = { ingredients: { include: { product: true } } } as co
 
 type IngredientInput = { name: string; category?: string; quantity: number; unit: string; preparation: string };
 
-// Find existing Product by name (case-insensitive) or create it (first-write wins for category).
+// Find existing system Product by name (case-insensitive) or create it.
+// System products (userId: null) are shared across all users.
 async function resolveProductId(name: string, category: string): Promise<number> {
   const existing = await prisma.product.findFirst({
-    where: { name: { equals: name, mode: "insensitive" } },
+    where: { name: { equals: name, mode: "insensitive" }, userId: null },
   });
   if (existing) return existing.id;
   const created = await prisma.product.create({ data: { name, category } });
@@ -29,12 +31,17 @@ async function buildIngredientCreates(ingredients: IngredientInput[]) {
 }
 
 export async function GET(req: NextRequest) {
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const { userId } = auth;
+
   const { searchParams } = req.nextUrl;
   const q = searchParams.get("q");
   const favourite = searchParams.get("favourite");
 
   const recipes = await prisma.recipe.findMany({
     where: {
+      userId,
       ...(q && {
         OR: [
           { name: { contains: q, mode: "insensitive" } },
@@ -52,6 +59,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const { userId } = auth;
+
   const body = await req.json();
   const { ingredients, ...recipeData } = body;
 
@@ -60,6 +71,7 @@ export async function POST(req: NextRequest) {
   const recipe = await prisma.recipe.create({
     data: {
       ...recipeData,
+      userId,
       ingredients: { create: ingredientCreates },
     },
     include: ingredientsInclude,

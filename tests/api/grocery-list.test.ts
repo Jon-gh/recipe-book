@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
+import { NextResponse } from "next/server";
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     mealPlanEntry: {
@@ -8,13 +11,16 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/grocery-list/route";
+
 
 const entryWithRecipe = {
   id: 1,
   recipeId: "abc123",
   targetServings: 4,
+  userId: "user-1",
   recipe: {
     servings: 4,
     ingredients: [
@@ -24,9 +30,28 @@ const entryWithRecipe = {
   },
 };
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
+});
 
 describe("GET /api/grocery-list", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+
+  it("scopes query to userId", async () => {
+    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
+    await GET();
+    expect(prisma.mealPlanEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) })
+    );
+  });
+
   it("returns empty list for empty meal plan", async () => {
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
     const res = await GET();

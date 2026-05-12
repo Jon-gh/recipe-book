@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     recipe: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -17,10 +20,12 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/recipes/route";
 import { GET as GET_ONE, PUT, DELETE } from "@/app/api/recipes/[id]/route";
 import { POST as DUPLICATE } from "@/app/api/recipes/[id]/duplicate/route";
+
 
 const mockProduct = { id: 1, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 500 };
 
@@ -32,6 +37,7 @@ const mockRecipe = {
   tags: ["italian"],
   favourite: false,
   notes: "",
+  userId: "user-1",
   createdAt: new Date(),
   updatedAt: new Date(),
   ingredients: [
@@ -41,7 +47,7 @@ const mockRecipe = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  // Default: product already exists (find-or-create returns existing)
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
   vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
 });
 
@@ -49,6 +55,15 @@ beforeEach(() => {
 // GET /api/recipes
 // ---------------------------------------------------------------------------
 describe("GET /api/recipes", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes");
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
   it("returns list of recipes", async () => {
     vi.mocked(prisma.recipe.findMany).mockResolvedValue([mockRecipe] as never);
     const req = new NextRequest("http://localhost/api/recipes");
@@ -64,6 +79,15 @@ describe("GET /api/recipes", () => {
     const req = new NextRequest("http://localhost/api/recipes");
     const res = await GET(req);
     expect(await res.json()).toEqual([]);
+  });
+
+  it("scopes query to userId", async () => {
+    vi.mocked(prisma.recipe.findMany).mockResolvedValue([] as never);
+    const req = new NextRequest("http://localhost/api/recipes");
+    await GET(req);
+    expect(prisma.recipe.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) })
+    );
   });
 
   it("passes q filter as OR across name, tags, and ingredients", async () => {
@@ -106,6 +130,18 @@ describe("GET /api/recipes", () => {
 // POST /api/recipes
 // ---------------------------------------------------------------------------
 describe("POST /api/recipes", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      body: JSON.stringify({ name: "Spaghetti", servings: 4, instructions: "Cook.", ingredients: [] }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
   it("creates a recipe and returns 201", async () => {
     vi.mocked(prisma.recipe.create).mockResolvedValue(mockRecipe as never);
     const req = new NextRequest("http://localhost/api/recipes", {
@@ -117,14 +153,35 @@ describe("POST /api/recipes", () => {
     const body = await res.json();
     expect(body.name).toBe("Spaghetti Bolognese");
   });
+
+  it("includes userId when creating recipe", async () => {
+    vi.mocked(prisma.recipe.create).mockResolvedValue(mockRecipe as never);
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      body: JSON.stringify({ name: "Spaghetti", servings: 4, instructions: "Cook.", ingredients: [] }),
+    });
+    await POST(req);
+    expect(prisma.recipe.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ userId: "user-1" }) })
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
 // GET /api/recipes/[id]
 // ---------------------------------------------------------------------------
 describe("GET /api/recipes/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes/abc123");
+    const res = await GET_ONE(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(401);
+  });
+
   it("returns a recipe by id", async () => {
-    vi.mocked(prisma.recipe.findUnique).mockResolvedValue(mockRecipe as never);
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
     const req = new NextRequest("http://localhost/api/recipes/abc123");
     const res = await GET_ONE(req, { params: { id: "abc123" } });
     expect(res.status).toBe(200);
@@ -132,10 +189,19 @@ describe("GET /api/recipes/[id]", () => {
   });
 
   it("returns 404 for unknown id", async () => {
-    vi.mocked(prisma.recipe.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/recipes/unknown");
     const res = await GET_ONE(req, { params: { id: "unknown" } });
     expect(res.status).toBe(404);
+  });
+
+  it("scopes lookup to userId", async () => {
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
+    const req = new NextRequest("http://localhost/api/recipes/abc123");
+    await GET_ONE(req, { params: { id: "abc123" } });
+    expect(prisma.recipe.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) })
+    );
   });
 });
 
@@ -143,8 +209,31 @@ describe("GET /api/recipes/[id]", () => {
 // PUT /api/recipes/[id]
 // ---------------------------------------------------------------------------
 describe("PUT /api/recipes/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes/abc123", {
+      method: "PUT",
+      body: JSON.stringify({ name: "Updated Name" }),
+    });
+    const res = await PUT(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when recipe belongs to another user", async () => {
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/recipes/abc123", {
+      method: "PUT",
+      body: JSON.stringify({ name: "Updated Name" }),
+    });
+    const res = await PUT(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(404);
+  });
+
   it("updates and returns recipe", async () => {
     const updated = { ...mockRecipe, name: "Updated Name" };
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
     vi.mocked(prisma.recipe.update).mockResolvedValue(updated as never);
     const req = new NextRequest("http://localhost/api/recipes/abc123", {
       method: "PUT",
@@ -160,7 +249,24 @@ describe("PUT /api/recipes/[id]", () => {
 // DELETE /api/recipes/[id]
 // ---------------------------------------------------------------------------
 describe("DELETE /api/recipes/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes/abc123", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when recipe belongs to another user", async () => {
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(null);
+    const req = new NextRequest("http://localhost/api/recipes/abc123", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(404);
+  });
+
   it("deletes recipe and returns 204", async () => {
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
     vi.mocked(prisma.recipe.delete).mockResolvedValue(mockRecipe as never);
     const req = new NextRequest("http://localhost/api/recipes/abc123", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "abc123" } });
@@ -172,15 +278,24 @@ describe("DELETE /api/recipes/[id]", () => {
 // POST /api/recipes/[id]/duplicate
 // ---------------------------------------------------------------------------
 describe("POST /api/recipes/[id]/duplicate", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/recipes/abc123/duplicate", { method: "POST" });
+    const res = await DUPLICATE(req, { params: { id: "abc123" } });
+    expect(res.status).toBe(401);
+  });
+
   it("returns 404 when original not found", async () => {
-    vi.mocked(prisma.recipe.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(null);
     const req = new NextRequest("http://localhost/api/recipes/unknown/duplicate", { method: "POST" });
     const res = await DUPLICATE(req, { params: { id: "unknown" } });
     expect(res.status).toBe(404);
   });
 
   it("creates duplicate with (copy) suffix", async () => {
-    vi.mocked(prisma.recipe.findUnique).mockResolvedValue(mockRecipe as never);
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
     const duplicate = { ...mockRecipe, id: "copy123", name: "Spaghetti Bolognese (copy)" };
     vi.mocked(prisma.recipe.create).mockResolvedValue(duplicate as never);
     const req = new NextRequest("http://localhost/api/recipes/abc123/duplicate", { method: "POST" });
@@ -190,7 +305,7 @@ describe("POST /api/recipes/[id]/duplicate", () => {
   });
 
   it("duplicate has a different id from original", async () => {
-    vi.mocked(prisma.recipe.findUnique).mockResolvedValue(mockRecipe as never);
+    vi.mocked(prisma.recipe.findFirst).mockResolvedValue(mockRecipe as never);
     const duplicate = { ...mockRecipe, id: "copy123", name: "Spaghetti Bolognese (copy)" };
     vi.mocked(prisma.recipe.create).mockResolvedValue(duplicate as never);
     const req = new NextRequest("http://localhost/api/recipes/abc123/duplicate", { method: "POST" });

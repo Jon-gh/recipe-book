@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     product: {
@@ -15,18 +17,32 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/products/route";
 import { PUT, DELETE } from "@/app/api/products/[id]/route";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const userProduct = { id: 1, name: "tomatoe", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "user" };
-const systemProduct = { id: 2, name: "tomato", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "system" };
 
-beforeEach(() => vi.clearAllMocks());
+const userProduct = { id: 1, name: "tomatoe", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "user", userId: "user-1" };
+const systemProduct = { id: 2, name: "tomato", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, source: "system", userId: null };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
+});
 
 describe("GET /api/products", () => {
-  it("returns all products when no filters", async () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/products");
+    const res = await GET(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("returns system and user products", async () => {
     vi.mocked(prisma.product.findMany).mockResolvedValue([userProduct, systemProduct] as never);
     const req = new NextRequest("http://localhost/api/products");
     const res = await GET(req);
@@ -42,12 +58,24 @@ describe("GET /api/products", () => {
     const res = await GET(req);
     expect(await res.json()).toEqual([userProduct]);
     expect(prisma.product.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { source: "user" }, take: undefined })
+      expect.objectContaining({
+        where: expect.objectContaining({ source: "user" }),
+        take: undefined,
+      })
     );
   });
 });
 
 describe("DELETE /api/products/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/products/1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "1" } });
+    expect(res.status).toBe(401);
+  });
+
   it("returns 400 for non-numeric id", async () => {
     const req = new NextRequest("http://localhost/api/products/abc", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "abc" } });
@@ -68,6 +96,14 @@ describe("DELETE /api/products/[id]", () => {
     expect(res.status).toBe(403);
   });
 
+  it("returns 404 when user product belongs to another user", async () => {
+    const otherUserProduct = { ...userProduct, userId: "other-user" };
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(otherUserProduct as never);
+    const req = new NextRequest("http://localhost/api/products/1", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "1" } });
+    expect(res.status).toBe(404);
+  });
+
   it("deletes a user product and its references", async () => {
     vi.mocked(prisma.product.findUnique).mockResolvedValue(userProduct as never);
     vi.mocked(prisma.$transaction).mockResolvedValue([]);
@@ -80,6 +116,15 @@ describe("DELETE /api/products/[id]", () => {
 });
 
 describe("PUT /api/products/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/products/1", { method: "PUT", body: JSON.stringify({}) });
+    const res = await PUT(req, { params: { id: "1" } });
+    expect(res.status).toBe(401);
+  });
+
   it("returns 400 for non-numeric id", async () => {
     const req = new NextRequest("http://localhost/api/products/abc", { method: "PUT", body: JSON.stringify({}) });
     const res = await PUT(req, { params: { id: "abc" } });
@@ -98,6 +143,14 @@ describe("PUT /api/products/[id]", () => {
     const req = new NextRequest("http://localhost/api/products/2", { method: "PUT", body: JSON.stringify({ name: "tomato" }) });
     const res = await PUT(req, { params: { id: "2" } });
     expect(res.status).toBe(403);
+  });
+
+  it("returns 404 when user product belongs to another user", async () => {
+    const otherUserProduct = { ...userProduct, userId: "other-user" };
+    vi.mocked(prisma.product.findUnique).mockResolvedValue(otherUserProduct as never);
+    const req = new NextRequest("http://localhost/api/products/1", { method: "PUT", body: JSON.stringify({ name: "tomato" }) });
+    const res = await PUT(req, { params: { id: "1" } });
+    expect(res.status).toBe(404);
   });
 
   it("renames a user product", async () => {

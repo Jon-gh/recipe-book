@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import BottomNav from "@/components/BottomNav";
 
 vi.mock("next/navigation", () => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
 }));
 
 vi.mock("next/link", () => ({
@@ -13,17 +14,47 @@ vi.mock("next/link", () => ({
   ),
 }));
 
+const mockSignOut = vi.hoisted(() => vi.fn());
+const mockUseSession = vi.hoisted(() => vi.fn(() => ({ data: null, isPending: false })));
+
+vi.mock("@/lib/auth-client", () => ({
+  authClient: {
+    useSession: () => mockUseSession(),
+    signOut: mockSignOut,
+  },
+}));
+
+vi.mock("next/image", () => ({
+  default: ({ src, alt, width, height, className }: { src: string; alt: string; width: number; height: number; className?: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={src} alt={alt} width={width} height={height} className={className} />
+  ),
+}));
+
 import { usePathname } from "next/navigation";
 const mockUsePathname = vi.mocked(usePathname);
 
+beforeEach(() => {
+  mockUseSession.mockReturnValue({ data: null, isPending: false });
+  mockSignOut.mockReset();
+});
+
 describe("BottomNav", () => {
-  it("renders all four tabs", () => {
+  it("renders all four nav tabs plus sign-out button", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
     expect(screen.getByText("Recipes")).toBeInTheDocument();
     expect(screen.getByText("Plan")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Grocery")).toBeInTheDocument();
+    expect(screen.getByText("Sign out")).toBeInTheDocument();
+  });
+
+  it("shows user's first name on sign-out button when session is active", () => {
+    mockUsePathname.mockReturnValue("/recipes");
+    mockUseSession.mockReturnValue({ data: { user: { id: "user-1", name: "Jon Doe", email: "jon@example.com" } }, isPending: false } as never);
+    render(<BottomNav />);
+    expect(screen.getByText("Jon")).toBeInTheDocument();
   });
 
   it("each tab links to the correct href", () => {
@@ -72,5 +103,12 @@ describe("BottomNav", () => {
     const groceryLink = screen.getByText("Grocery").closest("a")!;
     expect(groceryLink.className).toContain("text-green-600");
     expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
+  });
+
+  it("calls signOut when sign-out button is clicked", () => {
+    mockUsePathname.mockReturnValue("/recipes");
+    render(<BottomNav />);
+    fireEvent.click(screen.getByText("Sign out").closest("button")!);
+    expect(mockSignOut).toHaveBeenCalled();
   });
 });

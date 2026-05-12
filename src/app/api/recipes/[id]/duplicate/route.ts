@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireUserId } from "@/lib/auth";
 
 const ingredientsInclude = { ingredients: { include: { product: true } } } as const;
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
-  const original = await prisma.recipe.findUnique({
-    where: { id: params.id },
+  const auth = await requireUserId();
+  if (auth instanceof NextResponse) return auth;
+  const { userId } = auth;
+
+  const original = await prisma.recipe.findFirst({
+    where: { id: params.id, userId },
     include: ingredientsInclude,
   });
 

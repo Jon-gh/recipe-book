@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     shoppingListItem: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
     },
@@ -14,21 +17,37 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET, POST } from "@/app/api/shopping-list/route";
 import { DELETE } from "@/app/api/shopping-list/[id]/route";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const mockProduct = { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1 };
-const mockItem = { id: 10, quantity: 2, unit: "clove", product: mockProduct };
 
-beforeEach(() => vi.clearAllMocks());
+const mockProduct = { id: 1, name: "garlic", category: "fruit & veg", defaultUnit: "", defaultQuantity: 1, userId: "user-1", source: "user" };
+const mockItem = { id: 10, quantity: 2, unit: "clove", userId: "user-1", product: mockProduct };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
+});
 
 describe("GET /api/shopping-list", () => {
-  it("returns all shopping list items", async () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const res = await GET();
+    expect(res.status).toBe(401);
+  });
+
+  it("returns all shopping list items scoped to user", async () => {
     vi.mocked(prisma.shoppingListItem.findMany).mockResolvedValue([mockItem] as never);
     const res = await GET();
     expect(await res.json()).toEqual([mockItem]);
+    expect(prisma.shoppingListItem.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ userId: "user-1" }) })
+    );
   });
 
   it("returns empty array when list is empty", async () => {
@@ -39,8 +58,21 @@ describe("GET /api/shopping-list", () => {
 });
 
 describe("POST /api/shopping-list", () => {
-  it("reuses an existing ingredient and creates the item", async () => {
-    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/shopping-list", {
+      method: "POST",
+      body: JSON.stringify({ name: "garlic" }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("reuses an existing user ingredient and creates the item", async () => {
+    // first findFirst (user product) returns the product
+    vi.mocked(prisma.product.findFirst).mockResolvedValueOnce(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -52,13 +84,34 @@ describe("POST /api/shopping-list", () => {
     expect(res.status).toBe(201);
     expect(await res.json()).toEqual(mockItem);
     expect(prisma.product.create).not.toHaveBeenCalled();
-    expect(prisma.shoppingListItem.create).toHaveBeenCalledWith({
-      data: { productId: mockProduct.id, quantity: 2, unit: "clove" },
-      include: { product: true },
-    });
+    expect(prisma.shoppingListItem.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ productId: mockProduct.id, userId: "user-1" }),
+      })
+    );
   });
 
-  it("creates a new ingredient when none exists, defaulting to 'other' category with source 'user'", async () => {
+  it("falls back to system product if no user product found", async () => {
+    const systemProduct = { ...mockProduct, userId: null, source: "system" };
+    // first findFirst (user product) returns null, second (system product) returns the product
+    vi.mocked(prisma.product.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(systemProduct as never);
+    vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
+
+    const req = new NextRequest("http://localhost/api/shopping-list", {
+      method: "POST",
+      body: JSON.stringify({ name: "garlic" }),
+    });
+    await POST(req);
+
+    expect(prisma.product.create).not.toHaveBeenCalled();
+    expect(prisma.shoppingListItem.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ productId: systemProduct.id }) })
+    );
+  });
+
+  it("creates a new user-scoped ingredient when none exists", async () => {
     vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
@@ -71,11 +124,11 @@ describe("POST /api/shopping-list", () => {
 
     expect(res.status).toBe(201);
     expect(prisma.product.create).toHaveBeenCalledWith({
-      data: { name: "garlic", category: "other", source: "user" },
+      data: { name: "garlic", category: "other", source: "user", userId: "user-1" },
     });
   });
 
-  it("creates a new ingredient with the provided category and source 'user'", async () => {
+  it("creates a new ingredient with the provided category", async () => {
     vi.mocked(prisma.product.findFirst).mockResolvedValue(null);
     vi.mocked(prisma.product.create).mockResolvedValue(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
@@ -87,25 +140,12 @@ describe("POST /api/shopping-list", () => {
     await POST(req);
 
     expect(prisma.product.create).toHaveBeenCalledWith({
-      data: { name: "garlic", category: "fruit & veg", source: "user" },
+      data: { name: "garlic", category: "fruit & veg", source: "user", userId: "user-1" },
     });
-  });
-
-  it("does not update category for an existing ingredient", async () => {
-    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
-    vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
-
-    const req = new NextRequest("http://localhost/api/shopping-list", {
-      method: "POST",
-      body: JSON.stringify({ name: "garlic", category: "other" }),
-    });
-    await POST(req);
-
-    expect(prisma.product.create).not.toHaveBeenCalled();
   });
 
   it("defaults quantity to 1 and unit to empty string", async () => {
-    vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
+    vi.mocked(prisma.product.findFirst).mockResolvedValueOnce(mockProduct as never);
     vi.mocked(prisma.shoppingListItem.create).mockResolvedValue(mockItem as never);
 
     const req = new NextRequest("http://localhost/api/shopping-list", {
@@ -114,10 +154,11 @@ describe("POST /api/shopping-list", () => {
     });
     await POST(req);
 
-    expect(prisma.shoppingListItem.create).toHaveBeenCalledWith({
-      data: { productId: mockProduct.id, quantity: 1, unit: "" },
-      include: { product: true },
-    });
+    expect(prisma.shoppingListItem.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ productId: mockProduct.id, quantity: 1, unit: "" }),
+      })
+    );
   });
 
   it("returns 400 when name is missing", async () => {
@@ -131,12 +172,27 @@ describe("POST /api/shopping-list", () => {
 });
 
 describe("DELETE /api/shopping-list/[id]", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const req = new NextRequest("http://localhost/api/shopping-list/10", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "10" } });
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when item belongs to another user", async () => {
+    vi.mocked(prisma.shoppingListItem.findFirst).mockResolvedValue(null as never);
+    const req = new NextRequest("http://localhost/api/shopping-list/10", { method: "DELETE" });
+    const res = await DELETE(req, { params: { id: "10" } });
+    expect(res.status).toBe(404);
+  });
+
   it("deletes the item and returns 204", async () => {
+    vi.mocked(prisma.shoppingListItem.findFirst).mockResolvedValue(mockItem as never);
     vi.mocked(prisma.shoppingListItem.delete).mockResolvedValue(mockItem as never);
 
-    const req = new NextRequest("http://localhost/api/shopping-list/10", {
-      method: "DELETE",
-    });
+    const req = new NextRequest("http://localhost/api/shopping-list/10", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "10" } });
 
     expect(res.status).toBe(204);
@@ -144,9 +200,7 @@ describe("DELETE /api/shopping-list/[id]", () => {
   });
 
   it("returns 400 for a non-numeric id", async () => {
-    const req = new NextRequest("http://localhost/api/shopping-list/abc", {
-      method: "DELETE",
-    });
+    const req = new NextRequest("http://localhost/api/shopping-list/abc", { method: "DELETE" });
     const res = await DELETE(req, { params: { id: "abc" } });
     expect(res.status).toBe(400);
   });

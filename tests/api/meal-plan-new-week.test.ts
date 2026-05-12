@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -21,19 +23,23 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { POST } from "@/app/api/meal-plan/new-week/route";
+
 
 const makeEntry = (id: number, targetServings: number) => ({
   id,
   targetServings,
   recipeId: `recipe-${id}`,
+  userId: "user-1",
   recipe: { id: `recipe-${id}`, name: `Recipe ${id}`, servings: 4, instructions: "", tags: [], favourite: false, notes: "", ingredients: [] },
   scheduledMeals: [],
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 
   // Default $transaction: execute the callback with a tx that mirrors the mocked prisma
   vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
@@ -49,6 +55,14 @@ function makeReq(body: object) {
 }
 
 describe("POST /api/meal-plan/new-week", () => {
+  it("returns 401 when not authenticated", async () => {
+    vi.mocked(requireUserId).mockResolvedValue(
+      NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    );
+    const res = await POST(makeReq({ consumed: [], weekStart: "2026-04-28", weekEnd: "2026-05-04" }));
+    expect(res.status).toBe(401);
+  });
+
   it("returns 400 when weekStart is missing", async () => {
     const res = await POST(makeReq({ consumed: [], weekEnd: "2026-05-04" }));
     expect(res.status).toBe(400);
@@ -65,7 +79,6 @@ describe("POST /api/meal-plan/new-week", () => {
     vi.mocked(prisma.mealPlanEntry.delete).mockResolvedValue(entry as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    // remaining entries after deletion
     vi.mocked(prisma.mealPlanEntry.findMany)
       .mockResolvedValueOnce([entry] as never)
       .mockResolvedValueOnce([] as never);
@@ -110,7 +123,7 @@ describe("POST /api/meal-plan/new-week", () => {
     });
   });
 
-  it("upserts session with new week dates", async () => {
+  it("upserts session with new week dates using userId", async () => {
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
@@ -126,7 +139,7 @@ describe("POST /api/meal-plan/new-week", () => {
 
     expect(prisma.shoppingSession.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "session" },
+        where: { userId: "user-1" },
         update: expect.objectContaining({
           weekStart: new Date("2026-04-28"),
           weekEnd: new Date("2026-05-04"),
@@ -135,7 +148,7 @@ describe("POST /api/meal-plan/new-week", () => {
     );
   });
 
-  it("creates new entries without deduplication when recipe not present", async () => {
+  it("creates new entries with userId when recipe not present", async () => {
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
@@ -152,11 +165,11 @@ describe("POST /api/meal-plan/new-week", () => {
     );
 
     expect(prisma.mealPlanEntry.create).toHaveBeenCalledWith({
-      data: { recipeId: "recipe-2", targetServings: 4 },
+      data: { recipeId: "recipe-2", targetServings: 4, userId: "user-1" },
     });
   });
 
-  it("creates scheduled meals for existing entry slots", async () => {
+  it("creates scheduled meals for existing entry slots with userId", async () => {
     const entry = makeEntry(1, 4);
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([entry] as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
@@ -179,11 +192,12 @@ describe("POST /api/meal-plan/new-week", () => {
         date: new Date("2026-04-28T00:00:00"),
         mealType: "lunch",
         servings: 2,
+        userId: "user-1",
       },
     });
   });
 
-  it("creates scheduled meals for new entry slots using recipeId map", async () => {
+  it("creates scheduled meals for new entry slots using recipeId map with userId", async () => {
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
     vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
@@ -207,6 +221,7 @@ describe("POST /api/meal-plan/new-week", () => {
         date: new Date("2026-04-29T00:00:00"),
         mealType: "dinner",
         servings: 2,
+        userId: "user-1",
       },
     });
   });
@@ -234,7 +249,7 @@ describe("POST /api/meal-plan/new-week", () => {
     });
   });
 
-  it("creates a custom note slot when slot has a note field", async () => {
+  it("creates a custom note slot with userId when slot has a note field", async () => {
     vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
     vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
     vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
@@ -256,6 +271,7 @@ describe("POST /api/meal-plan/new-week", () => {
         mealType: "dinner",
         servings: 1,
         note: "Eating outside",
+        userId: "user-1",
       },
     });
   });

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart, LogOut } from "lucide-react";
+import { authClient } from "@/lib/auth-client";
+import Image from "next/image";
 
 const tabs = [
   { href: "/recipes", label: "Recipes", icon: UtensilsCrossed },
@@ -13,6 +15,10 @@ const tabs = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  if (pathname.startsWith("/auth")) return null;
+  const { data: session } = authClient.useSession();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t pb-[env(safe-area-inset-bottom)]">
@@ -32,6 +38,28 @@ export default function BottomNav() {
             </Link>
           );
         })}
+
+        <button
+          onClick={() =>
+            authClient.signOut({
+              fetchOptions: { onSuccess: () => router.push("/auth/signin") },
+            })
+          }
+          className="flex flex-1 flex-col items-center justify-center gap-1 text-xs text-muted-foreground active:opacity-70"
+        >
+          {session?.user?.image ? (
+            <Image
+              src={session.user.image}
+              alt=""
+              width={24}
+              height={24}
+              className="rounded-full"
+            />
+          ) : (
+            <LogOut size={22} strokeWidth={1.5} />
+          )}
+          <span>{session?.user?.name?.split(" ")[0] ?? "Sign out"}</span>
+        </button>
       </div>
     </nav>
   );

@@ -9,6 +9,67 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+// ── Better Auth models ────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  accounts      account[]
+  sessions      session[]
+
+  recipes           Recipe[]
+  mealPlanEntries   MealPlanEntry[]
+  shoppingListItems ShoppingListItem[]
+  shoppingSession   ShoppingSession?
+  scheduledMeals    ScheduledMeal[]
+  products          Product[]
+}
+
+model account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model verification {
+  id         String    @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+// ── App models ────────────────────────────────────────────────────────────────
+
 model Recipe {
   id           String              @id @default(cuid())
   name         String
@@ -19,17 +80,22 @@ model Recipe {
   notes        String              @default("")
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   ingredients  RecipeIngredient[]
   mealPlanEntries MealPlanEntry[]
 }
 
 model Product {
   id                Int                @id @default(autoincrement())
-  name              String             @unique
+  name              String
   category          String             @default("other")
   defaultUnit       String             @default("")
   defaultQuantity   Float              @default(1)
   source            String             @default("system")
+  // null = shared system product; non-null = personal user-added product
+  userId            String?
+  user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   recipeIngredients RecipeIngredient[]
   shoppingListItems ShoppingListItem[]
 
@@ -42,6 +108,8 @@ model ShoppingListItem {
   unit      String  @default("")
   product   Product @relation(fields: [productId], references: [id])
   productId Int     @map("ingredientId")
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RecipeIngredient {
@@ -60,6 +128,8 @@ model MealPlanEntry {
   targetServings Int
   recipe         Recipe          @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   recipeId       String
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   scheduledMeals ScheduledMeal[]
 }
 
@@ -71,13 +141,17 @@ model ScheduledMeal {
   note            String?
   mealPlanEntry   MealPlanEntry? @relation(fields: [mealPlanEntryId], references: [id], onDelete: Cascade)
   mealPlanEntryId Int?
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
 
 model ShoppingSession {
-  id          String    @id @default("session")
+  id          String    @id @default(cuid())
+  userId      String    @unique
   checkedKeys String[]  @default([])
   showStaples Boolean   @default(false)
   weekStart   DateTime? @db.Date
   weekEnd     DateTime? @db.Date
   updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
