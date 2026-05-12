@@ -63,9 +63,14 @@ export default function SignInPage() {
         <Button
           className="w-full"
           variant="outline"
-          onClick={() =>
-            authClient.signIn.social({ provider: "google", callbackURL: "/recipes" })
-          }
+          onClick={async () => {
+            setError(null);
+            const { error: err } = await authClient.signIn.social({
+              provider: "google",
+              callbackURL: "/recipes",
+            });
+            if (err) setError(err.message ?? "Google sign-in failed");
+          }}
         >
           Continue with Google
         </Button>
