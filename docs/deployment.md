@@ -41,13 +41,14 @@ Set in the Vercel dashboard (Production + Preview environments) and locally in `
 | `DATABASE_URL` | Neon Postgres **pooled** (`?pgbouncer=true&connection_limit=1`) — required for serverless runtime |
 | `DIRECT_URL` | Neon Postgres **direct** — Prisma migrations only; do not use for queries |
 | `ANTHROPIC_API_KEY` | Required for AI recipe import features |
-| `BETTER_AUTH_URL` | Full public URL of the app — e.g. `https://your-app.vercel.app` (or `http://localhost:3000` locally) |
+| `BETTER_AUTH_URL` | Full public URL of the app — e.g. `https://your-app.vercel.app` (or `http://localhost:3000` locally). Used as the primary trusted origin for sign-in requests. |
 | `BETTER_AUTH_SECRET` | Random secret for signing sessions — generate with `openssl rand -base64 32` |
-| `NEXT_PUBLIC_BETTER_AUTH_URL` | Same value as `BETTER_AUTH_URL` — needed by the client-side auth SDK |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID — from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
 | `EMAIL_SERVER` | SMTP connection string for password reset emails — e.g. `smtp://user:pass@smtp.example.com:587` (optional) |
 | `EMAIL_FROM` | From address for password reset emails — e.g. `"Recipe Book <noreply@yourdomain.com>"` (optional) |
+
+**Better Auth trusted origins:** `BETTER_AUTH_URL` is added to `trustedOrigins` in `src/lib/auth.ts`. If this var is missing, sign-in fails with "Invalid origin" on every Vercel URL. Vercel's auto-set `VERCEL_URL` is also added to `trustedOrigins` so preview deployments work without extra config — you don't need to set it manually.
 
 **Why two database URLs:** Neon's PgBouncer pooler is required for Vercel serverless (connection limit per function). But Prisma schema migrations require a direct connection — the pooler can't handle migration DDL. Using the wrong URL for the wrong purpose causes silent failures.
 
