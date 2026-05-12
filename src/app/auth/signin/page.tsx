@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { authClient } from "@/lib/auth-client";
 type Mode = "signin" | "signup";
 
 export default function SignInPage() {
+  const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,9 +29,12 @@ export default function SignInPage() {
           email: email.trim(),
           password,
           name: name.trim() || email.trim().split("@")[0],
-          callbackURL: "/recipes",
         });
-        if (err) setError(err.message ?? "Sign up failed");
+        if (err) {
+          setError(err.message ?? "Sign up failed");
+        } else {
+          router.push("/recipes");
+        }
       } else {
         const { error: err } = await authClient.signIn.email({
           email: email.trim(),
