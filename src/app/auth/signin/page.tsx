@@ -60,27 +60,6 @@ export default function SignInPage() {
       </div>
 
       <div className="w-full max-w-sm space-y-4">
-        <Button
-          className="w-full"
-          variant="outline"
-          onClick={async () => {
-            setError(null);
-            const { error: err } = await authClient.signIn.social({
-              provider: "google",
-              callbackURL: "/recipes",
-            });
-            if (err) setError(err.message ?? "Google sign-in failed");
-          }}
-        >
-          Continue with Google
-        </Button>
-
-        <div className="relative flex items-center gap-3">
-          <div className="flex-1 border-t" />
-          <span className="text-xs text-muted-foreground">or</span>
-          <div className="flex-1 border-t" />
-        </div>
-
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === "signup" && (
             <Input
