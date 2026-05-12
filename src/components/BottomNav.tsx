@@ -1,24 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart, LogOut } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { UtensilsCrossed, ClipboardList, CalendarDays, ShoppingCart, Settings } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 
-const tabs = [
-  { href: "/recipes", label: "Recipes", icon: UtensilsCrossed },
-  { href: "/meal-plan", label: "Plan", icon: ClipboardList },
-  { href: "/schedule", label: "Schedule", icon: CalendarDays },
-  { href: "/grocery-list", label: "Grocery", icon: ShoppingCart },
-];
-
 export default function BottomNav() {
+  const t = useTranslations("nav");
   const pathname = usePathname();
-  const router = useRouter();
 
   if (pathname.startsWith("/auth")) return null;
   const { data: session } = authClient.useSession();
+
+  const tabs = [
+    { href: "/recipes", label: t("recipes"), icon: UtensilsCrossed },
+    { href: "/meal-plan", label: t("plan"), icon: ClipboardList },
+    { href: "/schedule", label: t("schedule"), icon: CalendarDays },
+    { href: "/grocery-list", label: t("grocery"), icon: ShoppingCart },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t pb-[env(safe-area-inset-bottom)]">
@@ -39,13 +40,11 @@ export default function BottomNav() {
           );
         })}
 
-        <button
-          onClick={() =>
-            authClient.signOut({
-              fetchOptions: { onSuccess: () => router.push("/auth/signin") },
-            })
-          }
-          className="flex flex-1 flex-col items-center justify-center gap-1 text-xs text-muted-foreground active:opacity-70"
+        <Link
+          href="/settings"
+          className={`flex flex-1 flex-col items-center justify-center gap-1 text-xs transition-colors active:opacity-70 ${
+            pathname.startsWith("/settings") ? "text-green-600" : "text-muted-foreground"
+          }`}
         >
           {session?.user?.image ? (
             <Image
@@ -56,10 +55,10 @@ export default function BottomNav() {
               className="rounded-full"
             />
           ) : (
-            <LogOut size={22} strokeWidth={1.5} />
+            <Settings size={22} strokeWidth={pathname.startsWith("/settings") ? 2.5 : 1.5} />
           )}
-          <span>{session?.user?.name?.split(" ")[0] ?? "Sign out"}</span>
-        </button>
+          <span>{session?.user?.name?.split(" ")[0] ?? t("signOut")}</span>
+        </Link>
       </div>
     </nav>
   );

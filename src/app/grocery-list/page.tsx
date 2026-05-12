@@ -13,6 +13,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SessionState = {
   checkedKeys: string[];
@@ -64,6 +65,9 @@ function shoppingItemToDisplay(item: ShoppingListItem): DisplayItem {
 }
 
 export default function GroceryListPage() {
+  const t = useTranslations("grocery");
+  const tCommon = useTranslations("common");
+  const tCat = useTranslations("categories");
   const { data: mealPlanItems, isLoading: mpLoading, mutate: mutateMp } = useSWR<GroceryItem[]>(
     "/api/grocery-list",
     noCacheFetcher
@@ -314,7 +318,7 @@ export default function GroceryListPage() {
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Grocery List</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <div className="flex items-center gap-2">
             <Link href="/products" aria-label="Manage my items">
               <Button variant="ghost" size="icon" className="text-muted-foreground h-9 w-9">
@@ -324,7 +328,7 @@ export default function GroceryListPage() {
 {!isLoading && totalCount === 0 && (
               <Link href="/meal-plan">
                 <Button variant="outline" className="active:scale-95 transition-transform">
-                  ← Meal Plan
+                  {t("backToMealPlan")}
                 </Button>
               </Link>
             )}
@@ -332,7 +336,7 @@ export default function GroceryListPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         ) : (
           <div className="space-y-4">
             {totalCount > 0 && stapleCount > 0 && (
@@ -340,24 +344,24 @@ export default function GroceryListPage() {
                 className="text-sm text-muted-foreground underline-offset-2 underline"
                 onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, next); }}
               >
-                {showStaples ? "Hide staples" : `Show staples (${stapleCount})`}
+                {showStaples ? t("hideStaples") : t("showStaples", { count: stapleCount })}
               </button>
             )}
 
             {totalCount === 0 && (
               <p className="text-muted-foreground">
-                No meal plan items yet.{" "}
+                {t("noItems")}{" "}
                 <Link href="/meal-plan" className="underline">
-                  Add recipes to your meal plan
+                  {t("noItemsCta")}
                 </Link>{" "}
-                to get started, or tap + to add extras.
+                {t("noItemsOr")}
               </p>
             )}
 
             {visibleUncheckedGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  {category}
+                  {tCat(category)}
                 </p>
                 <Card>
                   <CardContent className="pt-4">
@@ -407,7 +411,7 @@ export default function GroceryListPage() {
             {checkedItems.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  In Trolley
+                  {t("inTrolley")}
                 </p>
                 <Card>
                   <CardContent className="pt-4">
@@ -445,7 +449,7 @@ export default function GroceryListPage() {
 
     <button
       onClick={openAddSheet}
-      aria-label="Add to shopping list"
+      aria-label={t("addToShoppingList")}
       className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
     >
       <Plus size={26} strokeWidth={2.5} />
@@ -455,15 +459,15 @@ export default function GroceryListPage() {
     <BottomSheet
       open={showAddSheet}
       onClose={() => setShowAddSheet(false)}
-      title="Add to Shopping List"
+      title={t("addToShoppingList")}
     >
       <div className="px-4 py-4 space-y-4 pb-8">
         <div className="space-y-1">
-          <label className="text-sm font-medium">Item</label>
+          <label className="text-sm font-medium">{t("itemLabel")}</label>
           <Input
             ref={nameInputRef}
             list="ingredient-suggestions"
-            placeholder="e.g. butter, oat milk…"
+            placeholder={t("itemPlaceholder")}
             value={newItemName}
             onChange={(e) => { isSelectedRef.current = false; setNewItemName(e.target.value); }}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
@@ -478,7 +482,7 @@ export default function GroceryListPage() {
 
         <div className="flex gap-3">
           <div className="flex-1 space-y-1">
-            <label className="text-sm font-medium">Quantity</label>
+            <label className="text-sm font-medium">{t("quantityLabel")}</label>
             <Input
               type="number"
               min={0}
@@ -488,9 +492,9 @@ export default function GroceryListPage() {
             />
           </div>
           <div className="flex-1 space-y-1">
-            <label className="text-sm font-medium">Unit</label>
+            <label className="text-sm font-medium">{tCommon("unit")}</label>
             <Input
-              placeholder="g, ml, tbsp…"
+              placeholder={tCommon("unitPlaceholder")}
               value={newItemUnit}
               onChange={(e) => setNewItemUnit(e.target.value)}
             />
@@ -498,7 +502,7 @@ export default function GroceryListPage() {
         </div>
 
         <div className="space-y-1">
-          <label className="text-sm font-medium">Category</label>
+          <label className="text-sm font-medium">{tCommon("category")}</label>
           <select
             value={newItemCategory}
             onChange={(e) => setNewItemCategory(e.target.value)}
@@ -506,7 +510,7 @@ export default function GroceryListPage() {
           >
             {CATEGORY_NAMES.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {tCat(cat)}
               </option>
             ))}
           </select>
@@ -517,7 +521,7 @@ export default function GroceryListPage() {
           onClick={addItem}
           disabled={!newItemName.trim()}
         >
-          Add to List
+          {t("addToList")}
         </Button>
       </div>
     </BottomSheet>
@@ -525,12 +529,12 @@ export default function GroceryListPage() {
     {/* Undo toast */}
     {pendingDeleteItem && (
       <div className="fixed top-[calc(env(safe-area-inset-top)+0.5rem)] left-4 right-4 z-50 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
-        <span className="text-sm">{pendingDeleteItem.name} removed</span>
+        <span className="text-sm">{t("removed", { name: pendingDeleteItem.name })}</span>
         <button
           onClick={undoDelete}
           className="text-sm font-semibold ml-4 shrink-0"
         >
-          Undo
+          {t("undo")}
         </button>
       </div>
     )}
@@ -539,11 +543,11 @@ export default function GroceryListPage() {
     <BottomSheet
       open={editingProduct !== null}
       onClose={() => setEditingProduct(null)}
-      title="Edit Item"
+      title={t("editItem")}
     >
       <div className="px-4 py-4 space-y-4 pb-8">
         <div className="space-y-1">
-          <label className="text-sm font-medium">Name</label>
+          <label className="text-sm font-medium">{tCommon("name")}</label>
           <Input
             value={editName}
             onChange={(e) => setEditName(e.target.value)}
@@ -551,7 +555,7 @@ export default function GroceryListPage() {
           />
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Category</label>
+          <label className="text-sm font-medium">{tCommon("category")}</label>
           <select
             value={editCategory}
             onChange={(e) => setEditCategory(e.target.value)}
@@ -559,15 +563,15 @@ export default function GroceryListPage() {
           >
             {CATEGORY_NAMES.map((cat) => (
               <option key={cat} value={cat}>
-                {cat}
+                {tCat(cat)}
               </option>
             ))}
           </select>
         </div>
         <div className="space-y-1">
-          <label className="text-sm font-medium">Default unit</label>
+          <label className="text-sm font-medium">{tCommon("defaultUnit")}</label>
           <Input
-            placeholder="g, ml, tbsp…"
+            placeholder={tCommon("unitPlaceholder")}
             value={editUnit}
             onChange={(e) => setEditUnit(e.target.value)}
           />
@@ -577,7 +581,7 @@ export default function GroceryListPage() {
           onClick={saveEdit}
           disabled={!editName.trim() || editSaving}
         >
-          {editSaving ? "Saving…" : "Save"}
+          {editSaving ? tCommon("saving") : tCommon("save")}
         </Button>
       </div>
     </BottomSheet>

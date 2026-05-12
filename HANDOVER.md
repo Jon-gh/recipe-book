@@ -1,103 +1,146 @@
-# Handover — Recipe Book Multi-User Auth (Better Auth)
+# Handover — Multi-Language Support
 
-## Status
-
-PR #65 is open, not yet merged.
-Branch: `feat/multi-user-auth`
-
-The NextAuth → Better Auth migration is **complete and tested locally**. Three bugs were found and fixed during initial deploy testing (see commit history below). The next step is a clean redeploy and end-to-end sign-in verification before merging.
+**Branch:** `feat/multi-user-auth`
+**Plan file:** `/home/desktop-jo/.claude/plans/now-i-would-like-fuzzy-wilkinson.md`
 
 ---
 
-## What was built
+## What has been done
 
-Full multi-user authentication using **Better Auth** with two sign-in methods:
-- **Email + password** (primary — allows sharing credentials between household members)
-- **Google OAuth** (alternative)
+Phase 1 (UI translation) is **complete**. All 329 tests pass. Lint and `tsc --noEmit` are clean.
 
-Password reset flow at `/auth/reset-password` (sends email via nodemailer if `EMAIL_SERVER` is set).
+### Infrastructure added
 
-All user data (recipes, meal plan, shopping list) is scoped per user. `jonathan.lerch@gmail.com`'s account and all existing recipes were **preserved** — same user ID, no data lost.
+| File | What it does |
+|------|-------------|
+| `src/i18n/request.ts` | `next-intl` server config — reads `NEXT_LOCALE` cookie, falls back to `"en"`. Exports `SUPPORTED_LOCALES`, `Locale` type, `isValidLocale()`. |
+| `next.config.mjs` | Wrapped with `createNextIntlPlugin`. |
+| `src/app/layout.tsx` | Uses `getLocale()` / `getMessages()` from `next-intl/server`; sets `lang` attr on `<html>`; wraps tree in `NextIntlClientProvider`. |
+| `messages/en.json` | All UI strings in English. **This is the source of truth.** |
+| `messages/fr.json` | French translations. |
+| `messages/zh-CN.json` | Simplified Chinese translations. |
+| `messages/es.json` | Spanish translations. |
+| `prisma/schema.prisma` | Added `locale String @default("en")` to `User` model. |
+| `src/app/api/user/locale/route.ts` | `GET` returns current user's locale + sets `NEXT_LOCALE` cookie. `PATCH` validates + saves locale to DB + sets cookie. |
+| `src/app/settings/page.tsx` | Settings page: language picker (loads via GET, saves via PATCH) + sign-out button. |
+| `src/components/BottomNav.tsx` | User-slot now links to `/settings` instead of signing out directly. |
+| `src/app/auth/signin/page.tsx` | Sign-up form has a language selector. On successful sign-up it calls `PATCH /api/user/locale`. On sign-in it calls `GET /api/user/locale` to sync the cookie. |
 
-**Key files added/changed:**
-- `src/lib/auth.ts` — Better Auth server config + `requireUserId()` helper
-- `src/lib/auth-client.ts` — Better Auth client (no baseURL — auto-detects from `window.location.origin`)
-- `src/middleware.ts` — cookie-based session check (Edge-compatible; full validation in API routes)
-- `src/app/api/auth/[...all]/route.ts` — Better Auth catch-all handler
-- `src/app/auth/signin/page.tsx` — email+password form with Google OAuth button
-- `src/app/auth/reset-password/page.tsx` — request reset link
-- `src/app/auth/reset-password/confirm/page.tsx` — set new password via token
-- `src/components/BottomNav.tsx` — now hidden on `/auth/*` pages
-- `src/components/Providers.tsx` — SessionProvider removed (not needed with Better Auth)
-- `prisma/schema.prisma` — replaced NextAuth tables with Better Auth tables
-- `prisma/migrate-to-better-auth.ts` — one-time script (already run)
-- `prisma/seed-password.ts` — sets initial password for jonathan.lerch@gmail.com
-- All 10 API test files — mocks updated from `next-auth` to `@/lib/auth`
+### All components wrapped with `useTranslations()`
 
-All 310 tests pass. Type check and lint clean.
+Every hardcoded UI string in these files was replaced with `t(key)` calls:
+- `src/components/BottomNav.tsx`
+- `src/components/RecipeForm.tsx`
+- `src/components/StartNewWeekWizard.tsx`
+- `src/app/auth/signin/page.tsx`
+- `src/app/auth/reset-password/page.tsx`
+- `src/app/auth/reset-password/confirm/page.tsx`
+- `src/app/grocery-list/page.tsx`
+- `src/app/meal-plan/page.tsx`
+- `src/app/recipes/page.tsx`
+- `src/app/recipes/[id]/page.tsx`
+- `src/app/schedule/page.tsx`
+- `src/app/products/page.tsx`
+- `src/app/settings/page.tsx`
 
----
+### Test infrastructure
 
-## What the user has already done
+`tests/setup.ts` has a global `vi.mock("next-intl", ...)` that loads `messages/en.json` and resolves translation keys to their English values. It handles:
+- Simple substitution: `{name}` → value
+- ICU plurals: `{count, plural, one {# word} other {# words}}` → correctly pluralised
+- Dotted keys without namespace: `t("auth.noAccount")` (used in SignIn page)
 
-1. ✅ Ran `INITIAL_PASSWORD=... npx tsx prisma/seed-password.ts` — password is set in the DB
-2. ✅ Vercel env vars: user does **not** have `NEXTAUTH_URL` or `NEXTAUTH_SECRET` — they need to add the Better Auth vars fresh (see below)
-
----
-
-## What still needs to be done before merging
-
-### 1. Set Vercel environment variables
-
-Go to: Vercel → recipe-book → Settings → Environment Variables (Production + Preview)
-
-| Variable | Value | Notes |
-|----------|-------|-------|
-| `BETTER_AUTH_SECRET` | output of `openssl rand -base64 32` | Random secret — generate a fresh one |
-| `BETTER_AUTH_URL` | `https://your-app.vercel.app` | Full production URL, no trailing slash |
-
-`NEXT_PUBLIC_BETTER_AUTH_URL` is **not needed** — the client auto-detects the URL at runtime.
-
-`EMAIL_SERVER` and `EMAIL_FROM` are optional — only needed for password reset emails. Sign-in works without them.
-
-Google OAuth vars (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) are optional — sign-in with email+password works without them.
-
-### 2. Redeploy
-
-After adding env vars, trigger a new deploy (push a commit or click "Redeploy" in Vercel dashboard). The most recent fixes (Edge runtime error, stuck sign-in, BottomNav on auth pages) are in commit `1e14dbf` — make sure the deployed build includes this.
-
-### 3. Test sign-in end-to-end on preview
-
-- Visit preview URL → should land on `/auth/signin` (no BottomNav visible)
-- Enter `jonathan.lerch@gmail.com` + password → should redirect to `/recipes` with existing recipes visible
-- Sign out → back to `/auth/signin`
-- Optional: test "Create account" with a different email → should see empty recipe list
-
-### 4. Merge PR #65
-
-Once sign-in confirmed working, merge. No approval needed for PRs — merging always requires explicit user approval.
+New test files added:
+- `tests/api/user-locale.test.ts` — GET/PATCH `/api/user/locale`
+- `tests/components/SignInPage.test.tsx` — language picker on sign-up form
+- `tests/components/SettingsPage.test.tsx` — settings page language picker
 
 ---
 
-## Bugs fixed during deploy testing (already in branch)
+## What still needs to be done
 
-| Commit | Fix |
-|--------|-----|
-| `b00a5b8` | Middleware was calling `auth.api.getSession` (uses Prisma/Node.js) in Edge runtime → changed to cookie check |
-| `1e14dbf` | `auth-client.ts` had hardcoded `baseURL: http://localhost:3000` fallback → removed, now auto-detects from `window.location.origin` |
-| `1e14dbf` | Sign-in form got stuck on "Signing in..." if auth threw instead of returning `{ error }` → added try/catch/finally |
-| `1e14dbf` | BottomNav was visible on `/auth/signin` → hidden on all `/auth/*` routes |
+### Commit & PR for Phase 1
+
+The branch has uncommitted changes. Before starting Phase 2, commit everything and open the PR:
+
+```bash
+git add -A
+git commit -m "feat: Phase 1 — UI translation with next-intl (en/fr/zh-CN/es)"
+git push
+gh pr create --title "feat: multi-language UI support (Phase 1)" --body "..."
+```
+
+### Phase 2 — Content translation (separate PR)
+
+User-created recipe names, instructions, and notes are still English-only. Phase 2 adds lazy on-demand translation via DeepL Free. The full spec is in the plan file. Key pieces:
+
+**1. DB schema additions** (`prisma/schema.prisma`)
+
+```prisma
+model RecipeTranslation {
+  id           String   @id @default(cuid())
+  recipeId     String
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  locale       String
+  name         String
+  instructions String
+  notes        String   @default("")
+  tags         String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([recipeId, locale])
+}
+
+model ProductTranslation {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale    String
+  name      String
+  @@unique([productId, locale])
+}
+```
+
+**2. `src/lib/translate.ts`** — DeepL integration
+- `translateRecipe(recipe, targetLocale)` — one DeepL request for `[name, instructions, notes]`, upserts `RecipeTranslation`.
+- `translateProduct(product, targetLocale)` — upserts `ProductTranslation`.
+- Env var: `DEEPL_API_KEY` (DeepL Free). Add to `.env.example` and Vercel dashboard.
+- Language code map: `{ fr: "FR", es: "ES", "zh-CN": "ZH", en: null }` (skip DeepL for `en`).
+
+**3. Middleware update** — Set `x-user-locale` header on all `/api/` requests so route handlers don't re-read the cookie.
+
+**4. Locale-aware recipe/product routes** — All content GET routes should:
+  - Include `translations` in the Prisma select, filtered to `x-user-locale` header value.
+  - Merge translated fields over base English fields (English fallback).
+  - If no translation exists for a non-English locale, fire `void translateRecipe(...)` in the background and return English immediately.
+
+**5. Grocery list dedup fix** — `aggregateGroceryList()` in `src/lib/grocery-list.ts` currently uses `ingredient.name` as the deduplication key. With translations "tomate" (FR) and "tomato" (EN) would be counted separately. Fix: add `canonicalName` (the English `Product.name`) to `GroceryItem` as the dedup key, keep `name` as the display label.
+
+**6. Product autocomplete fix** — `resolveProductId` and `GET /api/products?q=` only search `Product.name` (English). Update to also search `ProductTranslation.name` for the current locale so French users can find "tomate" and get back the "tomato" product.
 
 ---
 
-## Useful context
+## Key invariants — do not break
 
-- `npm test` — 310 tests, all must pass before any commit (enforced by pre-commit hook)
-- `npx tsc --noEmit` — type check
-- `npm run lint` — ESLint
-- `requireUserId()` in `src/lib/auth.ts` — unchanged API; all 14 API routes use it without modification
-- Better Auth session cookie: `better-auth.session_token` (dev) or `__Secure-better-auth.session_token` (prod/HTTPS)
-- Password hashing: Scrypt via `@better-auth/utils/password` — `prisma/seed-password.ts` uses the same library for consistency
-- `docs/architecture.md` — full directory map and auth design decisions
-- `docs/api.md` — REST endpoint reference
-- `docs/deployment.md` — env vars, Vercel deploy, Google OAuth setup
+- **`Product.name` is always English** — it is the canonical key. `ProductTranslation` holds display-only names. `resolveProductId` must always operate on `Product.name`.
+- **AI import always returns English** — `extractRecipeFromText/Image` return English regardless of user locale. The base `Recipe` row is always English.
+- **Category names in DB are English keys** — display translation is `tCat(product.category)` via `next-intl`; never write a translated category name to the DB.
+- **Units in DB are English** — `normalizeUnit` stays English-only.
+- **Do not extend `requireUserId` to return `locale`** — use a separate `getUserLocale(userId)` utility for Phase 2 routes. This limits which existing test mocks need updating.
+
+---
+
+## Verification before starting Phase 2
+
+Run these to confirm Phase 1 is solid:
+```bash
+npm test          # 329 tests, all green
+npx tsc --noEmit  # no output = clean
+npm run lint      # no warnings
+```
+
+Manual smoke test:
+1. Sign up with French → all UI labels in French, recipe content in English.
+2. Go to Settings → change language to Spanish → UI switches without page reload.
+3. Sign in → locale cookie is restored from DB.
+4. `lang` attribute on `<html>` matches the selected locale.

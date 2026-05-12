@@ -40,14 +40,14 @@ beforeEach(() => {
 });
 
 describe("BottomNav", () => {
-  it("renders all four nav tabs plus sign-out button", () => {
+  it("renders all four nav tabs plus settings link", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
     expect(screen.getByText("Recipes")).toBeInTheDocument();
     expect(screen.getByText("Plan")).toBeInTheDocument();
     expect(screen.getByText("Schedule")).toBeInTheDocument();
     expect(screen.getByText("Grocery")).toBeInTheDocument();
-    expect(screen.getByText("Sign out")).toBeInTheDocument();
+    expect(screen.getByText("Sign out").closest("a")).toHaveAttribute("href", "/settings");
   });
 
   it("shows user's first name on sign-out button when session is active", () => {
@@ -105,10 +105,9 @@ describe("BottomNav", () => {
     expect(screen.getByText("Recipes").closest("a")!.className).not.toContain("text-green-600");
   });
 
-  it("calls signOut when sign-out button is clicked", () => {
+  it("settings link navigates to /settings", () => {
     mockUsePathname.mockReturnValue("/recipes");
     render(<BottomNav />);
-    fireEvent.click(screen.getByText("Sign out").closest("button")!);
-    expect(mockSignOut).toHaveBeenCalled();
+    expect(screen.getByText("Sign out").closest("a")).toHaveAttribute("href", "/settings");
   });
 });

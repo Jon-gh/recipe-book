@@ -62,7 +62,7 @@ describe("ProductsPage", () => {
   it("shows product category and default unit", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("feta chese")).toBeInTheDocument());
-    expect(screen.getByText(/dairy & eggs · g/)).toBeInTheDocument();
+    expect(screen.getByText(/Dairy & eggs · g/)).toBeInTheDocument();
   });
 
   it("shows edit button for each product", async () => {

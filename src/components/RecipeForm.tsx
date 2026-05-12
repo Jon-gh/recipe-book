@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Camera, ImageIcon, Link2, Pencil } from "lucide-react";
 import { CATEGORY_NAMES } from "@/lib/categories";
+import { useTranslations } from "next-intl";
 
 type Props = {
   initial?: Recipe;
@@ -63,6 +64,9 @@ async function resizeImage(file: File): Promise<File> {
 }
 
 export default function RecipeForm({ initial, onClose }: Props) {
+  const t = useTranslations("recipeForm");
+  const tCat = useTranslations("categories");
+  const tCommon = useTranslations("common");
   const router = useRouter();
   const isEdit = !!initial;
 
@@ -83,16 +87,13 @@ export default function RecipeForm({ initial, onClose }: Props) {
   const [tagsInput, setTagsInput] = useState(initial?.tags.join(", ") ?? "");
   const [saving, setSaving] = useState(false);
 
-  // Import state
   const [urlMode, setUrlMode] = useState(false);
   const [importValue, setImportValue] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
 
-  // Show manual form fields by default only when editing
   const [showManualForm, setShowManualForm] = useState(isEdit);
 
-  // Hidden file inputs for camera and gallery
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
 
@@ -128,7 +129,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
       const res = await fetch("/api/recipes/import/image", { method: "POST", body: fd });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setImportError(err.error ?? "Import failed");
+        setImportError(err.error ?? t("importFailed"));
         setImporting(false);
         return;
       }
@@ -137,7 +138,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
       setTagsInput((data.tags ?? []).join(", "));
       setShowManualForm(true);
     } catch {
-      setImportError("Import failed");
+      setImportError(t("importFailed"));
     }
     setImporting(false);
   }
@@ -153,7 +154,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setImportError(err.error ?? "Import failed");
+        setImportError(err.error ?? t("importFailed"));
         setImporting(false);
         return;
       }
@@ -164,7 +165,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
       setImportValue("");
       setShowManualForm(true);
     } catch {
-      setImportError("Import failed");
+      setImportError(t("importFailed"));
     }
     setImporting(false);
   }
@@ -224,12 +225,12 @@ export default function RecipeForm({ initial, onClose }: Props) {
       />
 
       {/* Header */}
-      <h1 className="text-2xl font-bold">{isEdit ? "Edit Recipe" : "New Recipe"}</h1>
+      <h1 className="text-2xl font-bold">{isEdit ? t("editRecipe") : t("newRecipe")}</h1>
 
       {/* URL import inline panel */}
       {urlMode && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/40">
-          <p className="text-sm font-medium">Import from URL</p>
+          <p className="text-sm font-medium">{t("importFromUrl")}</p>
           <Input
             placeholder="https://…"
             value={importValue}
@@ -238,7 +239,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
           {importError && <p className="text-sm text-destructive">{importError}</p>}
           <div className="flex gap-2">
             <Button type="button" size="sm" onClick={handleUrlImport} disabled={importing}>
-              {importing ? "Importing…" : "Import"}
+              {importing ? t("importing") : t("import")}
             </Button>
             <Button
               type="button"
@@ -250,7 +251,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 setImportValue("");
               }}
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>
@@ -263,7 +264,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2 space-y-1">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t("nameLabel")}</Label>
               <Input
                 id="name"
                 required
@@ -272,7 +273,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="servings">Servings</Label>
+              <Label htmlFor="servings">{t("servingsLabel")}</Label>
               <Input
                 id="servings"
                 type="number"
@@ -286,10 +287,10 @@ export default function RecipeForm({ initial, onClose }: Props) {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="tags">Tags (comma-separated)</Label>
+              <Label htmlFor="tags">{t("tagsLabel")}</Label>
               <Input
                 id="tags"
-                placeholder="Italian, quick, vegetarian"
+                placeholder={t("tagsPlaceholder")}
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
               />
@@ -302,7 +303,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 onChange={(e) => setField("favourite", e.target.checked)}
                 className="w-4 h-4"
               />
-              <Label htmlFor="favourite">Mark as favourite</Label>
+              <Label htmlFor="favourite">{t("markAsFavourite")}</Label>
             </div>
           </div>
 
@@ -310,9 +311,9 @@ export default function RecipeForm({ initial, onClose }: Props) {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold">Ingredients</h2>
+              <h2 className="font-semibold">{t("ingredientsHeading")}</h2>
               <Button type="button" variant="outline" size="sm" onClick={addIngredient}>
-                + Add
+                {t("addIngredient")}
               </Button>
             </div>
             {form.ingredients.map((ing, i) => (
@@ -320,7 +321,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 <div className="flex gap-2 items-center">
                   <Input
                     required
-                    placeholder="Ingredient name"
+                    placeholder={t("ingredientNamePlaceholder")}
                     value={ing.name}
                     onChange={(e) => setIngredient(i, "name", e.target.value)}
                     className="flex-1"
@@ -342,7 +343,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                     min={0}
                     step="any"
                     required
-                    placeholder="Qty"
+                    placeholder={t("qtyPlaceholder")}
                     value={ing.quantity || ""}
                     onChange={(e) =>
                       setIngredient(i, "quantity", parseFloat(e.target.value) || 0)
@@ -350,13 +351,13 @@ export default function RecipeForm({ initial, onClose }: Props) {
                     className="w-16"
                   />
                   <Input
-                    placeholder="Unit"
+                    placeholder={t("unitPlaceholder")}
                     value={ing.unit}
                     onChange={(e) => setIngredient(i, "unit", e.target.value)}
                     className="w-24"
                   />
                   <Input
-                    placeholder="Prep (optional)"
+                    placeholder={t("prepPlaceholder")}
                     value={ing.preparation}
                     onChange={(e) => setIngredient(i, "preparation", e.target.value)}
                     className="flex-1"
@@ -369,7 +370,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 >
                   {CATEGORY_NAMES.map((name) => (
                     <option key={name} value={name}>
-                      {name}
+                      {tCat(name)}
                     </option>
                   ))}
                 </select>
@@ -380,23 +381,23 @@ export default function RecipeForm({ initial, onClose }: Props) {
           <Separator />
 
           <div className="space-y-1">
-            <Label htmlFor="instructions">Instructions</Label>
+            <Label htmlFor="instructions">{t("instructionsLabel")}</Label>
             <Textarea
               id="instructions"
               required
               rows={8}
-              placeholder="Step 1: …"
+              placeholder={t("instructionsPlaceholder")}
               value={form.instructions}
               onChange={(e) => setField("instructions", e.target.value)}
             />
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="notes">Notes (optional)</Label>
+            <Label htmlFor="notes">{t("notesLabel")}</Label>
             <Textarea
               id="notes"
               rows={3}
-              placeholder="Any tips or variations…"
+              placeholder={t("notesPlaceholder")}
               value={form.notes}
               onChange={(e) => setField("notes", e.target.value)}
             />
@@ -404,20 +405,20 @@ export default function RecipeForm({ initial, onClose }: Props) {
 
           <div className="flex gap-2">
             <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : isEdit ? "Save Changes" : "Create Recipe"}
+              {saving ? tCommon("saving") : isEdit ? t("saveChanges") : t("createRecipe")}
             </Button>
             <Button type="button" variant="outline" onClick={() => onClose ? onClose() : router.back()}>
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </>
       )}
 
-      {/* Inline import selection (new recipe only, before any method is chosen) */}
+      {/* Inline import selection (new recipe only) */}
       {!showManualForm && !isEdit && !urlMode && (
         <div className="space-y-2 pt-2">
           {importing && (
-            <p className="text-sm text-muted-foreground text-center py-4">Importing…</p>
+            <p className="text-sm text-muted-foreground text-center py-4">{t("importing")}</p>
           )}
           {importError && <p className="text-sm text-destructive">{importError}</p>}
           {!importing && (
@@ -429,8 +430,8 @@ export default function RecipeForm({ initial, onClose }: Props) {
               >
                 <Camera size={22} className="text-green-600 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Take Photo</p>
-                  <p className="text-xs text-muted-foreground">Scan a recipe with your camera</p>
+                  <p className="font-medium text-sm">{t("takePhoto")}</p>
+                  <p className="text-xs text-muted-foreground">{t("takePhotoSub")}</p>
                 </div>
               </button>
               <button
@@ -440,8 +441,8 @@ export default function RecipeForm({ initial, onClose }: Props) {
               >
                 <ImageIcon size={22} className="text-green-600 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Choose from Library</p>
-                  <p className="text-xs text-muted-foreground">Import from a saved photo</p>
+                  <p className="font-medium text-sm">{t("chooseFromLibrary")}</p>
+                  <p className="text-xs text-muted-foreground">{t("chooseFromLibrarySub")}</p>
                 </div>
               </button>
               <button
@@ -451,13 +452,13 @@ export default function RecipeForm({ initial, onClose }: Props) {
               >
                 <Link2 size={22} className="text-green-600 shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Import from URL</p>
-                  <p className="text-xs text-muted-foreground">Paste a link to any recipe page</p>
+                  <p className="font-medium text-sm">{t("importFromUrlOption")}</p>
+                  <p className="text-xs text-muted-foreground">{t("importFromUrlSub")}</p>
                 </div>
               </button>
               <div className="flex items-center gap-3 py-1">
                 <div className="flex-1 border-t" />
-                <span className="text-xs text-muted-foreground">or</span>
+                <span className="text-xs text-muted-foreground">{tCommon("or")}</span>
                 <div className="flex-1 border-t" />
               </div>
               <button
@@ -467,12 +468,12 @@ export default function RecipeForm({ initial, onClose }: Props) {
               >
                 <Pencil size={20} className="text-muted-foreground shrink-0" />
                 <div>
-                  <p className="font-medium text-sm">Type manually</p>
-                  <p className="text-xs text-muted-foreground">Enter the recipe yourself</p>
+                  <p className="font-medium text-sm">{t("typeManually")}</p>
+                  <p className="text-xs text-muted-foreground">{t("typeManuallySubt")}</p>
                 </div>
               </button>
               <Button type="button" variant="ghost" className="w-full" onClick={() => onClose ? onClose() : router.back()}>
-                Cancel
+                {tCommon("cancel")}
               </Button>
             </>
           )}

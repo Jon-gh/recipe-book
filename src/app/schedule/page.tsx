@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Minus, Plus, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
+import { useTranslations } from "next-intl";
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 
@@ -41,6 +42,8 @@ function formatDay(dateStr: string) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
+  const t = useTranslations("schedule");
+  const tCommon = useTranslations("common");
   const {
     data: entries,
     isLoading: loadingEntries,
@@ -127,7 +130,7 @@ export default function SchedulePage() {
       setSlotNote("");
     } else {
       const err = await res.json();
-      setSlotError(err.error ?? "Failed to add");
+      setSlotError(err.error ?? t("failedToAdd"));
     }
     setAddingSlot(false);
   }
@@ -151,16 +154,16 @@ export default function SchedulePage() {
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="mb-5">
-          <h1 className="text-2xl font-bold">Schedule</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
         </div>
 
         {loadingEntries ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         ) : (entries ?? []).length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-5xl mb-4">📅</p>
-            <p className="font-medium text-foreground">No recipes in your plan yet</p>
-            <p className="text-sm mt-1">Add recipes in the Plan tab first</p>
+            <p className="font-medium text-foreground">{t("noRecipes")}</p>
+            <p className="text-sm mt-1">{t("noRecipesHint")}</p>
           </div>
         ) : (
           <>
@@ -197,7 +200,7 @@ export default function SchedulePage() {
                       return (
                         <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
                           <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                            {mealType === "lunch" ? "Lunch" : "Dinner"}
+                            {mealType === "lunch" ? t("lunch") : t("dinner")}
                           </span>
                           {meal ? (
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -212,7 +215,7 @@ export default function SchedulePage() {
                                       {meal.mealPlanEntry?.recipe.name}
                                     </p>
                                     <p className="text-xs text-muted-foreground">
-                                      {meal.servings} serving{meal.servings !== 1 ? "s" : ""}
+                                      {tCommon("servings", { count: meal.servings })}
                                     </p>
                                   </>
                                 )}
@@ -231,7 +234,7 @@ export default function SchedulePage() {
                               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
                             >
                               <Plus size={14} />
-                              Add meal
+                              {t("addMeal")}
                             </button>
                           )}
                         </div>
@@ -258,7 +261,7 @@ export default function SchedulePage() {
         >
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold">
-              {formatDay(slotDate)} · {slotMealType === "lunch" ? "Lunch" : "Dinner"}
+              {formatDay(slotDate)} · {slotMealType === "lunch" ? t("lunch") : t("dinner")}
             </h3>
             <button
               onClick={() => setSlotDate(null)}
@@ -269,7 +272,7 @@ export default function SchedulePage() {
             </button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Pick a recipe or add a custom note
+            {t("pickRecipeOrNote")}
           </p>
 
           {(entries ?? []).length > 0 && (
@@ -297,7 +300,7 @@ export default function SchedulePage() {
                   >
                     <div className="font-medium text-sm">{entry.recipe.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {remaining} of {entry.targetServings} servings remaining
+                      {t("servingsRemaining", { remaining, total: entry.targetServings })}
                     </div>
                   </button>
                 );
@@ -307,7 +310,7 @@ export default function SchedulePage() {
 
           {slotEntryId && (
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm flex-1">Servings</span>
+              <span className="text-sm flex-1">{t("servings")}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setSlotServings((s) => Math.max(1, s - 1))}
@@ -335,10 +338,10 @@ export default function SchedulePage() {
 
           <div className="mb-4">
             <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-              {(entries ?? []).length > 0 ? "Or add a custom note" : "Custom note"}
+              {(entries ?? []).length > 0 ? t("orCustomNote") : t("customNote")}
             </label>
             <Input
-              placeholder="e.g. Eating outside, Dinner with friends…"
+              placeholder={t("customNotePlaceholder")}
               value={slotNote}
               onChange={(e) => {
                 setSlotNote(e.target.value);
@@ -356,7 +359,7 @@ export default function SchedulePage() {
             disabled={(!slotEntryId && !slotNote.trim()) || addingSlot}
             onClick={confirmAddSlot}
           >
-            {addingSlot ? "Adding…" : "Confirm"}
+            {addingSlot ? tCommon("adding") : tCommon("confirm")}
           </Button>
         </div>
       </div>

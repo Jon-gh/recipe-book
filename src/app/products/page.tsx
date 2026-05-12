@@ -11,8 +11,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import BottomSheet from "@/components/BottomSheet";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function ProductsPage() {
+  const t = useTranslations("products");
+  const tCommon = useTranslations("common");
+  const tCat = useTranslations("categories");
   const { data: products, isLoading, mutate } = useSWR<Product[]>(
     "/api/products?source=user",
     noCacheFetcher
@@ -61,14 +65,14 @@ export default function ProductsPage() {
               <ChevronLeft size={20} />
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">My Items</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         ) : !products?.length ? (
           <p className="text-muted-foreground">
-            No personal items yet. Add items to your shopping list and they will appear here.
+            {t("noItems")}
           </p>
         ) : (
           <Card>
@@ -80,7 +84,7 @@ export default function ProductsPage() {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{product.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {product.category}
+                          {tCat(product.category)}
                           {product.defaultUnit ? ` · ${product.defaultUnit}` : ""}
                         </p>
                       </div>
@@ -111,11 +115,11 @@ export default function ProductsPage() {
       <BottomSheet
         open={editingProduct !== null}
         onClose={() => setEditingProduct(null)}
-        title="Edit Item"
+        title={t("editItem")}
       >
         <div className="px-4 py-4 space-y-4 pb-8">
           <div className="space-y-1">
-            <label className="text-sm font-medium">Name</label>
+            <label className="text-sm font-medium">{tCommon("name")}</label>
             <Input
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
@@ -123,7 +127,7 @@ export default function ProductsPage() {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Category</label>
+            <label className="text-sm font-medium">{tCommon("category")}</label>
             <select
               value={editCategory}
               onChange={(e) => setEditCategory(e.target.value)}
@@ -131,15 +135,15 @@ export default function ProductsPage() {
             >
               {CATEGORY_NAMES.map((cat) => (
                 <option key={cat} value={cat}>
-                  {cat}
+                  {tCat(cat)}
                 </option>
               ))}
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-sm font-medium">Default unit</label>
+            <label className="text-sm font-medium">{tCommon("defaultUnit")}</label>
             <Input
-              placeholder="g, ml, tbsp…"
+              placeholder={tCommon("unitPlaceholder")}
               value={editUnit}
               onChange={(e) => setEditUnit(e.target.value)}
             />
@@ -149,7 +153,7 @@ export default function ProductsPage() {
             onClick={saveEdit}
             disabled={!editName.trim() || saving}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? tCommon("saving") : tCommon("save")}
           </Button>
         </div>
       </BottomSheet>

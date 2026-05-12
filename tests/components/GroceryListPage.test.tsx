@@ -136,8 +136,8 @@ describe("GroceryListPage", () => {
   it("groups items by category", async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("grains & pulses")).toBeInTheDocument();
-      expect(screen.getByText("dairy & eggs")).toBeInTheDocument();
+      expect(screen.getByText("Grains & pulses")).toBeInTheDocument();
+      expect(screen.getByText("Dairy & eggs")).toBeInTheDocument();
     });
   });
 });
@@ -327,14 +327,14 @@ describe("GroceryListPage — add to shopping list", () => {
   it("shows FAB add button", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    expect(screen.getByRole("button", { name: "Add to shopping list" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add to Shopping List" })).toBeInTheDocument();
   });
 
   it("opens add sheet when FAB is clicked", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to Shopping List" }));
 
     await waitFor(() =>
       expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
@@ -345,7 +345,7 @@ describe("GroceryListPage — add to shopping list", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to Shopping List" }));
     await waitFor(() =>
       expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
     );
@@ -366,7 +366,7 @@ describe("GroceryListPage — add to shopping list", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to Shopping List" }));
     await waitFor(() =>
       expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
     );
@@ -386,7 +386,7 @@ describe("GroceryListPage — add to shopping list", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to Shopping List" }));
     await waitFor(() =>
       expect(screen.getByPlaceholderText("e.g. butter, oat milk…")).toBeInTheDocument()
     );
@@ -403,7 +403,7 @@ describe("GroceryListPage — add to shopping list", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Add to shopping list" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add to Shopping List" }));
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Add to List" })).toBeInTheDocument()
     );
