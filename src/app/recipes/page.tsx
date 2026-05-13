@@ -12,6 +12,7 @@ import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import RecipeForm from "@/components/RecipeForm";
+import { useTranslations } from "next-intl";
 
 const CARD_COLORS = [
   "border-l-green-500",
@@ -31,16 +32,14 @@ function cardColor(name: string): string {
 }
 
 export default function RecipesPage() {
+  const t = useTranslations("recipes");
+  const tCommon = useTranslations("common");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterFavourite, setFilterFavourite] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  // Tracks whether the Cancel button is being pressed. Prevents onBlur from
-  // collapsing the bar before onClick fires — on iOS, the input blurs at
-  // touchend, before the synthetic click event, so without this flag the
-  // Cancel button would disappear before its click could register.
   const cancelPressedRef = useRef(false);
 
   function handleCancel() {
@@ -51,8 +50,8 @@ export default function RecipesPage() {
   }
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(timer);
   }, [search]);
 
   const params = new URLSearchParams();
@@ -69,7 +68,7 @@ export default function RecipesPage() {
     <PullToRefresh onRefresh={() => mutate()}>
       <div>
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold">Recipes</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
         </div>
 
         <div className="flex items-center gap-2 mb-5">
@@ -77,7 +76,7 @@ export default function RecipesPage() {
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
             <Input
               ref={inputRef}
-              placeholder="Search by name, tag or ingredient…"
+              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
@@ -95,7 +94,7 @@ export default function RecipesPage() {
               onClick={() => setFilterFavourite((f) => !f)}
               className="active:scale-95 transition-transform shrink-0 whitespace-nowrap"
             >
-              ★ Favourites
+              {t("favourites")}
             </Button>
           </div>
           <button
@@ -108,21 +107,19 @@ export default function RecipesPage() {
                 : "max-w-0 opacity-0 pointer-events-none"
             }`}
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         ) : error ? (
-          <p className="text-destructive">
-            Failed to load recipes. Check your connection and try again.
-          </p>
+          <p className="text-destructive">{t("loadError")}</p>
         ) : (recipes ?? []).length === 0 ? (
           <p className="text-muted-foreground">
-            No recipes found.{" "}
+            {t("noRecipes")}{" "}
             <button onClick={() => setShowAddSheet(true)} className="underline">
-              Add one!
+              {t("addOne")}
             </button>
           </p>
         ) : (
@@ -149,11 +146,11 @@ export default function RecipesPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Users size={14} />
-                      {`${recipe.servings} serving${recipe.servings !== 1 ? "s" : ""}`}
+                      {tCommon("servings", { count: recipe.servings })}
                     </span>
                     <span className="flex items-center gap-1">
                       <List size={14} />
-                      {`${recipe.ingredients.length} ingredient${recipe.ingredients.length !== 1 ? "s" : ""}`}
+                      {tCommon("ingredients", { count: recipe.ingredients.length })}
                     </span>
                   </div>
                   {recipe.tags.length > 0 && (
@@ -174,10 +171,9 @@ export default function RecipesPage() {
       </div>
     </PullToRefresh>
 
-    {/* FAB — outside PullToRefresh so CSS transform doesn't break position:fixed */}
     <button
       onClick={() => setShowAddSheet(true)}
-      aria-label="Add recipe"
+      aria-label={t("newRecipe")}
       className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
     >
       <Plus size={26} strokeWidth={2.5} />
@@ -186,7 +182,7 @@ export default function RecipesPage() {
     <BottomSheet
       open={showAddSheet}
       onClose={() => setShowAddSheet(false)}
-      title="New Recipe"
+      title={t("newRecipe")}
     >
       <div className="px-4 pb-8">
         <RecipeForm onClose={() => setShowAddSheet(false)} />

@@ -6,17 +6,36 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { useTranslations } from "next-intl";
+import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 
 type Mode = "signin" | "signup";
 
+const LOCALE_LABELS: Record<Locale, string> = {
+  en: "English",
+  fr: "Français",
+  "zh-CN": "中文",
+  es: "Español",
+};
+
 export default function SignInPage() {
+  const t = useTranslations();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [locale, setLocale] = useState<Locale>("en");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  async function syncLocale(target: Locale) {
+    await fetch("/api/user/locale", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locale: target }),
+    }).catch(() => {});
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,20 +50,26 @@ export default function SignInPage() {
           name: name.trim() || email.trim().split("@")[0],
         });
         if (err) {
-          setError(err.message ?? "Sign up failed");
+          setError(err.message ?? t("auth.signupFailed"));
         } else {
+          await syncLocale(locale);
           router.push("/recipes");
         }
       } else {
         const { error: err } = await authClient.signIn.email({
           email: email.trim(),
           password,
-          callbackURL: "/recipes",
         });
-        if (err) setError(err.message ?? "Invalid email or password");
+        if (err) {
+          setError(err.message ?? t("auth.invalidCredentials"));
+        } else {
+          // Sync locale cookie from DB then navigate
+          await fetch("/api/user/locale").catch(() => {});
+          router.push("/recipes");
+        }
       }
     } catch {
-      setError("Something went wrong. Please try again.");
+      setError(t("auth.somethingWentWrong"));
     } finally {
       setLoading(false);
     }
@@ -53,9 +78,9 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-8">
       <div className="text-center space-y-1">
-        <h1 className="text-2xl font-bold">Recipe Book</h1>
+        <h1 className="text-2xl font-bold">{t("auth.appTitle")}</h1>
         <p className="text-muted-foreground text-sm">
-          {mode === "signin" ? "Sign in to manage your recipes" : "Create an account"}
+          {mode === "signin" ? t("auth.signinSubtitle") : t("auth.signupSubtitle")}
         </p>
       </div>
 
@@ -64,14 +89,14 @@ export default function SignInPage() {
           {mode === "signup" && (
             <Input
               type="text"
-              placeholder="Your name"
+              placeholder={t("auth.namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           )}
           <Input
             type="email"
-            placeholder="your@email.com"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -79,23 +104,42 @@ export default function SignInPage() {
           />
           <Input
             type="password"
-            placeholder="Password"
+            placeholder={t("auth.passwordPlaceholder")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete={mode === "signup" ? "new-password" : "current-password"}
           />
 
+          {mode === "signup" && (
+            <div className="space-y-1">
+              <label className="text-sm font-medium text-muted-foreground">
+                {t("languages.label")}
+              </label>
+              <select
+                value={locale}
+                onChange={(e) => setLocale(e.target.value as Locale)}
+                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
+              >
+                {SUPPORTED_LOCALES.map((loc) => (
+                  <option key={loc} value={loc}>
+                    {LOCALE_LABELS[loc]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading
               ? mode === "signin"
-                ? "Signing in…"
-                : "Creating account…"
+                ? t("auth.signingIn")
+                : t("auth.creatingAccount")
               : mode === "signin"
-              ? "Sign in"
-              : "Create account"}
+              ? t("auth.signin")
+              : t("auth.createAccount")}
           </Button>
         </form>
 
@@ -110,13 +154,13 @@ export default function SignInPage() {
                 }}
                 className="hover:text-foreground transition-colors"
               >
-                Don&apos;t have an account? Create one
+                {t("auth.noAccount")}
               </button>
               <Link
                 href="/auth/reset-password"
                 className="hover:text-foreground transition-colors"
               >
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </>
           ) : (
@@ -128,7 +172,7 @@ export default function SignInPage() {
               }}
               className="hover:text-foreground transition-colors"
             >
-              Already have an account? Sign in
+              {t("auth.alreadyHaveAccount")}
             </button>
           )}
         </div>

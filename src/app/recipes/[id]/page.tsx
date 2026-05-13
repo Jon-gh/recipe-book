@@ -14,8 +14,11 @@ import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
+import { useTranslations } from "next-intl";
 
 export default function RecipeDetailPage() {
+  const t = useTranslations("recipeDetail");
+  const tCommon = useTranslations("common");
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [showActionsSheet, setShowActionsSheet] = useState(false);
@@ -83,8 +86,8 @@ export default function RecipeDetailPage() {
     setShowPlanSheet(false);
   }
 
-  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
-  if (!recipe) return <p className="text-muted-foreground">Recipe not found.</p>;
+  if (isLoading) return <p className="text-muted-foreground">{tCommon("loading")}</p>;
+  if (!recipe) return <p className="text-muted-foreground">{t("notFound")}</p>;
 
   return (
     <div className="max-w-2xl">
@@ -92,7 +95,7 @@ export default function RecipeDetailPage() {
         <Link
           href="/recipes"
           className="p-1.5 mt-0.5 rounded-lg text-muted-foreground active:bg-muted transition-colors shrink-0"
-          aria-label="Back to recipes"
+          aria-label={t("backToRecipes")}
         >
           <ChevronLeft size={22} />
         </Link>
@@ -100,20 +103,20 @@ export default function RecipeDetailPage() {
         <button
           onClick={handleToggleFavourite}
           className="p-1.5 mt-0.5 shrink-0 text-xl leading-none active:scale-95 transition-transform"
-          aria-label={recipe.favourite ? "Remove from favourites" : "Add to favourites"}
+          aria-label={recipe.favourite ? t("removeFromFavourites") : t("addToFavourites")}
         >
           {recipe.favourite ? "★" : "☆"}
         </button>
         <button
           onClick={() => setShowActionsSheet(true)}
           className="p-1.5 mt-0.5 rounded-lg active:bg-muted transition-colors shrink-0"
-          aria-label="More options"
+          aria-label={t("moreOptions")}
         >
           <MoreHorizontal size={20} />
         </button>
       </div>
       <p className="text-sm text-muted-foreground mb-3 pl-1">
-        {recipe.servings} serving{recipe.servings !== 1 ? "s" : ""} · {recipe.ingredients.length} ingredient{recipe.ingredients.length !== 1 ? "s" : ""}
+        {tCommon("servings", { count: recipe.servings })} · {tCommon("ingredients", { count: recipe.ingredients.length })}
       </p>
 
       {recipe.tags.length > 0 && (
@@ -129,7 +132,7 @@ export default function RecipeDetailPage() {
       <Separator className="my-4" />
 
       <section className="mb-6">
-        <h2 className="font-semibold mb-3">Ingredients</h2>
+        <h2 className="font-semibold mb-3">{t("ingredients")}</h2>
         <ul className="space-y-1">
           {recipe.ingredients.map((ing) => (
             <li key={ing.id} className="text-sm flex gap-2">
@@ -148,7 +151,7 @@ export default function RecipeDetailPage() {
       <Separator className="my-4" />
 
       <section className="mb-6">
-        <h2 className="font-semibold mb-3">Instructions</h2>
+        <h2 className="font-semibold mb-3">{t("instructions")}</h2>
         <div className="text-sm whitespace-pre-wrap leading-relaxed">
           {recipe.instructions}
         </div>
@@ -158,7 +161,7 @@ export default function RecipeDetailPage() {
         <>
           <Separator className="my-4" />
           <section className="mb-6">
-            <h2 className="font-semibold mb-2">Notes</h2>
+            <h2 className="font-semibold mb-2">{t("notes")}</h2>
             <p className="text-sm text-muted-foreground whitespace-pre-wrap">
               {recipe.notes}
             </p>
@@ -176,7 +179,7 @@ export default function RecipeDetailPage() {
           setShowPlanSheet(true);
         }}
       >
-        Add to Meal Plan
+        {t("addToMealPlan")}
       </Button>
 
       {/* Actions sheet (⋯ menu) */}
@@ -185,9 +188,9 @@ export default function RecipeDetailPage() {
         onClose={() => setShowActionsSheet(false)}
         title={recipe.name}
         actions={[
-          { label: "Edit Recipe", onClick: () => setShowEditSheet(true) },
-          { label: "Duplicate", onClick: handleDuplicate },
-          { label: "Delete Recipe", onClick: () => setShowDeleteSheet(true), destructive: true },
+          { label: t("editRecipe"), onClick: () => setShowEditSheet(true) },
+          { label: t("duplicate"), onClick: handleDuplicate },
+          { label: t("deleteRecipe"), onClick: () => setShowDeleteSheet(true), destructive: true },
         ]}
       />
 
@@ -195,7 +198,7 @@ export default function RecipeDetailPage() {
       <BottomSheet
         open={showEditSheet}
         onClose={() => setShowEditSheet(false)}
-        title="Edit Recipe"
+        title={t("editRecipe")}
       >
         <div className="px-4 pb-8">
           <RecipeForm initial={recipe} onClose={() => setShowEditSheet(false)} />
@@ -207,25 +210,25 @@ export default function RecipeDetailPage() {
         open={showDeleteSheet}
         onClose={() => setShowDeleteSheet(false)}
         title={recipe.name}
-        message="This will permanently delete the recipe and remove it from any meal plans."
-        actions={[{ label: "Delete Recipe", onClick: handleDelete, destructive: true }]}
+        message={t("deleteConfirmMessage")}
+        actions={[{ label: t("deleteRecipe"), onClick: handleDelete, destructive: true }]}
       />
 
       {/* Add to Meal Plan sheet */}
       <BottomSheet
         open={showPlanSheet}
         onClose={() => setShowPlanSheet(false)}
-        title="Add to Meal Plan"
+        title={t("addToMealPlan")}
       >
         <div className="px-6 py-6 flex flex-col items-center gap-6">
           <p className="text-sm text-muted-foreground text-center">
-            How many servings do you need?
+            {t("howManyServings")}
           </p>
           <div className="flex items-center gap-6">
             <button
               onClick={() => setPlanServings((s) => Math.max(1, s - 1))}
               className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
-              aria-label="Decrease servings"
+              aria-label={tCommon("cancel")}
             >
               <Minus size={18} />
             </button>
@@ -235,7 +238,7 @@ export default function RecipeDetailPage() {
             <button
               onClick={() => setPlanServings((s) => s + 1)}
               className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
-              aria-label="Increase servings"
+              aria-label={tCommon("add")}
             >
               <Plus size={18} />
             </button>
@@ -246,14 +249,14 @@ export default function RecipeDetailPage() {
               onClick={handleAddToPlan}
               disabled={addingToPlan}
             >
-              {addingToPlan ? "Adding…" : "Add to Meal Plan"}
+              {addingToPlan ? tCommon("adding") : t("addToMealPlan")}
             </Button>
             <Button
               variant="ghost"
               className="w-full min-h-[44px]"
               onClick={() => setShowPlanSheet(false)}
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
           </div>
         </div>

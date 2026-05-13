@@ -3,6 +3,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
 import Providers from "@/components/Providers";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
 export const viewport: Viewport = {
   themeColor: "#16a34a",
@@ -27,20 +29,25 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className={cn("font-sans")}>
+    <html lang={locale} className={cn("font-sans")}>
       <body className="antialiased bg-background text-foreground min-h-screen">
-        <Providers>
-          <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
-            {children}
-          </main>
-          <BottomNav />
-        </Providers>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
+            <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+              {children}
+            </main>
+            <BottomNav />
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

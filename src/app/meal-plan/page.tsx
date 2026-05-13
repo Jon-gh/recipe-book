@@ -13,8 +13,11 @@ import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
 import StartNewWeekWizard from "@/components/StartNewWeekWizard";
+import { useTranslations } from "next-intl";
 
 export default function MealPlanPage() {
+  const t = useTranslations("mealPlan");
+  const tCommon = useTranslations("common");
   const router = useRouter();
 
   const {
@@ -168,14 +171,14 @@ export default function MealPlanPage() {
     <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <div className="mb-5 flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold">Plan</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <Button
             size="sm"
             className="gap-1.5 active:scale-95 transition-transform shrink-0"
             onClick={() => setShowNewWeekWizard(true)}
           >
             <CalendarPlus size={15} />
-            New Week
+            {t("newWeek")}
           </Button>
         </div>
 
@@ -186,7 +189,7 @@ export default function MealPlanPage() {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 ref={inputRef}
-                placeholder="Search recipes to add…"
+                placeholder={t("searchPlaceholder")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -205,14 +208,14 @@ export default function MealPlanPage() {
                 showCancel ? "max-w-[72px] opacity-100" : "max-w-0 opacity-0 pointer-events-none"
               }`}
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
           </div>
 
           {showDropdown && (
             <div className="mt-1 border rounded-xl shadow-sm divide-y overflow-hidden">
               {filtered.length === 0 ? (
-                <p className="p-3 text-sm text-muted-foreground">No recipes found.</p>
+                <p className="p-3 text-sm text-muted-foreground">{t("noRecipesFound")}</p>
               ) : (
                 filtered.map((r) => (
                   <button
@@ -223,7 +226,7 @@ export default function MealPlanPage() {
                     onClick={() => selectRecipe(r)}
                   >
                     <span className="font-medium">{r.name}</span>
-                    <span className="text-muted-foreground ml-2 text-xs">{r.servings} servings</span>
+                    <span className="text-muted-foreground ml-2 text-xs">{tCommon("servings", { count: r.servings })}</span>
                   </button>
                 ))
               )}
@@ -254,7 +257,7 @@ export default function MealPlanPage() {
                 disabled={adding}
                 className="active:scale-95 transition-transform shrink-0"
               >
-                {adding ? "Adding…" : "Add"}
+                {adding ? tCommon("adding") : tCommon("add")}
               </Button>
             </div>
           )}
@@ -262,18 +265,17 @@ export default function MealPlanPage() {
 
         {/* Entries list */}
         {loadingEntries ? (
-          <p className="text-muted-foreground">Loading…</p>
+          <p className="text-muted-foreground">{tCommon("loading")}</p>
         ) : (entries ?? []).length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-5xl mb-4">🍽️</p>
-            <p className="font-medium text-foreground">No recipes planned yet</p>
-            <p className="text-sm mt-1">Search above to add recipes to your plan</p>
+            <p className="font-medium text-foreground">{t("noRecipesYet")}</p>
+            <p className="text-sm mt-1">{t("searchHint")}</p>
           </div>
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-3">
-              {entries!.length} recipe{entries!.length !== 1 ? "s" : ""} ·{" "}
-              {totalServings} total servings
+              {t("recipeSummary", { recipeCount: entries!.length, totalServings })}
             </p>
             <div className="border rounded-xl overflow-hidden divide-y">
               {entries!.map((entry) => {
@@ -291,7 +293,7 @@ export default function MealPlanPage() {
                         </Link>
                         {ready && (
                           <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full mt-0.5">
-                            Ready
+                            {t("ready")}
                           </span>
                         )}
                       </div>
@@ -306,7 +308,7 @@ export default function MealPlanPage() {
                       )}
                       {allocated > 0 && (
                         <p className="text-xs text-muted-foreground mt-1">
-                          {allocated}/{entry.targetServings} servings scheduled
+                          {t("servingsScheduled", { allocated, total: entry.targetServings })}
                         </p>
                       )}
                     </div>

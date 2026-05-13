@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { normalizeUnit } from "@/lib/grocery-list";
+import { useTranslations } from "next-intl";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -93,6 +94,9 @@ export default function StartNewWeekWizard({
   checkedKeys,
   onClose,
 }: Props) {
+  const t = useTranslations("wizard");
+  const tCommon = useTranslations("common");
+  const tSchedule = useTranslations("schedule");
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
   // Step 1 — consumed portions
@@ -355,7 +359,7 @@ export default function StartNewWeekWizard({
 
       if (!res.ok) {
         const err = await res.json();
-        setError(err.error ?? "Something went wrong");
+        setError(err.error ?? t("somethingWentWrong"));
         setSubmitting(false);
         return;
       }
@@ -363,14 +367,14 @@ export default function StartNewWeekWizard({
       await runGroceryTransition(newRecipes, checkedKeys);
       onClose({ weekStart, weekEnd });
     } catch {
-      setError("Something went wrong");
+      setError(t("somethingWentWrong"));
       setSubmitting(false);
     }
   }
 
   const filled = totalPlanned >= totalNeeded;
   const isNextDisabled = step === 2 && (!weekStart || !weekEnd);
-  const nextLabel = step === 4 && !filled ? "Next (portions not filled)" : "Next";
+  const nextLabel = step === 4 && !filled ? t("nextPortionsNotFilled") : t("next");
   const nextVariant = step === 4 && !filled ? ("outline" as const) : ("default" as const);
 
   if (!open) return null;
@@ -394,9 +398,9 @@ export default function StartNewWeekWizard({
         >
           <X size={20} />
         </button>
-        <h2 className="font-semibold text-base">New Week</h2>
+        <h2 className="font-semibold text-base">{t("title")}</h2>
         <span className="text-xs text-muted-foreground ml-auto">
-          Step {step} of 6
+          {t("stepOf", { step })}
         </span>
       </div>
 
@@ -408,7 +412,7 @@ export default function StartNewWeekWizard({
             className="flex items-center gap-1 text-sm text-muted-foreground mb-5"
           >
             <ChevronLeft size={16} />
-            Back
+            {tCommon("back")}
           </button>
         )}
 
@@ -522,7 +526,7 @@ export default function StartNewWeekWizard({
       )}
       {step === 6 && (
         <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
-          {submitting ? "Starting week…" : "Start Week"}
+          {submitting ? t("startingWeek") : t("startWeek")}
         </Button>
       )}
     </div>
@@ -546,7 +550,7 @@ export default function StartNewWeekWizard({
             </button>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Pick a recipe or add a custom note
+            {tSchedule("pickRecipeOrNote")}
           </p>
 
           {scheduleSources.length > 0 && (
@@ -574,7 +578,7 @@ export default function StartNewWeekWizard({
                   >
                     <div className="font-medium text-sm">{src.recipeName}</div>
                     <div className="text-xs text-muted-foreground">
-                      {remaining} of {src.totalServings} servings remaining
+                      {tSchedule("servingsRemaining", { remaining, total: src.totalServings })}
                     </div>
                   </button>
                 );
@@ -584,7 +588,7 @@ export default function StartNewWeekWizard({
 
           {pickerSource && (
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm flex-1">Servings</span>
+              <span className="text-sm flex-1">{tSchedule("servings")}</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPickerServings((s) => Math.max(1, s - 1))}
@@ -611,10 +615,10 @@ export default function StartNewWeekWizard({
           {/* Custom note */}
           <div className="mb-4">
             <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-              {scheduleSources.length > 0 ? "Or add a custom note" : "Custom note"}
+              {scheduleSources.length > 0 ? tSchedule("orCustomNote") : tSchedule("customNote")}
             </label>
             <Input
-              placeholder="e.g. Eating outside, Dinner with friends…"
+              placeholder={tSchedule("customNotePlaceholder")}
               value={pickerNote}
               onChange={(e) => {
                 setPickerNote(e.target.value);
@@ -628,7 +632,7 @@ export default function StartNewWeekWizard({
             disabled={!pickerSource && !pickerNote.trim()}
             onClick={confirmPickerSlot}
           >
-            Confirm
+            {tCommon("confirm")}
           </Button>
         </div>
       </div>
@@ -648,16 +652,17 @@ function Step1({
   consumed: Record<number, number>;
   onConsumedChange: (id: number, val: number) => void;
 }) {
+  const t = useTranslations("wizard");
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">What did you eat?</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step1Title")}</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        How many portions were consumed from each recipe?
+        {t("step1Subtitle")}
       </p>
 
       {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-6">
-          No recipes in your current plan.
+          {t("noRecipesInPlan")}
         </p>
       ) : (
         <div className="border rounded-xl divide-y overflow-hidden mb-6">
@@ -672,15 +677,15 @@ function Step1({
                       {entry.recipe.name}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {entry.targetServings} portions total
+                      {t("portionsTotal", { total: entry.targetServings })}
                       {leftover > 0 && (
                         <span className="text-amber-600 dark:text-amber-400 ml-1">
-                          · {leftover} leftover
+                          · {t("leftover", { count: leftover })}
                         </span>
                       )}
                       {c >= entry.targetServings && (
                         <span className="text-muted-foreground ml-1">
-                          · fully consumed
+                          · {t("fullyConsumed")}
                         </span>
                       )}
                     </p>
@@ -728,16 +733,17 @@ function Step2({
   onWeekStartChange: (v: string) => void;
   onWeekEndChange: (v: string) => void;
 }) {
+  const t = useTranslations("wizard");
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">New week dates</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step2Title")}</h3>
       <p className="text-sm text-muted-foreground mb-5">
-        When does your new week start and end?
+        {t("step2Subtitle")}
       </p>
 
       <div className="space-y-4 mb-6">
         <div>
-          <label className="text-sm font-medium block mb-1">Start</label>
+          <label className="text-sm font-medium block mb-1">{t("startLabel")}</label>
           <input
             type="date"
             value={weekStart}
@@ -746,7 +752,7 @@ function Step2({
           />
         </div>
         <div>
-          <label className="text-sm font-medium block mb-1">End</label>
+          <label className="text-sm font-medium block mb-1">{t("endLabel")}</label>
           <input
             type="date"
             value={weekEnd}
@@ -772,12 +778,14 @@ function Step3({
   totalNeeded: number;
   onPortionChange: (day: string, meal: "lunch" | "dinner", val: number) => void;
 }) {
+  const t = useTranslations("wizard");
+  const tSchedule = useTranslations("schedule");
   const days = Object.keys(slotPortions).sort();
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">Portions per meal</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step3Title")}</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        How many portions does each meal need?
+        {t("step3Subtitle")}
       </p>
 
       <div className="space-y-3 mb-4">
@@ -794,7 +802,7 @@ function Step3({
                 {(["lunch", "dinner"] as const).map((meal) => (
                   <div key={meal} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
                     <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                      {meal === "lunch" ? "Lunch" : "Dinner"}
+                      {meal === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}
                     </span>
                     <div className="flex items-center gap-2 ml-auto">
                       <button
@@ -822,7 +830,7 @@ function Step3({
       </div>
 
       <p className="text-sm text-muted-foreground text-center mb-4">
-        Total portions needed: <span className="font-semibold text-foreground">{totalNeeded}</span>
+        {t("totalPortionsNeeded", { count: totalNeeded })}
       </p>
     </div>
   );
@@ -875,14 +883,17 @@ function Step4({
   onDropdownPointerDown: () => void;
   onCancelPointerDown: () => void;
 }) {
+  const t = useTranslations("wizard");
+  const tCommon = useTranslations("common");
+  const tMealPlan = useTranslations("mealPlan");
   const filled = totalPlanned >= totalNeeded;
   const showCancel = searchFocused || !!selectedRecipe;
 
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">Add recipes</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step4Title")}</h3>
       <p className="text-sm text-muted-foreground mb-1">
-        Select recipes for the new week.
+        {t("step4Subtitle")}
       </p>
 
       {/* Tally */}
@@ -906,7 +917,7 @@ function Step4({
         <div className="flex items-center gap-2">
           <Input
             ref={searchRef}
-            placeholder="Search recipes to add…"
+            placeholder={tMealPlan("searchPlaceholder")}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={onSearchFocus}
@@ -919,14 +930,14 @@ function Step4({
             onClick={onSearchCancel}
             className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${showCancel ? "max-w-[72px] opacity-100" : "max-w-0 opacity-0 pointer-events-none"}`}
           >
-            Cancel
+            {tCommon("cancel")}
           </button>
         </div>
 
         {showDropdown && (
           <div className="mt-1 border rounded-xl shadow-sm divide-y overflow-hidden">
             {recipes.length === 0 ? (
-              <p className="p-3 text-sm text-muted-foreground">No recipes found.</p>
+              <p className="p-3 text-sm text-muted-foreground">{t("noRecipesFound")}</p>
             ) : (
               recipes.map((r) => (
                 <button
@@ -937,7 +948,7 @@ function Step4({
                   onClick={() => onSelectRecipe(r)}
                 >
                   <span className="font-medium">{r.name}</span>
-                  <span className="text-muted-foreground ml-2 text-xs">{r.servings} servings</span>
+                  <span className="text-muted-foreground ml-2 text-xs">{tCommon("servings", { count: r.servings })}</span>
                 </button>
               ))
             )}
@@ -963,7 +974,7 @@ function Step4({
               </button>
             </div>
             <Button size="sm" onClick={onAddRecipe} className="active:scale-95 transition-transform shrink-0">
-              Add
+              {tCommon("add")}
             </Button>
           </div>
         )}
@@ -1010,11 +1021,14 @@ function Step5({
   onOpenPicker: (date: string, mealType: "lunch" | "dinner") => void;
   onRemoveSlot: (id: string) => void;
 }) {
+  const t = useTranslations("wizard");
+  const tCommon = useTranslations("common");
+  const tSchedule = useTranslations("schedule");
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">Schedule meals</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step5Title")}</h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Assign recipes to meal slots. You can skip this and schedule later.
+        {t("step5Subtitle")}
       </p>
 
       {scheduleSources.length > 0 && (
@@ -1055,7 +1069,7 @@ function Step5({
                 return (
                   <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
                     <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                      {mealType === "lunch" ? "Lunch" : "Dinner"}
+                      {mealType === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}
                     </span>
                     {slot ? (
                       <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -1067,7 +1081,7 @@ function Step5({
                           ) : (
                             <>
                               <p className="text-sm font-medium leading-snug">{slot.recipeName}</p>
-                              <p className="text-xs text-muted-foreground">{slot.servings} serving{slot.servings !== 1 ? "s" : ""}</p>
+                              <p className="text-xs text-muted-foreground">{tCommon("servings", { count: slot.servings })}</p>
                             </>
                           )}
                         </div>
@@ -1086,11 +1100,11 @@ function Step5({
                       >
                         <span className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
                           <Plus size={14} />
-                          Add meal
+                          {tSchedule("addMeal")}
                         </span>
                         {targetPortions != null && targetPortions > 0 && (
                           <span className="text-xs text-muted-foreground/60 ml-[22px]">
-                            {targetPortions}p needed
+                            {t("portionsNeeded", { count: targetPortions })}
                           </span>
                         )}
                       </button>
@@ -1127,39 +1141,40 @@ function Step6({
   planSlots: PlanSlot[];
   error: string | null;
 }) {
+  const t = useTranslations("wizard");
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">Ready to start</h3>
+      <h3 className="font-semibold text-base mb-1">{t("step6Title")}</h3>
       <p className="text-sm text-muted-foreground mb-5">
-        Review your new week before confirming.
+        {t("step6Subtitle")}
       </p>
 
       <div className="border rounded-xl divide-y overflow-hidden mb-6 text-sm">
         <div className="flex justify-between px-4 py-3">
-          <span className="text-muted-foreground">Week</span>
+          <span className="text-muted-foreground">{t("weekLabel")}</span>
           <span className="font-medium">
             {formatDay(weekStart)} → {formatDay(weekEnd)}
           </span>
         </div>
         <div className="flex justify-between px-4 py-3">
-          <span className="text-muted-foreground">Leftover portions</span>
+          <span className="text-muted-foreground">{t("leftoverPortions")}</span>
           <span className="font-medium">{leftoverServings}</span>
         </div>
         <div className="flex justify-between px-4 py-3">
-          <span className="text-muted-foreground">New recipes</span>
+          <span className="text-muted-foreground">{t("newRecipesLabel")}</span>
           <span className="font-medium">{newRecipes.length}</span>
         </div>
         <div className="flex justify-between px-4 py-3">
-          <span className="text-muted-foreground">Total planned</span>
+          <span className="text-muted-foreground">{t("totalPlanned")}</span>
           <span className="font-medium">
             {totalPlanned}
             {totalNeeded > 0 && (
-              <span className="text-muted-foreground font-normal"> / {totalNeeded} needed</span>
+              <span className="text-muted-foreground font-normal"> / {totalNeeded} {t("needed")}</span>
             )}
           </span>
         </div>
         <div className="flex justify-between px-4 py-3">
-          <span className="text-muted-foreground">Meals scheduled</span>
+          <span className="text-muted-foreground">{t("mealsScheduled")}</span>
           <span className="font-medium">{planSlots.length}</span>
         </div>
       </div>
