@@ -11,8 +11,9 @@ export default function BottomNav() {
   const t = useTranslations("nav");
   const pathname = usePathname();
 
-  if (pathname.startsWith("/auth")) return null;
   const { data: session } = authClient.useSession();
+
+  if (pathname.startsWith("/auth")) return null;
 
   const tabs = [
     { href: "/recipes", label: t("recipes"), icon: UtensilsCrossed },
