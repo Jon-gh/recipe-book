@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
-import { SUPPORTED_LOCALES, type Locale } from "@/i18n/request";
+import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 
 const LOCALE_LABELS: Record<Locale, string> = {
   en: "English",

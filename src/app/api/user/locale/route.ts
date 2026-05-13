@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { SUPPORTED_LOCALES, isValidLocale } from "@/i18n/request";
+import { SUPPORTED_LOCALES, isValidLocale } from "@/i18n/config";
 
 const COOKIE_OPTIONS = {
   path: "/",

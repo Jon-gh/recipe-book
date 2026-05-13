@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
-import { SUPPORTED_LOCALES, type Locale } from "@/i18n/request";
+import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
 
 type Mode = "signin" | "signup";
 

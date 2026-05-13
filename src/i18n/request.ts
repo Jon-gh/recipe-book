@@ -1,12 +1,8 @@
 import { getRequestConfig } from "next-intl/server";
 import { cookies } from "next/headers";
+import { isValidLocale, type Locale } from "./config";
 
-export const SUPPORTED_LOCALES = ["en", "fr", "zh-CN", "es"] as const;
-export type Locale = (typeof SUPPORTED_LOCALES)[number];
-
-export function isValidLocale(value: string): value is Locale {
-  return (SUPPORTED_LOCALES as readonly string[]).includes(value);
-}
+export { SUPPORTED_LOCALES, type Locale, isValidLocale } from "./config";
 
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
