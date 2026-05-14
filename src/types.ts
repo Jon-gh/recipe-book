@@ -5,6 +5,24 @@ export type Product = {
   defaultUnit: string;
   defaultQuantity: number;
   source: string;
+  displayName?: string;
+};
+
+export type ProductTranslation = {
+  id: number;
+  productId: number;
+  locale: string;
+  name: string;
+};
+
+export type RecipeTranslation = {
+  id: string;
+  recipeId: string;
+  locale: string;
+  name: string;
+  instructions: string;
+  notes: string;
+  tags: string[];
 };
 
 export type RecipeIngredient = {
@@ -25,6 +43,7 @@ export type Recipe = {
   tags: string[];
   favourite: boolean;
   notes: string;
+  nativeLocale: string;
   createdAt: string;
   updatedAt: string;
   ingredients: RecipeIngredient[];
@@ -77,11 +96,13 @@ export type RecipeFormData = {
   tags: string[];
   favourite: boolean;
   notes: string;
+  nativeLocale?: string;
   ingredients: {
     name: string;
     quantity: number;
     unit: string;
     preparation: string;
     category: string;
+    displayName?: string;
   }[];
 };

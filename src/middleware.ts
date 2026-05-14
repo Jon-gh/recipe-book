@@ -10,7 +10,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/auth/signin", request.url));
   }
 
-  return NextResponse.next();
+  const locale = request.cookies.get("NEXT_LOCALE")?.value ?? "en";
+  const response = NextResponse.next();
+  response.headers.set("x-user-locale", locale);
+  return response;
 }
 
 export const config = {

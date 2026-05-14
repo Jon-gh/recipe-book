@@ -2,31 +2,34 @@ import Anthropic from "@anthropic-ai/sdk";
 
 const EXTRACTION_PROMPT = `You are a recipe extraction assistant. Extract all recipe information from the provided input.
 
-Return ONLY a valid JSON object with this exact structure — no markdown, no extra text:
+First, detect the language of the input. Then return ONLY a valid JSON object with this exact structure — no markdown, no extra text:
 {
-  "name": "Recipe Name",
+  "nativeLocale": "fr",
+  "name": "Boeuf bourguignon",
   "servings": 4,
   "ingredients": [
-    {"name": "sirloin steak", "quantity": 250.0, "unit": "g", "preparation": "trimmed of visible fat and sliced into 1cm strips", "category": "meat & fish"},
-    {"name": "bird's eye chilli", "quantity": 1.0, "unit": "", "preparation": "finely chopped", "category": "produce"},
-    {"name": "fresh egg noodles", "quantity": 240.0, "unit": "g", "preparation": "", "category": "grains & pulses"},
-    {"name": "soy sauce", "quantity": 2.0, "unit": "tbsp", "preparation": "", "category": "condiments & sauces"},
-    {"name": "star anise", "quantity": 1.0, "unit": "", "preparation": "", "category": "spices & herbs"}
+    {"name": "beef chuck", "displayName": "boeuf braisé", "quantity": 500.0, "unit": "g", "preparation": "coupé en cubes", "category": "meat & fish"},
+    {"name": "red wine", "displayName": "vin rouge", "quantity": 750.0, "unit": "ml", "preparation": "", "category": "drinks"},
+    {"name": "bay leaf", "displayName": "feuille de laurier", "quantity": 2.0, "unit": "", "preparation": "", "category": "spices & herbs"}
   ],
-  "instructions": "Step 1: ...\\nStep 2: ...\\nStep 3: ...",
-  "tags": ["asian", "noodles", "quick"]
+  "instructions": "Étape 1: ...\\nÉtape 2: ...",
+  "tags": ["français", "bœuf", "mijoté"]
 }
 
 Rules:
+- nativeLocale must be the IETF language tag of the detected input language: "en", "fr", "es", or "zh-CN"; use "en" as fallback for unsupported languages
+- name, instructions, notes, and tags must be written in the detected language (nativeLocale)
+- ingredient name must ALWAYS be in English — it is the canonical lookup key used across all users
+- ingredient displayName must be the ingredient name in the detected language; omit displayName (or use "") when nativeLocale is "en"
 - servings must be a positive integer
 - quantity must be a positive number
 - unit must be a string; use "" when no unit applies (e.g. 2 eggs → unit "")
 - unit must use standard abbreviated forms: "g" not "grams", "kg" not "kilograms", "ml" not "millilitres", "l" not "litre", "tbsp" not "tablespoon", "tsp" not "teaspoon"
 - Do not include size qualifiers (fat, small, large, big) in the unit field — e.g. "2 fat cloves garlic" → quantity 2, unit "clove", name "garlic"
-- name must be the pure ingredient only — no preparation details and no size qualifiers
-- preparation describes how to prepare the ingredient; use "" if none
+- ingredient name must be the pure ingredient only — no preparation details and no size qualifiers
+- preparation describes how to prepare the ingredient in the native language; use "" if none
 - instructions must be newline-separated steps
-- tags must be a list of 1-5 lowercase category keywords
+- tags must be a list of 1-5 lowercase category keywords in the native language
 - category must be exactly one of: "fruit & veg", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "canned & jarred", "nuts & seeds", "baking & sweeteners", "condiments & sauces", "spices & herbs", "personal care", "household & cleaning", "health & pharmacy", "pet care", "other"
 - Omit water and other universally available household basics (e.g. tap water, ice) from the ingredients list
 - If a detail is unclear, make a reasonable culinary estimate

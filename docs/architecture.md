@@ -79,6 +79,17 @@ Browser
 - `src/middleware.ts` redirects unauthenticated browser requests to `/auth/signin` before they reach any page or API route (except `/api/auth/*` and static assets).
 - Password reset emails use nodemailer (configured via `EMAIL_SERVER`/`EMAIL_FROM` env vars). If these vars are unset, the reset endpoint silently skips email sending — the form still shows "check your email" but nothing arrives.
 
+### Content translation — native language model
+**Why:** Base `Recipe` fields store content in the recipe's **native language** (detected at import time, or the user's locale for manual entry). This avoids the double-translation accuracy loss that would occur if everything were forced through English first.
+
+- `Recipe.nativeLocale` records the original language (IETF tag: `"en"`, `"fr"`, `"es"`, `"zh-CN"`).
+- `RecipeTranslation` holds one row per `(recipeId, locale)` — display-only; base recipe is never overwritten.
+- Translation is **eager**: triggered on recipe save (if user locale ≠ nativeLocale) and on GET (if a translation is missing). Never fire-and-forget — the translated result is returned in the same request.
+- `ProductTranslation` holds display names per `(productId, locale)`. `Product.name` stays English (canonical dedup key for grocery list aggregation). Product display names are translated from English via DeepL and accumulated lazily as recipes are translated to new locales.
+- Translation engine: **DeepL Free API** (`src/lib/translate.ts`). If `DEEPL_API_KEY` is unset, translation is silently skipped and native content is returned — the app remains fully functional in English.
+- AI import prompt detects the source language and extracts recipe content in that language. Ingredient `name` is always returned in English for canonical `Product` lookup; `displayName` carries the native-language name for immediate `ProductTranslation` upsert.
+- `PUT /api/recipes/[id]` never changes `nativeLocale` — edits update native-language content only.
+
 ### `Product` — system vs. user products
 **Why:** Ingredients added during recipe imports (AI or manual) are shared across all users (`source: "system"`, `userId: null`). Ingredients added individually via the shopping list are personal to the user who created them (`source: "user"`, `userId`).
 

@@ -1,82 +1,66 @@
-# Handover — Multi-Language Support
+# Handover — Multi-Language Support (Phase 2)
 
-**Branch:** `feat/multi-user-auth`
-**Plan file:** `/home/desktop-jo/.claude/plans/now-i-would-like-fuzzy-wilkinson.md`
-
----
-
-## What has been done
-
-Phase 1 (UI translation) is **complete**. All 329 tests pass. Lint and `tsc --noEmit` are clean.
-
-### Infrastructure added
-
-| File | What it does |
-|------|-------------|
-| `src/i18n/request.ts` | `next-intl` server config — reads `NEXT_LOCALE` cookie, falls back to `"en"`. Exports `SUPPORTED_LOCALES`, `Locale` type, `isValidLocale()`. |
-| `next.config.mjs` | Wrapped with `createNextIntlPlugin`. |
-| `src/app/layout.tsx` | Uses `getLocale()` / `getMessages()` from `next-intl/server`; sets `lang` attr on `<html>`; wraps tree in `NextIntlClientProvider`. |
-| `messages/en.json` | All UI strings in English. **This is the source of truth.** |
-| `messages/fr.json` | French translations. |
-| `messages/zh-CN.json` | Simplified Chinese translations. |
-| `messages/es.json` | Spanish translations. |
-| `prisma/schema.prisma` | Added `locale String @default("en")` to `User` model. |
-| `src/app/api/user/locale/route.ts` | `GET` returns current user's locale + sets `NEXT_LOCALE` cookie. `PATCH` validates + saves locale to DB + sets cookie. |
-| `src/app/settings/page.tsx` | Settings page: language picker (loads via GET, saves via PATCH) + sign-out button. |
-| `src/components/BottomNav.tsx` | User-slot now links to `/settings` instead of signing out directly. |
-| `src/app/auth/signin/page.tsx` | Sign-up form has a language selector. On successful sign-up it calls `PATCH /api/user/locale`. On sign-in it calls `GET /api/user/locale` to sync the cookie. |
-
-### All components wrapped with `useTranslations()`
-
-Every hardcoded UI string in these files was replaced with `t(key)` calls:
-- `src/components/BottomNav.tsx`
-- `src/components/RecipeForm.tsx`
-- `src/components/StartNewWeekWizard.tsx`
-- `src/app/auth/signin/page.tsx`
-- `src/app/auth/reset-password/page.tsx`
-- `src/app/auth/reset-password/confirm/page.tsx`
-- `src/app/grocery-list/page.tsx`
-- `src/app/meal-plan/page.tsx`
-- `src/app/recipes/page.tsx`
-- `src/app/recipes/[id]/page.tsx`
-- `src/app/schedule/page.tsx`
-- `src/app/products/page.tsx`
-- `src/app/settings/page.tsx`
-
-### Test infrastructure
-
-`tests/setup.ts` has a global `vi.mock("next-intl", ...)` that loads `messages/en.json` and resolves translation keys to their English values. It handles:
-- Simple substitution: `{name}` → value
-- ICU plurals: `{count, plural, one {# word} other {# words}}` → correctly pluralised
-- Dotted keys without namespace: `t("auth.noAccount")` (used in SignIn page)
-
-New test files added:
-- `tests/api/user-locale.test.ts` — GET/PATCH `/api/user/locale`
-- `tests/components/SignInPage.test.tsx` — language picker on sign-up form
-- `tests/components/SettingsPage.test.tsx` — settings page language picker
+**Branch:** `feat/multi-language-phase2` (to be created from main)
 
 ---
 
-## What still needs to be done
+## Phase 1 — Status: DONE
 
-### Commit & PR for Phase 1
+UI translation with next-intl is complete and deployed. All 329 tests pass. Two runtime bugs were also fixed post-commit:
 
-The branch has uncommitted changes. Before starting Phase 2, commit everything and open the PR:
+- **Build fix:** `SUPPORTED_LOCALES`/`Locale`/`isValidLocale` extracted to `src/i18n/config.ts` so client components no longer import from the server-only `src/i18n/request.ts`.
+- **React error #310:** `useSession()` in `BottomNav.tsx` was called after an early return, violating Rules of Hooks on auth-page navigation. Moved above the early return.
 
-```bash
-git add -A
-git commit -m "feat: Phase 1 — UI translation with next-intl (en/fr/zh-CN/es)"
-git push
-gh pr create --title "feat: multi-language UI support (Phase 1)" --body "..."
-```
+---
 
-### Phase 2 — Content translation (separate PR)
+## Phase 2 — Content Translation via DeepL
 
-User-created recipe names, instructions, and notes are still English-only. Phase 2 adds lazy on-demand translation via DeepL Free. The full spec is in the plan file. Key pieces:
+User-created recipe names, instructions, and notes are still English-only. Phase 2 adds on-demand translation via DeepL Free API.
 
-**1. DB schema additions** (`prisma/schema.prisma`)
+### Core model
+
+**Native language, not English-as-canonical**
+
+The base `Recipe` row stores content in its *native language* — the language the recipe was originally written or detected in. English is no longer assumed to be the base. A `nativeLocale` field records what that language is.
+
+- **AI import:** detect source language → extract recipe content in that language → set `nativeLocale` to detected language
+- **Manual entry:** `nativeLocale` = user's current locale; content stored as typed, no translation on save
+- **Translation:** only happens when a user's display locale ≠ `nativeLocale` — one hop, never two
+
+### Key invariants — do not break
+
+- **`Product.name` is always English** — immutable canonical key used for grocery list dedup across all users. Never overwrite it.
+- **`ProductTranslation` holds display names per locale** — populated lazily when a recipe is translated to a new locale. Translate from English via DeepL (Option A — always available, accurate enough for ingredient names).
+- **`Product` self-enriches over time** — as recipes get translated to new locales, missing `ProductTranslation` rows are created. No upfront bulk translation needed.
+- **AI import returns recipe content in the detected language** — name, instructions, notes, tags in native language. Ingredient canonical names are always returned in English (for `Product` lookup/dedup).
+- **Category names in DB are English keys** — display translation is `tCat(product.category)` via `next-intl`; never write a translated category name to the DB.
+- **Units in DB are English** — `normalizeUnit` stays English-only.
+- **Do not extend `requireUserId` to return `locale`** — use a separate `getUserLocale(userId)` utility for Phase 2 routes.
+- **Writes always stay in native language** — PUT/edit routes never translate content back to the base `Recipe` row.
+
+### Translation trigger points (eager — no lazy fire-and-forget)
+
+| Trigger | Action |
+|---------|--------|
+| AI import, user locale ≠ detected language | Translate recipe + missing product names before returning |
+| AI import, user locale = detected language | No translation needed |
+| Manual save | No translation needed (`nativeLocale` = user locale) |
+| GET recipe, no translation exists for user locale | Translate eagerly, return translated result (not fire-and-forget) |
+| GET products, missing `ProductTranslation` for locale | Translate from English via DeepL, upsert, return |
+
+---
+
+## What needs to be built
+
+### 1. DB schema (`prisma/schema.prisma`)
+
+Add `nativeLocale` to `Recipe` and two new models:
 
 ```prisma
+// Add to Recipe model:
+nativeLocale String @default("en")
+translations RecipeTranslation[]
+
 model RecipeTranslation {
   id           String   @id @default(cuid())
   recipeId     String
@@ -91,6 +75,9 @@ model RecipeTranslation {
   @@unique([recipeId, locale])
 }
 
+// Add to Product model:
+translations ProductTranslation[]
+
 model ProductTranslation {
   id        Int     @id @default(autoincrement())
   productId Int
@@ -101,46 +88,103 @@ model ProductTranslation {
 }
 ```
 
-**2. `src/lib/translate.ts`** — DeepL integration
-- `translateRecipe(recipe, targetLocale)` — one DeepL request for `[name, instructions, notes]`, upserts `RecipeTranslation`.
-- `translateProduct(product, targetLocale)` — upserts `ProductTranslation`.
-- Env var: `DEEPL_API_KEY` (DeepL Free). Add to `.env.example` and Vercel dashboard.
-- Language code map: `{ fr: "FR", es: "ES", "zh-CN": "ZH", en: null }` (skip DeepL for `en`).
+Run `npx prisma db push` after schema changes.
 
-**3. Middleware update** — Set `x-user-locale` header on all `/api/` requests so route handlers don't re-read the cookie.
+### 2. `src/lib/translate.ts` — DeepL integration
 
-**4. Locale-aware recipe/product routes** — All content GET routes should:
-  - Include `translations` in the Prisma select, filtered to `x-user-locale` header value.
-  - Merge translated fields over base English fields (English fallback).
-  - If no translation exists for a non-English locale, fire `void translateRecipe(...)` in the background and return English immediately.
+```typescript
+const DEEPL_LANG: Record<string, string | null> = {
+  fr: "FR", es: "ES", "zh-CN": "ZH", en: null  // null = skip, already target
+};
 
-**5. Grocery list dedup fix** — `aggregateGroceryList()` in `src/lib/grocery-list.ts` currently uses `ingredient.name` as the deduplication key. With translations "tomate" (FR) and "tomato" (EN) would be counted separately. Fix: add `canonicalName` (the English `Product.name`) to `GroceryItem` as the dedup key, keep `name` as the display label.
+// Translate recipe content to targetLocale. Upserts RecipeTranslation row.
+async function translateRecipe(recipe, targetLocale): Promise<RecipeTranslation>
 
-**6. Product autocomplete fix** — `resolveProductId` and `GET /api/products?q=` only search `Product.name` (English). Update to also search `ProductTranslation.name` for the current locale so French users can find "tomate" and get back the "tomato" product.
+// Translate product display name from English to targetLocale.
+// Upserts ProductTranslation row.
+async function translateProduct(product, targetLocale): Promise<ProductTranslation>
+
+// Translate a batch of product ids missing a translation for targetLocale.
+async function translateMissingProducts(productIds: number[], targetLocale): Promise<void>
+```
+
+One DeepL request per recipe (batch: name + instructions + notes + tags array).
+Product names translated from `Product.name` (English) — always Option A.
+
+Env var: `DEEPL_API_KEY` (DeepL Free tier). Add to `.env.example` and Vercel dashboard.
+
+### 3. AI import prompt update (`src/lib/extract-recipe.ts`)
+
+Change the extraction prompt to:
+1. Detect the source language of the input.
+2. Return recipe content (name, instructions, notes, tags) in the detected language.
+3. Return ingredient canonical names **in English** (for `Product` lookup) plus a `displayName` in the detected language.
+4. Include `nativeLocale` in the returned JSON (IETF tag: `"en"`, `"fr"`, `"zh-CN"`, `"es"`, or best-guess for unsupported locales — fall back to `"en"`).
+
+### 4. Middleware update (`src/middleware.ts`)
+
+Propagate locale to API routes so handlers don't re-read the cookie:
+
+```typescript
+const locale = request.cookies.get("NEXT_LOCALE")?.value ?? "en";
+const response = NextResponse.next();
+response.headers.set("x-user-locale", locale);
+return response;
+```
+
+### 5. Locale-aware recipe routes
+
+Update `GET /api/recipes` and `GET /api/recipes/[id]` to:
+1. Read `x-user-locale` from request headers.
+2. If locale = recipe's `nativeLocale` → return base fields as-is.
+3. If translation exists for locale → merge: `{ ...recipe, ...translation }`.
+4. If no translation → call `translateRecipe()` eagerly, then merge and return.
+
+Update `POST /api/recipes` and `POST /api/recipes/import/*` to:
+1. Set `nativeLocale` from detected language (AI import) or user locale (manual).
+2. If user locale ≠ `nativeLocale` → call `translateRecipe()` before returning.
+
+### 6. Product routes + autocomplete
+
+Update `GET /api/products?q=` to:
+1. Search `Product.name` (English) AND `ProductTranslation.name` for the current locale.
+2. Return `displayName` = translation if exists, else `Product.name`.
+
+When creating a new `Product` during recipe save, if the AI provided a native-language `displayName`, upsert a `ProductTranslation` for `nativeLocale` immediately.
+
+### 7. Grocery list dedup fix (`src/lib/grocery-list.ts`)
+
+`aggregateGroceryList()` deduplicates by `ingredient.name` (English canonical). This is unaffected by translations since `Product.name` stays English. Verify this still holds — no change needed unless `GroceryItem` needs a `displayName` field for translated display on the grocery list page.
 
 ---
 
-## Key invariants — do not break
+## Suggested build order
 
-- **`Product.name` is always English** — it is the canonical key. `ProductTranslation` holds display-only names. `resolveProductId` must always operate on `Product.name`.
-- **AI import always returns English** — `extractRecipeFromText/Image` return English regardless of user locale. The base `Recipe` row is always English.
-- **Category names in DB are English keys** — display translation is `tCat(product.category)` via `next-intl`; never write a translated category name to the DB.
-- **Units in DB are English** — `normalizeUnit` stays English-only.
-- **Do not extend `requireUserId` to return `locale`** — use a separate `getUserLocale(userId)` utility for Phase 2 routes. This limits which existing test mocks need updating.
+1. Schema + `prisma db push`
+2. `src/lib/translate.ts` (DeepL client, unit-testable in isolation)
+3. AI import prompt update (`extract-recipe.ts`)
+4. Middleware locale header
+5. Recipe routes (GET + POST/import)
+6. Product routes + autocomplete
+7. Grocery list — verify dedup still correct, add `displayName` if needed
+8. Tests throughout
 
 ---
 
-## Verification before starting Phase 2
+## Verification checklist
 
-Run these to confirm Phase 1 is solid:
 ```bash
-npm test          # 329 tests, all green
-npx tsc --noEmit  # no output = clean
+npm test          # all tests green
+npx tsc --noEmit  # clean
 npm run lint      # no warnings
 ```
 
 Manual smoke test:
-1. Sign up with French → all UI labels in French, recipe content in English.
-2. Go to Settings → change language to Spanish → UI switches without page reload.
-3. Sign in → locale cookie is restored from DB.
-4. `lang` attribute on `<html>` matches the selected locale.
+1. Import a recipe from a French URL — recipe stored in French, `nativeLocale = "fr"`.
+2. View that recipe as an English user — one-hop translation to English, no double-translation.
+3. Chinese user manually types a recipe — stored in Chinese, no translation on save.
+4. English user views that Chinese recipe — translated to English on first GET.
+5. French user views same Chinese recipe — translated to French on first GET (not via English).
+6. Search products in French — "tomate" finds the tomato product via `ProductTranslation`.
+7. Switch locales — correct language shown each time, no English flash.
+8. Grocery list — no duplicate lines for the same ingredient across locales.
