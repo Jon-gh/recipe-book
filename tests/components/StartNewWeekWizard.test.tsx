@@ -16,6 +16,7 @@ const mockRecipe: Recipe = {
   tags: ["Italian"],
   favourite: false,
   notes: "",
+  nativeLocale: "en",
   createdAt: "2026-01-01",
   updatedAt: "2026-01-01",
   ingredients: [

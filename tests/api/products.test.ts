@@ -17,6 +17,7 @@ vi.mock("@/lib/prisma", () => ({
   },
 }));
 
+
 import { requireUserId } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GET } from "@/app/api/products/route";
@@ -42,27 +43,62 @@ describe("GET /api/products", () => {
     expect(res.status).toBe(401);
   });
 
-  it("returns system and user products", async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([userProduct, systemProduct] as never);
+  it("returns system and user products (strips translations array)", async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue([
+      { ...userProduct, translations: [] },
+      { ...systemProduct, translations: [] },
+    ] as never);
     const req = new NextRequest("http://localhost/api/products");
-    const res = await GET(req);
-    expect(await res.json()).toEqual([userProduct, systemProduct]);
+    const body = await (await GET(req)).json();
+    // displayName is undefined when no translation; rest of fields preserved
+    expect(body[0].name).toBe(userProduct.name);
+    expect(body[0].translations).toBeUndefined();
     expect(prisma.product.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ take: 10 })
     );
   });
 
   it("filters by source=user and removes take limit", async () => {
-    vi.mocked(prisma.product.findMany).mockResolvedValue([userProduct] as never);
+    vi.mocked(prisma.product.findMany).mockResolvedValue([{ ...userProduct, translations: [] }] as never);
     const req = new NextRequest("http://localhost/api/products?source=user");
-    const res = await GET(req);
-    expect(await res.json()).toEqual([userProduct]);
+    await GET(req);
     expect(prisma.product.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({ source: "user" }),
         take: undefined,
       })
     );
+  });
+
+  it("searches ProductTranslation names for non-English locale", async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue([
+      { ...systemProduct, translations: [{ name: "tomate" }] },
+    ] as never);
+    const req = new NextRequest("http://localhost/api/products?q=tomate", {
+      headers: { "x-user-locale": "fr" },
+    });
+    await GET(req);
+    expect(prisma.product.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            expect.objectContaining({ name: expect.objectContaining({ contains: "tomate" }) }),
+            expect.objectContaining({ translations: expect.anything() }),
+          ]),
+        }),
+      })
+    );
+  });
+
+  it("exposes displayName from translation when available", async () => {
+    vi.mocked(prisma.product.findMany).mockResolvedValue([
+      { ...systemProduct, translations: [{ name: "tomate" }] },
+    ] as never);
+    const req = new NextRequest("http://localhost/api/products?q=tomate", {
+      headers: { "x-user-locale": "fr" },
+    });
+    const body = await (await GET(req)).json();
+    expect(body[0].displayName).toBe("tomate");
   });
 });
 

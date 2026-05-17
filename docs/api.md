@@ -53,6 +53,24 @@ Returns **system products** (`userId: null`, shared across all users — created
 | `q` | string | Full-text search on name and description |
 | `favourite` | `"true"` | Filter to favourited recipes only |
 
+### Locale-aware recipe responses
+`GET /api/recipes` and `GET /api/recipes/[id]` read the `x-user-locale` header (set by middleware from the `NEXT_LOCALE` cookie). When the user's locale differs from the recipe's `nativeLocale`, the handler:
+1. Checks for an existing `RecipeTranslation` for that locale.
+2. If none exists, calls DeepL to translate eagerly and stores the result.
+3. Merges translated `name`, `instructions`, `notes`, `tags` over the base recipe fields.
+4. Translates any missing `ProductTranslation` rows for that locale and adds `displayName` to each ingredient's product.
+
+Translation uses Claude Haiku via the same `ANTHROPIC_API_KEY` used for AI import.
+
+### `nativeLocale` on recipe save
+`POST /api/recipes` accepts an optional `nativeLocale` field in the body:
+- **AI import**: the extraction prompt detects the source language and returns it as `nativeLocale`; it flows through the import form to the save request.
+- **Manual entry**: omit `nativeLocale`; the server defaults it to the user's locale from the `x-user-locale` header.
+
+If `nativeLocale ≠ user locale` on save, the handler translates eagerly to the user's locale before returning.
+
+**`PUT /api/recipes/[id]` never changes `nativeLocale`** — edits always update native-language content; the existing `nativeLocale` is preserved.
+
 ### POST `/api/recipes/import/text` — body
 ```json
 { "text": "paste the recipe text here" }
@@ -69,6 +87,9 @@ Tries JSON-LD structured data first; falls back to Claude extraction if not foun
 { "image": "data:image/jpeg;base64,..." }
 ```
 Base64-encoded image. Claude vision extracts the recipe.
+
+### Import response — language fields
+All import routes now return `nativeLocale` (detected language) and ingredient `displayName` (ingredient name in the detected language alongside the canonical English `name`).
 
 ## Meal Plan
 

@@ -17,7 +17,19 @@ vi.mock("@/lib/prisma", () => ({
       findFirst: vi.fn(),
       create: vi.fn(),
     },
+    productTranslation: {
+      findMany: vi.fn(),
+      upsert: vi.fn(),
+    },
+    recipeTranslation: {
+      upsert: vi.fn(),
+    },
   },
+}));
+
+vi.mock("@/lib/translate", () => ({
+  translateRecipe: vi.fn().mockResolvedValue(null),
+  translateMissingProducts: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { requireUserId } from "@/lib/auth";
@@ -37,6 +49,7 @@ const mockRecipe = {
   tags: ["italian"],
   favourite: false,
   notes: "",
+  nativeLocale: "en",
   userId: "user-1",
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -45,10 +58,13 @@ const mockRecipe = {
   ],
 };
 
+import { translateRecipe, translateMissingProducts } from "@/lib/translate";
+
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
   vi.mocked(prisma.product.findFirst).mockResolvedValue(mockProduct as never);
+  vi.mocked(prisma.productTranslation.findMany).mockResolvedValue([] as never);
 });
 
 // ---------------------------------------------------------------------------
@@ -311,5 +327,118 @@ describe("POST /api/recipes/[id]/duplicate", () => {
     const req = new NextRequest("http://localhost/api/recipes/abc123/duplicate", { method: "POST" });
     const res = await DUPLICATE(req, { params: { id: "abc123" } });
     expect((await res.json()).id).not.toBe("abc123");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Locale-aware GET
+// ---------------------------------------------------------------------------
+describe("GET /api/recipes — locale-aware", () => {
+  const frenchRecipe = {
+    ...mockRecipe,
+    nativeLocale: "fr",
+    name: "Pâtes bolognaises",
+    instructions: "Cuire les pâtes.",
+    tags: ["italien"],
+    translations: [],
+  };
+
+  it("uses existing RecipeTranslation when available", async () => {
+    const translation = { name: "Spaghetti Bolognese", instructions: "Cook pasta.", notes: "", tags: ["italian"] };
+    const recipeWithTranslation = { ...frenchRecipe, translations: [translation] };
+    vi.mocked(prisma.recipe.findMany).mockResolvedValue([recipeWithTranslation] as never);
+
+    const req = new NextRequest("http://localhost/api/recipes", {
+      headers: { "x-user-locale": "en" },
+    });
+    const res = await GET(req);
+    const body = await res.json();
+    expect(body[0].name).toBe("Spaghetti Bolognese");
+    expect(translateRecipe).not.toHaveBeenCalled();
+  });
+
+  it("calls translateRecipe when no translation exists", async () => {
+    vi.mocked(prisma.recipe.findMany).mockResolvedValue([frenchRecipe] as never);
+    vi.mocked(translateRecipe).mockResolvedValue({ name: "Spaghetti Bolognese", instructions: "Cook pasta.", notes: "", tags: ["italian"] } as never);
+
+    const req = new NextRequest("http://localhost/api/recipes", {
+      headers: { "x-user-locale": "en" },
+    });
+    await GET(req);
+    expect(translateRecipe).toHaveBeenCalledWith(frenchRecipe, "en");
+  });
+
+  it("skips translateRecipe when nativeLocale matches user locale", async () => {
+    vi.mocked(prisma.recipe.findMany).mockResolvedValue([{ ...frenchRecipe, translations: [] }] as never);
+
+    const req = new NextRequest("http://localhost/api/recipes", {
+      headers: { "x-user-locale": "fr" },
+    });
+    await GET(req);
+    expect(translateRecipe).not.toHaveBeenCalled();
+  });
+
+  it("adds displayName from ProductTranslation to ingredients", async () => {
+    vi.mocked(prisma.recipe.findMany).mockResolvedValue([{ ...mockRecipe, nativeLocale: "en", translations: [] }] as never);
+    vi.mocked(prisma.productTranslation.findMany).mockResolvedValue([
+      { productId: 1, name: "pâtes" },
+    ] as never);
+
+    const req = new NextRequest("http://localhost/api/recipes", {
+      headers: { "x-user-locale": "fr" },
+    });
+    const res = await GET(req);
+    const body = await res.json();
+    expect(body[0].ingredients[0].product.displayName).toBe("pâtes");
+  });
+});
+
+describe("POST /api/recipes — nativeLocale", () => {
+  it("saves nativeLocale from body (AI import)", async () => {
+    vi.mocked(prisma.recipe.create).mockResolvedValue({ ...mockRecipe, nativeLocale: "fr" } as never);
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      headers: { "x-user-locale": "en" },
+      body: JSON.stringify({ name: "Pâtes", servings: 2, instructions: "Cuire.", nativeLocale: "fr", ingredients: [] }),
+    });
+    await POST(req);
+    expect(prisma.recipe.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ nativeLocale: "fr" }) })
+    );
+  });
+
+  it("defaults nativeLocale to user locale when not in body (manual entry)", async () => {
+    vi.mocked(prisma.recipe.create).mockResolvedValue(mockRecipe as never);
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      headers: { "x-user-locale": "fr" },
+      body: JSON.stringify({ name: "Pâtes", servings: 2, instructions: "Cuire.", ingredients: [] }),
+    });
+    await POST(req);
+    expect(prisma.recipe.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ nativeLocale: "fr" }) })
+    );
+  });
+
+  it("calls translateRecipe eagerly when user locale differs from nativeLocale", async () => {
+    vi.mocked(prisma.recipe.create).mockResolvedValue({ ...mockRecipe, nativeLocale: "fr" } as never);
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      headers: { "x-user-locale": "en" },
+      body: JSON.stringify({ name: "Pâtes", servings: 2, instructions: "Cuire.", nativeLocale: "fr", ingredients: [] }),
+    });
+    await POST(req);
+    expect(translateRecipe).toHaveBeenCalled();
+  });
+
+  it("does not call translateRecipe when user locale matches nativeLocale", async () => {
+    vi.mocked(prisma.recipe.create).mockResolvedValue({ ...mockRecipe, nativeLocale: "fr" } as never);
+    const req = new NextRequest("http://localhost/api/recipes", {
+      method: "POST",
+      headers: { "x-user-locale": "fr" },
+      body: JSON.stringify({ name: "Pâtes", servings: 2, instructions: "Cuire.", nativeLocale: "fr", ingredients: [] }),
+    });
+    await POST(req);
+    expect(translateRecipe).not.toHaveBeenCalled();
   });
 });

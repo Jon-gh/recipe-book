@@ -28,6 +28,7 @@ function importedToForm(data: Partial<RecipeFormData>): RecipeFormData {
     tags: data.tags ?? [],
     favourite: data.favourite ?? false,
     notes: data.notes ?? "",
+    nativeLocale: data.nativeLocale,
     ingredients:
       data.ingredients && data.ingredients.length > 0
         ? data.ingredients.map((i) => ({ ...i, category: i.category ?? "other" }))

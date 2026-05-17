@@ -23,6 +23,7 @@ const mockRecipe = {
   tags: ["Italian", "quick"],
   favourite: false,
   notes: "Use guanciale if possible.",
+  nativeLocale: "en",
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
   ingredients: [

@@ -79,12 +79,14 @@ model Recipe {
   tags         String[]
   favourite    Boolean             @default(false)
   notes        String              @default("")
+  nativeLocale String              @default("en")
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
   userId       String
   user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   ingredients  RecipeIngredient[]
   mealPlanEntries MealPlanEntry[]
+  translations RecipeTranslation[]
 }
 
 model Product {
@@ -99,6 +101,7 @@ model Product {
   user              User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
   recipeIngredients RecipeIngredient[]
   shoppingListItems ShoppingListItem[]
+  translations      ProductTranslation[]
 
   @@map("Ingredient")
 }
@@ -155,4 +158,29 @@ model ShoppingSession {
   weekEnd     DateTime? @db.Date
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model RecipeTranslation {
+  id           String   @id @default(cuid())
+  recipeId     String
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  locale       String
+  name         String
+  instructions String
+  notes        String   @default("")
+  tags         String[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([recipeId, locale])
+}
+
+model ProductTranslation {
+  id        Int     @id @default(autoincrement())
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  locale    String
+  name      String
+
+  @@unique([productId, locale])
 }
