@@ -60,7 +60,7 @@ Returns **system products** (`userId: null`, shared across all users — created
 3. Merges translated `name`, `instructions`, `notes`, `tags` over the base recipe fields.
 4. Translates any missing `ProductTranslation` rows for that locale and adds `displayName` to each ingredient's product.
 
-If `DEEPL_API_KEY` is unset, translation is silently skipped and native content is returned.
+Translation uses Claude Haiku via the same `ANTHROPIC_API_KEY` used for AI import.
 
 ### `nativeLocale` on recipe save
 `POST /api/recipes` accepts an optional `nativeLocale` field in the body:

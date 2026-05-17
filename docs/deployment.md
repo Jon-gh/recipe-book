@@ -45,7 +45,6 @@ Set in the Vercel dashboard (Production + Preview environments) and locally in `
 | `BETTER_AUTH_SECRET` | Random secret for signing sessions — generate with `openssl rand -base64 32` |
 | `GOOGLE_CLIENT_ID` | Google OAuth client ID — from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `DEEPL_API_KEY` | DeepL Free API key for content translation — optional; omit to disable translation (app functions normally in English) |
 | `EMAIL_SERVER` | SMTP connection string for password reset emails — e.g. `smtp://user:pass@smtp.example.com:587` (optional) |
 | `EMAIL_FROM` | From address for password reset emails — e.g. `"Recipe Book <noreply@yourdomain.com>"` (optional) |
 

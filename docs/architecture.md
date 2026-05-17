@@ -86,7 +86,7 @@ Browser
 - `RecipeTranslation` holds one row per `(recipeId, locale)` — display-only; base recipe is never overwritten.
 - Translation is **eager**: triggered on recipe save (if user locale ≠ nativeLocale) and on GET (if a translation is missing). Never fire-and-forget — the translated result is returned in the same request.
 - `ProductTranslation` holds display names per `(productId, locale)`. `Product.name` stays English (canonical dedup key for grocery list aggregation). Product display names are translated from English via DeepL and accumulated lazily as recipes are translated to new locales.
-- Translation engine: **DeepL Free API** (`src/lib/translate.ts`). If `DEEPL_API_KEY` is unset, translation is silently skipped and native content is returned — the app remains fully functional in English.
+- Translation engine: **Claude Haiku** via the Anthropic SDK (`src/lib/translate.ts`). Uses the same `ANTHROPIC_API_KEY` already required for AI import — no additional credentials needed.
 - AI import prompt detects the source language and extracts recipe content in that language. Ingredient `name` is always returned in English for canonical `Product` lookup; `displayName` carries the native-language name for immediate `ProductTranslation` upsert.
 - `PUT /api/recipes/[id]` never changes `nativeLocale` — edits update native-language content only.
 

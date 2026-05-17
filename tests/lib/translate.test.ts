@@ -1,4 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+const mockCreate = vi.hoisted(() => vi.fn());
+
+vi.mock("@anthropic-ai/sdk", () => ({
+  default: class {
+    messages = { create: mockCreate };
+  },
+}));
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -15,23 +23,14 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import { translateRecipe, translateProduct, translateMissingProducts } from "@/lib/translate";
 
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
-
-function mockDeepL(translations: string[]) {
-  mockFetch.mockResolvedValueOnce({
-    ok: true,
-    json: async () => ({ translations: translations.map((text) => ({ text })) }),
+function mockClaude(translated: string[]) {
+  mockCreate.mockResolvedValueOnce({
+    content: [{ type: "text", text: JSON.stringify(translated) }],
   });
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
-  process.env.DEEPL_API_KEY = "test-key";
-});
-
-afterEach(() => {
-  delete process.env.DEEPL_API_KEY;
 });
 
 // ---------------------------------------------------------------------------
@@ -46,16 +45,16 @@ describe("translateRecipe", () => {
     tags: ["italian", "quick"],
   };
 
-  it("calls DeepL and upserts a RecipeTranslation", async () => {
-    mockDeepL(["Pâtes", "Faire bouillir de l'eau", "", "italien", "rapide"]);
+  it("calls Claude and upserts a RecipeTranslation", async () => {
+    mockClaude(["Pâtes", "Faire bouillir de l'eau", "", "italien", "rapide"]);
     vi.mocked(prisma.recipeTranslation.upsert).mockResolvedValue({} as never);
 
     await translateRecipe(recipe, "fr");
 
-    expect(mockFetch).toHaveBeenCalledOnce();
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.target_lang).toBe("FR");
-    expect(body.text).toEqual(["Pasta", "Boil water", "", "italian", "quick"]);
+    expect(mockCreate).toHaveBeenCalledOnce();
+    const prompt: string = mockCreate.mock.calls[0][0].messages[0].content;
+    expect(prompt).toContain("French");
+    expect(prompt).toContain('"Pasta"');
 
     expect(prisma.recipeTranslation.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -66,27 +65,20 @@ describe("translateRecipe", () => {
     );
   });
 
-  it("returns null and skips DeepL when DEEPL_API_KEY is not set", async () => {
-    delete process.env.DEEPL_API_KEY;
-    const result = await translateRecipe(recipe, "fr");
-    expect(result).toBeNull();
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
   it("returns null for unsupported locale", async () => {
     const result = await translateRecipe(recipe, "ja");
     expect(result).toBeNull();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("translates to English when nativeLocale is not English", async () => {
-    mockDeepL(["Pasta", "Boil the water", "", "italian", "quick"]);
+    mockClaude(["Pasta", "Boil the water", "", "italian", "quick"]);
     vi.mocked(prisma.recipeTranslation.upsert).mockResolvedValue({} as never);
 
     await translateRecipe({ ...recipe, name: "Pâtes", instructions: "Faire bouillir l'eau" }, "en");
 
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.target_lang).toBe("EN");
+    const prompt: string = mockCreate.mock.calls[0][0].messages[0].content;
+    expect(prompt).toContain("English");
   });
 });
 
@@ -97,12 +89,12 @@ describe("translateProduct", () => {
   const product = { id: 1, name: "tomato" };
 
   it("translates and upserts a ProductTranslation", async () => {
-    mockDeepL(["tomate"]);
+    mockClaude(["tomate"]);
     vi.mocked(prisma.productTranslation.upsert).mockResolvedValue({} as never);
 
     await translateProduct(product, "fr");
 
-    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(mockCreate).toHaveBeenCalledOnce();
     expect(prisma.productTranslation.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { productId_locale: { productId: 1, locale: "fr" } },
@@ -112,11 +104,10 @@ describe("translateProduct", () => {
     );
   });
 
-  it("returns null and skips when DEEPL_API_KEY is not set", async () => {
-    delete process.env.DEEPL_API_KEY;
-    const result = await translateProduct(product, "es");
+  it("returns null for unsupported locale", async () => {
+    const result = await translateProduct(product, "ja");
     expect(result).toBeNull();
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });
 
@@ -127,7 +118,7 @@ describe("translateMissingProducts", () => {
   it("skips products that already have a translation", async () => {
     vi.mocked(prisma.productTranslation.findMany).mockResolvedValue([{ productId: 1 }] as never);
     vi.mocked(prisma.product.findMany).mockResolvedValue([{ id: 2, name: "garlic" }] as never);
-    mockDeepL(["ail"]);
+    mockClaude(["ail"]);
     vi.mocked(prisma.$transaction).mockResolvedValue([]);
 
     await translateMissingProducts([1, 2], "fr");
@@ -143,24 +134,23 @@ describe("translateMissingProducts", () => {
       { id: 1, name: "tomato" },
       { id: 2, name: "garlic" },
     ] as never);
-    mockDeepL(["tomate", "ail"]);
+    mockClaude(["tomate", "ail"]);
     vi.mocked(prisma.$transaction).mockResolvedValue([]);
 
     await translateMissingProducts([1, 2], "fr");
 
-    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(mockCreate).toHaveBeenCalledOnce();
     expect(prisma.$transaction).toHaveBeenCalledOnce();
   });
 
   it("does nothing when productIds is empty", async () => {
     await translateMissingProducts([], "fr");
-    expect(mockFetch).not.toHaveBeenCalled();
+    expect(mockCreate).not.toHaveBeenCalled();
     expect(prisma.productTranslation.findMany).not.toHaveBeenCalled();
   });
 
-  it("does nothing when DEEPL_API_KEY is not set", async () => {
-    delete process.env.DEEPL_API_KEY;
-    await translateMissingProducts([1, 2], "fr");
-    expect(mockFetch).not.toHaveBeenCalled();
+  it("does nothing for unsupported locale", async () => {
+    await translateMissingProducts([1, 2], "ja");
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

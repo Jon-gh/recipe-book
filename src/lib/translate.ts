@@ -1,41 +1,43 @@
+import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 
-// Maps app locale → DeepL target_lang code.
-// English is a valid target when a recipe's nativeLocale is not English.
-const DEEPL_LANG: Record<string, string> = {
-  en: "EN",
-  fr: "FR",
-  es: "ES",
-  "zh-CN": "ZH",
+const client = new Anthropic();
+
+const SUPPORTED_LOCALES = new Set(["en", "fr", "es", "zh-CN"]);
+
+const LOCALE_NAME: Record<string, string> = {
+  en: "English",
+  fr: "French",
+  es: "Spanish",
+  "zh-CN": "Simplified Chinese",
 };
 
-async function deeplTranslate(texts: string[], targetLocale: string): Promise<string[]> {
-  const targetLang = DEEPL_LANG[targetLocale];
-  if (!targetLang || !process.env.DEEPL_API_KEY) return texts;
-
-  const res = await fetch("https://api-free.deepl.com/v2/translate", {
-    method: "POST",
-    headers: {
-      Authorization: `DeepL-Auth-Key ${process.env.DEEPL_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: texts, target_lang: targetLang }),
+async function claudeTranslate(texts: string[], targetLocale: string): Promise<string[]> {
+  const langName = LOCALE_NAME[targetLocale];
+  const message = await client.messages.create({
+    model: "claude-haiku-4-5-20251001",
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "user",
+        content: `Translate the following JSON array of strings to ${langName}. Return ONLY a valid JSON array of translated strings in the same order, no markdown, no extra text.\n\n${JSON.stringify(texts)}`,
+      },
+    ],
   });
 
-  if (!res.ok) throw new Error(`DeepL error ${res.status}: ${await res.text()}`);
-  const data = (await res.json()) as { translations: { text: string }[] };
-  return data.translations.map((t) => t.text);
+  const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "[]";
+  return JSON.parse(raw) as string[];
 }
 
 export async function translateRecipe(
   recipe: { id: string; name: string; instructions: string; notes: string; tags: string[] },
   targetLocale: string
 ) {
-  if (!DEEPL_LANG[targetLocale] || !process.env.DEEPL_API_KEY) return null;
+  if (!SUPPORTED_LOCALES.has(targetLocale)) return null;
 
   const { id, name, instructions, notes, tags } = recipe;
   const texts = [name, instructions, notes, ...tags];
-  const translated = await deeplTranslate(texts, targetLocale);
+  const translated = await claudeTranslate(texts, targetLocale);
 
   const data = {
     name: translated[0],
@@ -55,9 +57,9 @@ export async function translateProduct(
   product: { id: number; name: string },
   targetLocale: string
 ) {
-  if (!DEEPL_LANG[targetLocale] || !process.env.DEEPL_API_KEY) return null;
+  if (!SUPPORTED_LOCALES.has(targetLocale)) return null;
 
-  const [name] = await deeplTranslate([product.name], targetLocale);
+  const [name] = await claudeTranslate([product.name], targetLocale);
 
   return prisma.productTranslation.upsert({
     where: { productId_locale: { productId: product.id, locale: targetLocale } },
@@ -72,7 +74,7 @@ export async function translateMissingProducts(
   productIds: number[],
   targetLocale: string
 ): Promise<void> {
-  if (!DEEPL_LANG[targetLocale] || !process.env.DEEPL_API_KEY || !productIds.length) return;
+  if (!SUPPORTED_LOCALES.has(targetLocale) || !productIds.length) return;
 
   const existing = await prisma.productTranslation.findMany({
     where: { productId: { in: productIds }, locale: targetLocale },
@@ -88,7 +90,7 @@ export async function translateMissingProducts(
   });
   if (!products.length) return;
 
-  const names = await deeplTranslate(
+  const names = await claudeTranslate(
     products.map((p) => p.name),
     targetLocale
   );
