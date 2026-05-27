@@ -84,6 +84,7 @@ export default function GroceryListPage() {
 
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
+  const [showInTrolley, setShowInTrolley] = useState(false);
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: globalMutate } = useSWRConfig();
@@ -410,36 +411,46 @@ export default function GroceryListPage() {
 
             {checkedItems.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  {t("inTrolley")}
-                </p>
-                <Card>
-                  <CardContent className="pt-4">
-                    <ul className="divide-y">
-                      {checkedItems.map((item) => {
-                        const key = itemKey(item);
-                        return (
-                          <li key={key}>
-                            <button
-                              className="w-full flex items-baseline gap-2 py-3 text-left min-h-[44px] active:bg-muted transition-colors"
-                              onClick={() => toggleItem(item)}
-                            >
-                              <span className="font-medium line-through text-muted-foreground">
-                                {item.name}
-                              </span>
-                              <span className="text-muted-foreground text-sm ml-auto line-through">
-                                {item.quantity % 1 === 0
-                                  ? item.quantity
-                                  : item.quantity.toFixed(1)}
-                                {item.unit ? ` ${item.unit}` : ""}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </CardContent>
-                </Card>
+                <button
+                  className="text-sm text-muted-foreground underline-offset-2 underline mb-2"
+                  onClick={() => setShowInTrolley((v) => !v)}
+                >
+                  {showInTrolley ? t("hideInTrolley") : t("showInTrolley", { count: checkedItems.length })}
+                </button>
+                {showInTrolley && (
+                  <>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2 px-1">
+                    {t("inTrolley")}
+                  </p>
+                  <Card>
+                    <CardContent className="pt-4">
+                      <ul className="divide-y">
+                        {checkedItems.map((item) => {
+                          const key = itemKey(item);
+                          return (
+                            <li key={key}>
+                              <button
+                                className="w-full flex items-baseline gap-2 py-3 text-left min-h-[44px] active:bg-muted transition-colors"
+                                onClick={() => toggleItem(item)}
+                              >
+                                <span className="font-medium line-through text-muted-foreground">
+                                  {item.name}
+                                </span>
+                                <span className="text-muted-foreground text-sm ml-auto line-through">
+                                  {item.quantity % 1 === 0
+                                    ? item.quantity
+                                    : item.quantity.toFixed(1)}
+                                  {item.unit ? ` ${item.unit}` : ""}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  </>
+                )}
               </div>
             )}
           </div>

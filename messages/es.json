@@ -133,6 +133,8 @@
     "noItemsCta": "Añade recetas a tu plan de comidas",
     "noItemsOr": "para empezar, o toca + para añadir extras.",
     "inTrolley": "En el carrito",
+    "showInTrolley": "Mostrar en el carrito ({count})",
+    "hideInTrolley": "Ocultar en el carrito",
     "addToShoppingList": "Añadir a la lista de la compra",
     "addToList": "Añadir a la lista",
     "itemLabel": "Artículo",

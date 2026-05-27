@@ -133,6 +133,8 @@
     "noItemsCta": "Add recipes to your meal plan",
     "noItemsOr": "to get started, or tap + to add extras.",
     "inTrolley": "In Trolley",
+    "showInTrolley": "Show in trolley ({count})",
+    "hideInTrolley": "Hide in trolley",
     "addToShoppingList": "Add to Shopping List",
     "addToList": "Add to List",
     "itemLabel": "Item",
