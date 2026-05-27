@@ -44,12 +44,19 @@ Browser
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
 | `src/app/grocery-list/` | Grocery list page — grouped by ingredient category, staple toggle, shopping mode with localStorage persistence; persistent shopping list extras via DB |
 | `src/app/api/shopping-list/` | REST: list/add/delete persistent shopping list items |
+| `src/app/api/scheduled-meals/` | REST: list/schedule/patch/delete `ScheduledMeal` entries — assigns meal plan entries to specific dates and meal slots |
+| `src/app/api/shopping-session/` | GET/PUT — per-user shopping session state (`checkedKeys`, `showStaples`, `weekStart`/`weekEnd`) |
+| `src/app/api/user/locale/` | GET/PATCH — read and update the user's preferred locale; sets `NEXT_LOCALE` cookie |
+| `src/app/schedule/` | Weekly calendar view — schedule meal plan entries on specific dates and meal slots |
+| `src/app/settings/` | User settings page — language/locale preference |
+| `src/i18n/config.ts` | Supported locales list (`en`, `fr`, `es`, `zh-CN`) and `isValidLocale()` helper |
+| `src/i18n/request.ts` | next-intl request config — resolves locale from `NEXT_LOCALE` cookie |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
-| `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ShoppingListItem`, `Product`, `ShoppingSession` |
+| `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ScheduledMeal`, `ShoppingListItem`, `Product`, `ShoppingSession` |
 | `tests/` | Vitest suite: `tests/lib/`, `tests/api/`, `tests/components/` |
 
 ## Database Schema — Key Decisions
@@ -85,7 +92,7 @@ Browser
 - `Recipe.nativeLocale` records the original language (IETF tag: `"en"`, `"fr"`, `"es"`, `"zh-CN"`).
 - `RecipeTranslation` holds one row per `(recipeId, locale)` — display-only; base recipe is never overwritten.
 - Translation is **eager**: triggered on recipe save (if user locale ≠ nativeLocale) and on GET (if a translation is missing). Never fire-and-forget — the translated result is returned in the same request.
-- `ProductTranslation` holds display names per `(productId, locale)`. `Product.name` stays English (canonical dedup key for grocery list aggregation). Product display names are translated from English via DeepL and accumulated lazily as recipes are translated to new locales.
+- `ProductTranslation` holds display names per `(productId, locale)`. `Product.name` stays English (canonical dedup key for grocery list aggregation). Product display names are translated from English via Claude Haiku and accumulated lazily as recipes are translated to new locales.
 - Translation engine: **Claude Haiku** via the Anthropic SDK (`src/lib/translate.ts`). Uses the same `ANTHROPIC_API_KEY` already required for AI import — no additional credentials needed.
 - AI import prompt detects the source language and extracts recipe content in that language. Ingredient `name` is always returned in English for canonical `Product` lookup; `displayName` carries the native-language name for immediate `ProductTranslation` upsert.
 - `PUT /api/recipes/[id]` never changes `nativeLocale` — edits update native-language content only.
