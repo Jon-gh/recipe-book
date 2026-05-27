@@ -56,7 +56,7 @@ Returns **system products** (`userId: null`, shared across all users — created
 ### Locale-aware recipe responses
 `GET /api/recipes` and `GET /api/recipes/[id]` read the `x-user-locale` header (set by middleware from the `NEXT_LOCALE` cookie). When the user's locale differs from the recipe's `nativeLocale`, the handler:
 1. Checks for an existing `RecipeTranslation` for that locale.
-2. If none exists, calls DeepL to translate eagerly and stores the result.
+2. If none exists, calls Claude Haiku to translate eagerly and stores the result.
 3. Merges translated `name`, `instructions`, `notes`, `tags` over the base recipe fields.
 4. Translates any missing `ProductTranslation` rows for that locale and adds `displayName` to each ingredient's product.
 
@@ -120,6 +120,65 @@ All import routes now return `nativeLocale` (detected language) and ingredient `
 
 ### GET `/api/shopping-list` — response
 Returns `ShoppingListItem[]` — each item includes the nested `ingredient` object (`id`, `name`, `category`).
+
+## Scheduled Meals
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/scheduled-meals` | List scheduled meals (optionally filtered by date range) |
+| POST | `/api/scheduled-meals` | Schedule a meal plan entry on a specific date |
+| PATCH | `/api/scheduled-meals/[id]` | Update servings for a scheduled meal |
+| DELETE | `/api/scheduled-meals/[id]` | Remove a scheduled meal |
+
+### GET `/api/scheduled-meals` — query params
+| Param | Type | Description |
+|-------|------|-------------|
+| `from` | ISO date string | Start of date range (inclusive) |
+| `to` | ISO date string | End of date range (inclusive) |
+
+Returns meals ordered by `date` then `mealType`. Each record includes the nested `mealPlanEntry` with `recipe`.
+
+### POST `/api/scheduled-meals` — body
+Schedule a meal plan entry:
+```json
+{ "mealPlanEntryId": "cuid", "date": "2025-06-01", "mealType": "dinner", "servings": 2 }
+```
+Schedule a free-text note slot (no meal plan entry):
+```json
+{ "date": "2025-06-01", "mealType": "lunch", "note": "Leftovers", "servings": 1 }
+```
+Returns `409` if the slot (`mealPlanEntryId + date + mealType`) is already occupied. Returns `400` if adding `servings` would exceed the entry's `targetServings` across all scheduled days.
+
+## Shopping Session
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/shopping-session` | Get the current user's shopping session state |
+| PUT | `/api/shopping-session` | Update shopping session state |
+
+### Shopping session shape
+```json
+{
+  "checkedKeys": ["item-key-1"],
+  "showStaples": false,
+  "weekStart": "2025-06-01",
+  "weekEnd": "2025-06-07"
+}
+```
+`checkedKeys` persists which grocery list items the user has ticked during a shopping trip. `weekStart`/`weekEnd` track the active week. Missing fields default to `[]`, `false`, and `null`.
+
+## User Preferences
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/user/locale` | Get the current user's preferred locale |
+| PATCH | `/api/user/locale` | Update the user's preferred locale |
+
+### PATCH `/api/user/locale` — body
+```json
+{ "locale": "fr" }
+```
+Accepted values: `"en"`, `"fr"`, `"es"`, `"zh-CN"`. Stores the preference in `User.locale` and sets the `NEXT_LOCALE` cookie in the response. Returns `400` for an unsupported locale.
 
 ## Grocery List
 
