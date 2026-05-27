@@ -133,6 +133,8 @@
     "noItemsCta": "Ajoutez des recettes à votre plan de repas",
     "noItemsOr": "pour commencer, ou appuyez sur + pour ajouter des extras.",
     "inTrolley": "Dans le chariot",
+    "showInTrolley": "Afficher dans le chariot ({count})",
+    "hideInTrolley": "Masquer dans le chariot",
     "addToShoppingList": "Ajouter à la liste de courses",
     "addToList": "Ajouter à la liste",
     "itemLabel": "Article",

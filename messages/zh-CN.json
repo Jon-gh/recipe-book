@@ -133,6 +133,8 @@
     "noItemsCta": "将食谱添加到您的餐计划",
     "noItemsOr": "以开始，或点击 + 添加其他物品。",
     "inTrolley": "已入购物车",
+    "showInTrolley": "显示购物车中物品（{count}）",
+    "hideInTrolley": "隐藏购物车中物品",
     "addToShoppingList": "添加到购物清单",
     "addToList": "添加",
     "itemLabel": "物品",

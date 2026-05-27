@@ -266,6 +266,12 @@ describe("GroceryListPage — checking items", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
 
+    // In Trolley section is hidden by default; toggle button appears
+    expect(screen.getByRole("button", { name: /Show in trolley/i })).toBeInTheDocument();
+    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+
+    // Reveal the section and verify strikethrough
+    await userEvent.click(screen.getByRole("button", { name: /Show in trolley/i }));
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
     expect(screen.getByText("Pasta").className).toContain("line-through");
   });
@@ -275,10 +281,13 @@ describe("GroceryListPage — checking items", () => {
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    // Reveal in-trolley items first
+    await userEvent.click(screen.getByRole("button", { name: /Show in trolley/i }));
     expect(screen.getByText("In Trolley")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
     expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show in trolley/i })).not.toBeInTheDocument();
   });
 
   it("tapping a shopping list item optimistically removes it and shows undo toast", async () => {
@@ -302,7 +311,8 @@ describe("GroceryListPage — server session persistence", () => {
   it("restores checked keys from server session", async () => {
     setupFetch({ session: { id: "session", checkedKeys: ["pasta__g"], showStaples: false } });
     renderPage();
-    await waitFor(() => expect(screen.getByText("In Trolley")).toBeInTheDocument());
+    // In Trolley section is collapsed by default; toggle button shows the count
+    await waitFor(() => expect(screen.getByRole("button", { name: /Show in trolley/i })).toBeInTheDocument());
   });
 
   it("sends PUT to server when an item is checked", async () => {
