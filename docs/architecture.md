@@ -23,7 +23,8 @@ Browser
 | `src/lib/auth.ts` | Better Auth server config (`auth`) + `requireUserId()` helper — call at the top of every API route handler |
 | `src/lib/auth-client.ts` | Better Auth client instance (`authClient`) — use in client components for sign-in, sign-out, `useSession()` |
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
-| `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper |
+| `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper; `CATEGORY_EMOJI` map for grocery list category headers |
+| `src/lib/recipe-emoji.ts` | `getRecipeEmoji(name)` — maps recipe name keywords to a representative emoji (e.g. "pasta" → 🍝); used on recipe list cards; no DB dependency |
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
 | `src/middleware.ts` | Better Auth middleware — redirects unauthenticated requests to `/auth/signin`; excludes `/auth/*`, `/api/auth/*`, and static assets |
@@ -54,6 +55,7 @@ Browser
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
+| `src/components/LoadingState.tsx` | Reusable full-page loading indicator: large pulsing emoji + localised message string; used on recipe list, recipe detail, meal plan, and grocery list pages |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
 | `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ScheduledMeal`, `ShoppingListItem`, `Product`, `ShoppingSession` |
