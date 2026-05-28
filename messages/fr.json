@@ -81,6 +81,7 @@
     "emptyAddFirstRecipe": "Ajouter ma première recette"
   },
   "recipeDetail": {
+    "loading": "Chargement de la recette…",
     "notFound": "Recette introuvable.",
     "ingredients": "Ingrédients",
     "instructions": "Instructions",

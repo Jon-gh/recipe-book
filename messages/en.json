@@ -81,6 +81,7 @@
     "emptyAddFirstRecipe": "Add your first recipe"
   },
   "recipeDetail": {
+    "loading": "Fetching the recipe…",
     "notFound": "Recipe not found.",
     "ingredients": "Ingredients",
     "instructions": "Instructions",

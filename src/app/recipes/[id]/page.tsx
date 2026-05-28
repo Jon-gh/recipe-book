@@ -14,6 +14,7 @@ import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
+import LoadingState from "@/components/LoadingState";
 import { useTranslations } from "next-intl";
 
 export default function RecipeDetailPage() {
@@ -89,7 +90,7 @@ export default function RecipeDetailPage() {
     setShowPlanSheet(false);
   }
 
-  if (isLoading) return <p className="text-muted-foreground">{tCommon("loading")}</p>;
+  if (isLoading) return <LoadingState emoji="🍳" message={t("loading")} />;
   if (!recipe) return <p className="text-muted-foreground">{t("notFound")}</p>;
 
   return (

@@ -81,6 +81,7 @@
     "emptyAddFirstRecipe": "添加第一个食谱"
   },
   "recipeDetail": {
+    "loading": "正在加载食谱…",
     "notFound": "食谱不存在。",
     "ingredients": "食材",
     "instructions": "步骤",
