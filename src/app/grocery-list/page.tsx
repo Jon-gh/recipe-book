@@ -364,7 +364,7 @@ export default function GroceryListPage() {
               </div>
             )}
 
-            {checkedItems.length > 0 && uncheckedItems.length === 0 && (
+            {checkedItems.length > 0 && visibleUncheckedGroups.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-12 text-center">
                 <span className="text-6xl">🎉</span>
                 <p className="font-bold text-lg">{t("allDoneTitle")}</p>
