@@ -13,6 +13,7 @@ import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
 import PullToRefresh from "@/components/PullToRefresh";
 import StartNewWeekWizard from "@/components/StartNewWeekWizard";
+import LoadingState from "@/components/LoadingState";
 import { useTranslations } from "next-intl";
 
 export default function MealPlanPage() {
@@ -265,12 +266,18 @@ export default function MealPlanPage() {
 
         {/* Entries list */}
         {loadingEntries ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState emoji="📅" message={t("loading")} />
         ) : (entries ?? []).length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-5xl mb-4">🍽️</p>
-            <p className="font-medium text-foreground">{t("noRecipesYet")}</p>
-            <p className="text-sm mt-1">{t("searchHint")}</p>
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="text-6xl">📅</span>
+            <p className="font-bold text-lg">{t("emptyTitle")}</p>
+            <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
+            <Link
+              href="/recipes"
+              className="mt-2 px-5 py-2.5 rounded-full bg-green-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+            >
+              {t("emptyBrowseRecipes")}
+            </Link>
           </div>
         ) : (
           <>

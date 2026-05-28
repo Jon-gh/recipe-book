@@ -53,7 +53,7 @@ describe("RecipesPage", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Checking the recipe box…")).toBeInTheDocument();
   });
 
   it("renders recipe cards after loading", async () => {
@@ -71,7 +71,7 @@ describe("RecipesPage", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("No recipes found.")).toBeInTheDocument();
+      expect(screen.getByText("Your cookbook is empty.")).toBeInTheDocument();
     });
   });
 

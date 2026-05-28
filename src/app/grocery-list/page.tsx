@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Product } from "@/types";
-import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple, CATEGORY_EMOJI } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
+import LoadingState from "@/components/LoadingState";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -337,7 +338,7 @@ export default function GroceryListPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState emoji="🛒" message={t("loading")} />
         ) : (
           <div className="space-y-4">
             {totalCount > 0 && stapleCount > 0 && (
@@ -350,19 +351,31 @@ export default function GroceryListPage() {
             )}
 
             {totalCount === 0 && (
-              <p className="text-muted-foreground">
-                {t("noItems")}{" "}
-                <Link href="/meal-plan" className="underline">
-                  {t("noItemsCta")}
-                </Link>{" "}
-                {t("noItemsOr")}
-              </p>
+              <div className="flex flex-col items-center gap-3 py-16 text-center">
+                <span className="text-6xl">🛒</span>
+                <p className="font-bold text-lg">{t("emptyTitle")}</p>
+                <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
+                <Link
+                  href="/meal-plan"
+                  className="mt-2 px-5 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+                >
+                  {t("backToMealPlan")}
+                </Link>
+              </div>
+            )}
+
+            {checkedItems.length > 0 && uncheckedItems.length === 0 && (
+              <div className="flex flex-col items-center gap-3 py-12 text-center">
+                <span className="text-6xl">🎉</span>
+                <p className="font-bold text-lg">{t("allDoneTitle")}</p>
+                <p className="text-sm text-muted-foreground">{t("allDoneSubtext")}</p>
+              </div>
             )}
 
             {visibleUncheckedGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  {tCat(category)}
+                  {CATEGORY_EMOJI[category] ?? "🛒"} {tCat(category)}
                 </p>
                 <Card>
                   <CardContent className="pt-4">
@@ -420,7 +433,7 @@ export default function GroceryListPage() {
                 {showInTrolley && (
                   <>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2 px-1">
-                    {t("inTrolley")}
+                    🛒 {t("inTrolley")}
                   </p>
                   <Card>
                     <CardContent className="pt-4">

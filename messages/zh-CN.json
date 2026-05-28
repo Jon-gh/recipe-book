@@ -22,7 +22,9 @@
     "defaultUnit": "默认单位",
     "unitPlaceholder": "g、ml、勺…",
     "servings": "{count, plural, other {# 份}}",
-    "ingredients": "{count, plural, other {# 种食材}}"
+    "ingredients": "{count, plural, other {# 种食材}}",
+    "errorTitle": "出了点问题。",
+    "errorSubtext": "下拉刷新重试。"
   },
   "languages": {
     "en": "English",
@@ -71,8 +73,12 @@
     "favourites": "★ 收藏",
     "noRecipes": "未找到食谱。",
     "addOne": "添加一个！",
+    "loading": "正在查找食谱…",
     "loadError": "无法加载食谱，请检查您的网络连接。",
-    "newRecipe": "新建食谱"
+    "newRecipe": "新建食谱",
+    "emptyTitle": "您的食谱本还是空的。",
+    "emptySubtext": "粘贴文字、链接或拍照来导入食谱。",
+    "emptyAddFirstRecipe": "添加第一个食谱"
   },
   "recipeDetail": {
     "notFound": "食谱不存在。",
@@ -126,10 +132,15 @@
   },
   "grocery": {
     "title": "购物清单",
+    "loading": "正在整理您的食材…",
     "backToMealPlan": "← 餐计划",
     "hideStaples": "隐藏常备品",
     "showStaples": "显示常备品（{count}）",
     "noItems": "餐计划中暂无食材。",
+    "emptyTitle": "购物车是空的。",
+    "emptySubtext": "规划餐食，自动生成购物清单。",
+    "allDoneTitle": "全部完成！购物顺利。",
+    "allDoneSubtext": "所有物品已入购物车。",
     "noItemsCta": "将食谱添加到您的餐计划",
     "noItemsOr": "以开始，或点击 + 添加其他物品。",
     "inTrolley": "已入购物车",
@@ -149,8 +160,12 @@
     "title": "计划",
     "newWeek": "新的一周",
     "searchPlaceholder": "搜索要添加的食谱…",
+    "loading": "正在规划您的本周…",
     "noRecipesYet": "尚未计划任何食谱",
     "searchHint": "在上方搜索以添加食谱",
+    "emptyTitle": "还没有安排。",
+    "emptySubtext": "浏览您的食谱，开始规划本周菜单。",
+    "emptyBrowseRecipes": "浏览食谱",
     "noRecipesFound": "未找到食谱。",
     "ready": "可以烹饪",
     "servingsScheduled": "{allocated}/{total} 份已安排",

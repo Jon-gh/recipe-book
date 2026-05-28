@@ -22,6 +22,7 @@ export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [showActionsSheet, setShowActionsSheet] = useState(false);
+  const [starPopped, setStarPopped] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [showPlanSheet, setShowPlanSheet] = useState(false);
@@ -37,6 +38,8 @@ export default function RecipeDetailPage() {
   async function handleToggleFavourite() {
     if (!recipe) return;
     haptic();
+    setStarPopped(true);
+    setTimeout(() => setStarPopped(false), 200);
     const updated = { ...recipe, favourite: !recipe.favourite };
     mutateRecipe(updated, false);
     await fetch(`/api/recipes/${id}`, {
@@ -102,7 +105,7 @@ export default function RecipeDetailPage() {
         <h1 className="flex-1 text-xl font-bold leading-snug pt-1">{recipe.name}</h1>
         <button
           onClick={handleToggleFavourite}
-          className="p-1.5 mt-0.5 shrink-0 text-xl leading-none active:scale-95 transition-transform"
+          className={`p-1.5 mt-0.5 shrink-0 text-xl leading-none ${starPopped ? "animate-star-pop" : ""}`}
           aria-label={recipe.favourite ? t("removeFromFavourites") : t("addToFavourites")}
         >
           {recipe.favourite ? "★" : "☆"}

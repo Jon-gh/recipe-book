@@ -49,14 +49,14 @@ describe("MealPlanPage — Plan tab", () => {
   it("shows loading state initially", () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Building your week…")).toBeInTheDocument();
   });
 
   it("shows empty state when no entries", async () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("No recipes planned yet")).toBeInTheDocument();
+      expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
     });
   });
 
@@ -109,7 +109,7 @@ describe("MealPlanPage — Plan tab", () => {
     await userEvent.click(screen.getByRole("button", { name: "Remove from plan" }));
 
     await waitFor(() => {
-      expect(screen.getByText("No recipes planned yet")).toBeInTheDocument();
+      expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
     });
     expect(mockFetch).toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
   });

@@ -8,27 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Users, List, Plus, Search } from "lucide-react";
+import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import RecipeForm from "@/components/RecipeForm";
+import LoadingState from "@/components/LoadingState";
 import { useTranslations } from "next-intl";
 
-const CARD_COLORS = [
-  "border-l-green-500",
-  "border-l-blue-500",
-  "border-l-orange-400",
-  "border-l-purple-500",
-  "border-l-rose-500",
-  "border-l-amber-500",
+const CARD_BG_COLORS = [
+  "bg-amber-50 dark:bg-amber-950/30",
+  "bg-rose-50 dark:bg-rose-950/30",
+  "bg-orange-50 dark:bg-orange-950/30",
+  "bg-emerald-50 dark:bg-emerald-950/30",
+  "bg-violet-50 dark:bg-violet-950/30",
+  "bg-sky-50 dark:bg-sky-950/30",
 ];
 
-function cardColor(name: string): string {
+function cardBgColor(name: string): string {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
   }
-  return CARD_COLORS[hash % CARD_COLORS.length];
+  return CARD_BG_COLORS[hash % CARD_BG_COLORS.length];
 }
 
 export default function RecipesPage() {
@@ -112,16 +114,25 @@ export default function RecipesPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState emoji="🍳" message={t("loading")} />
         ) : error ? (
-          <p className="text-destructive">{t("loadError")}</p>
+          <div className="flex flex-col items-center gap-2 py-16 text-center">
+            <span className="text-5xl">🔥</span>
+            <p className="font-semibold">{tCommon("errorTitle")}</p>
+            <p className="text-sm text-muted-foreground">{tCommon("errorSubtext")}</p>
+          </div>
         ) : (recipes ?? []).length === 0 ? (
-          <p className="text-muted-foreground">
-            {t("noRecipes")}{" "}
-            <button onClick={() => setShowAddSheet(true)} className="underline">
-              {t("addOne")}
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <span className="text-6xl">🧑‍🍳</span>
+            <p className="font-bold text-lg">{t("emptyTitle")}</p>
+            <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
+            <button
+              onClick={() => setShowAddSheet(true)}
+              className="mt-2 px-5 py-2.5 rounded-full bg-green-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+            >
+              {t("emptyAddFirstRecipe")}
             </button>
-          </p>
+          </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(recipes ?? []).map((recipe) => (
@@ -131,37 +142,40 @@ export default function RecipesPage() {
                 className="active:scale-[0.98] transition-transform block"
               >
                 <div
-                  className={`h-full rounded-lg border bg-card shadow-sm border-l-4 ${cardColor(recipe.name)} p-5 flex flex-col gap-3`}
+                  className={`h-full rounded-xl shadow-sm ${cardBgColor(recipe.name)} p-4 flex flex-col gap-3 min-h-[160px]`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <h2 className="text-lg font-semibold leading-tight">
+                  <div className="text-3xl leading-none">{getRecipeEmoji(recipe.name)}</div>
+                  <div className="flex items-start justify-between gap-2 flex-1">
+                    <h2 className="text-base font-bold leading-snug">
                       {recipe.name}
                     </h2>
                     {recipe.favourite && (
-                      <span className="text-yellow-400 shrink-0 text-xl leading-none">
+                      <span className="text-yellow-500 shrink-0 text-lg leading-none">
                         ★
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Users size={14} />
-                      {tCommon("servings", { count: recipe.servings })}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <List size={14} />
-                      {tCommon("ingredients", { count: recipe.ingredients.length })}
-                    </span>
-                  </div>
-                  {recipe.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {recipe.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
+                  <div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+                      <span className="flex items-center gap-1">
+                        <Users size={12} />
+                        {tCommon("servings", { count: recipe.servings })}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <List size={12} />
+                        {tCommon("ingredients", { count: recipe.ingredients.length })}
+                      </span>
                     </div>
-                  )}
+                    {recipe.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {recipe.tags.slice(0, 2).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </Link>
             ))}
