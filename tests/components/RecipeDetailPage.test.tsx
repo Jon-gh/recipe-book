@@ -63,7 +63,12 @@ function renderPage() {
 
 beforeEach(() => {
   mockFetch.mockReset();
-  mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipe });
+  mockFetch.mockImplementation((url: string) => {
+    if (url === "/api/shopping-list") {
+      return Promise.resolve({ ok: true, json: async () => [] });
+    }
+    return Promise.resolve({ ok: true, json: async () => mockRecipe });
+  });
   mockVibrate.mockClear();
   mockPush.mockClear();
 });
@@ -76,9 +81,9 @@ describe("RecipeDetailPage — favourite toggle", () => {
   });
 
   it("shows filled star when recipe is a favourite", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ ...mockRecipe, favourite: true }),
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
     });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
@@ -99,7 +104,10 @@ describe("RecipeDetailPage — favourite toggle", () => {
   });
 
   it("calls PUT with favourite:false when toggling off", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
+    });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
@@ -147,9 +155,12 @@ describe("RecipeDetailPage — ⋯ actions menu", () => {
 
   it("Duplicate calls POST /duplicate and navigates to the copy", async () => {
     const copy = { ...mockRecipe, id: "2", name: "Pasta Carbonara (copy)" };
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipe }) // initial load
-      .mockResolvedValueOnce({ ok: true, json: async () => copy });       // POST /duplicate
+    mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+      const method = (options?.method ?? "GET").toUpperCase();
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      if (url === `/api/recipes/1/duplicate` && method === "POST") return Promise.resolve({ ok: true, json: async () => copy });
+      return Promise.resolve({ ok: true, json: async () => mockRecipe });
+    });
 
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
@@ -202,9 +213,9 @@ describe("RecipeDetailPage — visual refresh", () => {
   });
 
   it("renders multi-paragraph instructions as multiple numbered steps", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ ...mockRecipe, instructions: "Step one.\n\nStep two.\n\nStep three." }),
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, instructions: "Step one.\n\nStep two.\n\nStep three." }) });
     });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
@@ -248,5 +259,85 @@ describe("RecipeDetailPage — haptic feedback", () => {
     await userEvent.click(allAddBtns[allAddBtns.length - 1]);
 
     expect(mockVibrate).toHaveBeenCalled();
+  });
+});
+
+describe("RecipeDetailPage — staple check-in after adding to plan", () => {
+  const mockRecipeWithStaples = {
+    ...mockRecipe,
+    ingredients: [
+      {
+        id: 2,
+        productId: 10,
+        quantity: 1,
+        unit: "tsp",
+        preparation: "",
+        recipeId: "1",
+        product: { id: 10, name: "cumin", category: "spices & herbs", defaultUnit: "jar", defaultQuantity: 1, source: "system" },
+      },
+    ],
+  };
+
+  function setupWithStaples(shoppingList: object[] = []) {
+    mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+      const method = (options?.method ?? "GET").toUpperCase();
+      if (url === `/api/recipes/1`) return Promise.resolve({ ok: true, json: async () => mockRecipeWithStaples });
+      if (url === "/api/shopping-list" && method === "GET") return Promise.resolve({ ok: true, json: async () => shoppingList });
+      if (url === "/api/meal-plan" && method === "POST") return Promise.resolve({ ok: true, json: async () => ({}) });
+      if (url === "/api/shopping-session" && method === "PUT") return Promise.resolve({ ok: true, json: async () => ({}) });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+  }
+
+  it("does not show check-in sheet when recipe has no staple ingredients", async () => {
+    // mockRecipe has only "eggs" in "other" category — no staples
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /add to meal plan/i }));
+    mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+    const allAddBtns = await screen.findAllByRole("button", { name: "Add to Meal Plan" });
+    await userEvent.click(allAddBtns[allAddBtns.length - 1]);
+
+    await waitFor(() =>
+      expect(screen.queryByText("Check your pantry")).not.toBeInTheDocument()
+    );
+  });
+
+  it("shows check-in sheet when recipe has staple ingredients not in shopping list", async () => {
+    setupWithStaples([]);
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /add to meal plan/i }));
+    const allAddBtns = await screen.findAllByRole("button", { name: "Add to Meal Plan" });
+    await userEvent.click(allAddBtns[allAddBtns.length - 1]);
+
+    await waitFor(() =>
+      expect(screen.getByText("Check your pantry")).toBeInTheDocument()
+    );
+    // cumin appears both in the recipe and the check-in sheet
+    expect(screen.getAllByText("cumin").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("tapping Review Later calls PUT /api/shopping-session with needsStapleReview true", async () => {
+    setupWithStaples([]);
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /add to meal plan/i }));
+    const allAddBtns = await screen.findAllByRole("button", { name: "Add to Meal Plan" });
+    await userEvent.click(allAddBtns[allAddBtns.length - 1]);
+
+    await waitFor(() => expect(screen.getByText("Check your pantry")).toBeInTheDocument());
+    await userEvent.click(screen.getByRole("button", { name: "Review Later" }));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/shopping-session",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ needsStapleReview: true }),
+      })
+    );
   });
 });

@@ -21,7 +21,7 @@ const mockSession = {
   id: "sess-cuid",
   userId: "user-1",
   checkedKeys: ["milk__l", "eggs__"],
-  showStaples: false,
+  needsStapleReview: false,
   updatedAt: new Date(),
 };
 
@@ -50,7 +50,7 @@ describe("GET /api/shopping-session", () => {
     const res = await GET();
     const body = await res.json();
     expect(body.checkedKeys).toEqual(["milk__l", "eggs__"]);
-    expect(body.showStaples).toBe(false);
+    expect(body.needsStapleReview).toBe(false);
   });
 
   it("returns default state when no session exists", async () => {
@@ -58,7 +58,7 @@ describe("GET /api/shopping-session", () => {
     const res = await GET();
     const body = await res.json();
     expect(body.checkedKeys).toEqual([]);
-    expect(body.showStaples).toBe(false);
+    expect(body.needsStapleReview).toBe(false);
     expect(body.weekStart).toBeNull();
     expect(body.weekEnd).toBeNull();
   });
@@ -71,7 +71,7 @@ describe("PUT /api/shopping-session", () => {
     );
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
-      body: JSON.stringify({ checkedKeys: [], showStaples: false }),
+      body: JSON.stringify({ checkedKeys: [], needsStapleReview: false }),
     });
     const res = await PUT(req);
     expect(res.status).toBe(401);
@@ -81,7 +81,7 @@ describe("PUT /api/shopping-session", () => {
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
-      body: JSON.stringify({ checkedKeys: ["milk__l"], showStaples: false }),
+      body: JSON.stringify({ checkedKeys: ["milk__l"], needsStapleReview: false }),
     });
     const res = await PUT(req);
     expect(res.status).toBe(200);
@@ -90,13 +90,26 @@ describe("PUT /api/shopping-session", () => {
     );
   });
 
+  it("can set needsStapleReview independently without providing checkedKeys", async () => {
+    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
+    const req = new NextRequest("http://localhost/api/shopping-session", {
+      method: "PUT",
+      body: JSON.stringify({ needsStapleReview: true }),
+    });
+    const res = await PUT(req);
+    expect(res.status).toBe(200);
+    const call = vi.mocked(prisma.shoppingSession.upsert).mock.calls[0][0];
+    expect(call.update.needsStapleReview).toBe(true);
+    expect(call.update.checkedKeys).toBeUndefined();
+  });
+
   it("persists weekStart and weekEnd when provided", async () => {
     vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue(mockSession as never);
     const req = new NextRequest("http://localhost/api/shopping-session", {
       method: "PUT",
       body: JSON.stringify({
         checkedKeys: [],
-        showStaples: false,
+        needsStapleReview: false,
         weekStart: "2026-04-28",
         weekEnd: "2026-05-04",
       }),

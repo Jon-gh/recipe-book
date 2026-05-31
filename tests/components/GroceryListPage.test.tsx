@@ -27,7 +27,7 @@ const mockShoppingItem = {
   product: { id: 5, name: "Butter", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1, source: "user" },
 };
 
-const defaultSession = { id: "session", checkedKeys: [], showStaples: false };
+const defaultSession = { checkedKeys: [], needsStapleReview: false };
 
 function setupFetch({
   groceryList = mockMealPlanItems,
@@ -92,7 +92,7 @@ describe("GroceryListPage", () => {
   it("shows all-done celebration when all items are checked", async () => {
     const sessionWithChecked = {
       checkedKeys: ["pasta__g", "eggs__", "flour__kg"],
-      showStaples: false,
+      needsStapleReview: false,
     };
     setupFetch({ session: sessionWithChecked });
     renderPage();
@@ -213,7 +213,7 @@ describe("GroceryListPage — shopping list undo", () => {
 });
 
 describe("GroceryListPage — staples", () => {
-  it("hides staple items by default and shows toggle", async () => {
+  it("meal plan items in staple categories are not shown", async () => {
     setupFetch({
       groceryList: [
         ...mockMealPlanItems,
@@ -223,43 +223,19 @@ describe("GroceryListPage — staples", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
     expect(screen.queryByText("cumin")).not.toBeInTheDocument();
-    expect(screen.getByText(/Show staples/)).toBeInTheDocument();
+    expect(screen.queryByText(/Show staples/)).not.toBeInTheDocument();
   });
 
-  it("shows staple items after clicking Show staples", async () => {
-    setupFetch({
-      groceryList: [
-        ...mockMealPlanItems,
-        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
-      ],
-    });
+  it("shopping list items in staple categories are shown", async () => {
+    const saltItem = {
+      id: 42,
+      quantity: 1,
+      unit: "jar",
+      product: { id: 10, name: "Salt", category: "spices & herbs", defaultUnit: "jar", defaultQuantity: 1, source: "user" },
+    };
+    setupFetch({ shoppingList: [saltItem] });
     renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    await userEvent.click(screen.getByText(/Show staples/));
-    expect(screen.getByText("cumin")).toBeInTheDocument();
-    expect(screen.getByText("Hide staples")).toBeInTheDocument();
-  });
-
-  it("shows checked staple items when Show staples is toggled (stale session keys)", async () => {
-    // Checked keys from a previous week persist with the same names for staples.
-    // Toggling showStaples must reveal all staples regardless of checked state.
-    setupFetch({
-      groceryList: [
-        ...mockMealPlanItems,
-        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
-        { name: "paprika", quantity: 0.5, unit: "tsp", category: "spices & herbs", productId: 11, source: "system" },
-      ],
-      session: { checkedKeys: ["cumin__tsp", "paprika__tsp"], showStaples: false },
-    });
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    // Both checked staples are hidden while showStaples is off
-    expect(screen.queryByText("cumin")).not.toBeInTheDocument();
-    expect(screen.queryByText("paprika")).not.toBeInTheDocument();
-    // Toggling showStaples reveals all staples, even checked ones
-    await userEvent.click(screen.getByText(/Show staples/));
-    expect(screen.getByText("cumin")).toBeInTheDocument();
-    expect(screen.getByText("paprika")).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText("Salt")).toBeInTheDocument());
   });
 
   it("always shows manually added shopping list items even if their category is a staple", async () => {
@@ -278,12 +254,68 @@ describe("GroceryListPage — staples", () => {
     });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    // Manually added Ketchup is visible even though staples are hidden
+    // Manually added Ketchup is visible even though its category is a staple
     expect(screen.getByText("Ketchup")).toBeInTheDocument();
-    // Meal-plan item in the same staple category remains hidden
+    // Meal-plan item in the same staple category is hidden
     expect(screen.queryByText("cumin")).not.toBeInTheDocument();
-    // Only the meal-plan staple item counts toward the toggle
-    expect(screen.getByText("Show staples (1)")).toBeInTheDocument();
+  });
+});
+
+describe("GroceryListPage — staple review banner", () => {
+  it("shows banner when needsStapleReview is true and there are staple meal plan items", async () => {
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "Salt", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
+      ],
+      session: { checkedKeys: [], needsStapleReview: true },
+    });
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText("You have staples to check")).toBeInTheDocument()
+    );
+    expect(screen.getByRole("button", { name: "Review" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
+  });
+
+  it("does not show banner when needsStapleReview is false", async () => {
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "Salt", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
+      ],
+      session: { checkedKeys: [], needsStapleReview: false },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.queryByText("You have staples to check")).not.toBeInTheDocument();
+  });
+
+  it("Dismiss calls PUT with needsStapleReview false and hides the banner", async () => {
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "Salt", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
+      ],
+      session: { checkedKeys: [], needsStapleReview: true },
+    });
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument()
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      "/api/shopping-session",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ needsStapleReview: false }),
+      })
+    );
+    await waitFor(() =>
+      expect(screen.queryByText("You have staples to check")).not.toBeInTheDocument()
+    );
   });
 });
 
@@ -325,17 +357,14 @@ describe("GroceryListPage — checking items", () => {
 
     await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
-    // DELETE not called immediately
     expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
-    // Does not move to In Trolley
     expect(screen.queryByText(/In Trolley/)).not.toBeInTheDocument();
   });
-
 });
 
 describe("GroceryListPage — server session persistence", () => {
   it("restores checked keys from server session and hides checked items", async () => {
-    setupFetch({ session: { id: "session", checkedKeys: ["pasta__g"], showStaples: false } });
+    setupFetch({ session: { checkedKeys: ["pasta__g"], needsStapleReview: false } });
     renderPage();
     await waitFor(() => expect(screen.getByText("Eggs")).toBeInTheDocument());
     expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
@@ -356,7 +385,6 @@ describe("GroceryListPage — server session persistence", () => {
       { timeout: 2000 }
     );
   });
-
 });
 
 describe("GroceryListPage — add to shopping list", () => {

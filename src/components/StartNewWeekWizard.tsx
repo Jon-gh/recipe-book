@@ -7,7 +7,10 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { normalizeUnit } from "@/lib/grocery-list";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
+import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
+
+type StapleAddition = { productId: number; name: string; qty: string; unit: string };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -105,7 +108,7 @@ interface Props {
 
 // ── progress bar ──────────────────────────────────────────────────────────────
 
-function ProgressBar({ step, total = 6 }: { step: number; total?: number }) {
+function ProgressBar({ step, total = 7 }: { step: number; total?: number }) {
   return (
     <div className="flex items-center gap-1">
       {Array.from({ length: total }, (_, i) => i + 1).map((s) => (
@@ -136,7 +139,7 @@ export default function StartNewWeekWizard({
   const t = useTranslations("wizard");
   const tCommon = useTranslations("common");
   const tSchedule = useTranslations("schedule");
-  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
 
   // Step 1 — consumed portions
   const [consumed, setConsumed] = useState<Record<number, number>>({});
@@ -165,7 +168,10 @@ export default function StartNewWeekWizard({
   const [pickerServings, setPickerServings] = useState(2);
   const [pickerNote, setPickerNote] = useState("");
 
-  // Step 6 — submit
+  // Step 6 — pantry check
+  const [stapleAdditions, setStapleAdditions] = useState<StapleAddition[]>([]);
+
+  // Step 7 — submit
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -194,6 +200,7 @@ export default function StartNewWeekWizard({
     setSearchFocused(false);
     setSelectedRecipe(null);
     setServings(2);
+    setStapleAdditions([]);
     setError(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -407,12 +414,46 @@ export default function StartNewWeekWizard({
       }
 
       await runGroceryTransition(newRecipes, checkedKeys);
+
+      // POST any staple items the user selected in step 6
+      for (const addition of stapleAdditions) {
+        await fetch("/api/shopping-list", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: addition.name,
+            quantity: parseFloat(addition.qty) || 1,
+            unit: addition.unit,
+          }),
+        });
+      }
+
       onClose({ weekStart, weekEnd });
     } catch {
       setError(t("somethingWentWrong"));
       setSubmitting(false);
     }
   }
+
+  // Staple items from this wizard run's new recipes (unique by productId)
+  const wizardStaples = useMemo(() => {
+    const seen = new Set<number>();
+    const items: { productId: number; name: string; defaultQuantity: number; defaultUnit: string }[] = [];
+    for (const { recipe } of newRecipes) {
+      for (const ing of recipe.ingredients) {
+        if (categoryIsStaple(ing.product.category) && !seen.has(ing.product.id)) {
+          seen.add(ing.product.id);
+          items.push({
+            productId: ing.product.id,
+            name: ing.product.name,
+            defaultQuantity: ing.product.defaultQuantity,
+            defaultUnit: ing.product.defaultUnit,
+          });
+        }
+      }
+    }
+    return items;
+  }, [newRecipes]);
 
   const filled = totalPlanned >= totalNeeded;
   const isNextDisabled = step === 2 && (!weekStart || !weekEnd);
@@ -531,6 +572,20 @@ export default function StartNewWeekWizard({
 
         {step === 6 && (
           <Step6
+            staples={wizardStaples}
+            additions={stapleAdditions}
+            onAdd={(s) => {
+              setStapleAdditions((prev) => [
+                ...prev.filter((a) => a.productId !== s.productId),
+                { productId: s.productId, name: s.name, qty: String(s.defaultQuantity), unit: s.defaultUnit },
+              ]);
+            }}
+            onRemove={(id) => setStapleAdditions((prev) => prev.filter((a) => a.productId !== id))}
+          />
+        )}
+
+        {step === 7 && (
+          <Step7
             weekStart={weekStart}
             weekEnd={weekEnd}
             leftoverServings={leftoverServings}
@@ -549,7 +604,7 @@ export default function StartNewWeekWizard({
       className="fixed bottom-0 left-0 right-0 z-[51] bg-background border-t px-4 pt-3"
       style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
     >
-      {step < 6 && (
+      {step < 7 && (
         <Button
           className="w-full"
           variant={nextVariant}
@@ -560,7 +615,7 @@ export default function StartNewWeekWizard({
           {nextLabel}
         </Button>
       )}
-      {step === 6 && (
+      {step === 7 && (
         <Button className="w-full" onClick={handleConfirm} disabled={submitting}>
           {submitting ? t("startingWeek") : t("startWeek")}
         </Button>
@@ -1254,9 +1309,97 @@ function Step5({
   );
 }
 
-// ── Step 6 ────────────────────────────────────────────────────────────────────
+// ── Step 6 — pantry check ─────────────────────────────────────────────────────
+
+type WizardStapleItem = { productId: number; name: string; defaultQuantity: number; defaultUnit: string };
 
 function Step6({
+  staples,
+  additions,
+  onAdd,
+  onRemove,
+}: {
+  staples: WizardStapleItem[];
+  additions: StapleAddition[];
+  onAdd: (item: WizardStapleItem) => void;
+  onRemove: (productId: number) => void;
+}) {
+  const t = useTranslations("wizard");
+  const tCheckin = useTranslations("stapleCheckin");
+
+  if (staples.length === 0) {
+    return (
+      <div>
+        <h3 className="font-semibold text-base mb-1">{t("step6Title")}</h3>
+        <p className="text-sm text-muted-foreground py-6 text-center">{t("step6Empty")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <h3 className="font-semibold text-base mb-1">{t("step6Title")}</h3>
+      <p className="text-sm text-muted-foreground mb-5">{t("step6Subtitle")}</p>
+      <ul className="space-y-3">
+        {staples.map((s) => {
+          const added = additions.find((a) => a.productId === s.productId);
+          if (added) {
+            return (
+              <li key={s.productId} className="flex items-center gap-2 opacity-50">
+                <span className="flex-1 text-sm font-medium line-through">{s.name}</span>
+                <span className="text-xs text-muted-foreground">{added.qty} {added.unit}</span>
+                <button
+                  onClick={() => onRemove(s.productId)}
+                  className="text-muted-foreground hover:text-foreground px-1 text-base shrink-0"
+                  aria-label={`Remove ${s.name}`}
+                >
+                  ×
+                </button>
+              </li>
+            );
+          }
+          const defaultQty = String(s.defaultQuantity > 0 ? s.defaultQuantity : 1);
+          return (
+            <li key={s.productId} className="flex items-center gap-2">
+              <span className="flex-1 font-medium text-sm">{s.name}</span>
+              <Input
+                type="number"
+                min={0}
+                step="any"
+                defaultValue={defaultQty}
+                id={`staple-qty-${s.productId}`}
+                className="w-16 text-center"
+                aria-label={tCheckin("quantityLabel")}
+              />
+              <Input
+                defaultValue={s.defaultUnit}
+                id={`staple-unit-${s.productId}`}
+                placeholder={tCheckin("unitPlaceholder")}
+                className="w-20"
+                aria-label={tCheckin("unitLabel")}
+              />
+              <button
+                onClick={() => {
+                  const qtyEl = document.getElementById(`staple-qty-${s.productId}`) as HTMLInputElement | null;
+                  const unitEl = document.getElementById(`staple-unit-${s.productId}`) as HTMLInputElement | null;
+                  onAdd({ ...s, defaultQuantity: parseFloat(qtyEl?.value ?? defaultQty) || 1, defaultUnit: unitEl?.value ?? s.defaultUnit });
+                }}
+                className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-transform shrink-0"
+                aria-label={tCheckin("addLabel", { name: s.name })}
+              >
+                <Plus size={16} strokeWidth={2.5} />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+// ── Step 7 — confirm ──────────────────────────────────────────────────────────
+
+function Step7({
   weekStart,
   weekEnd,
   leftoverServings,
@@ -1278,8 +1421,8 @@ function Step6({
   const t = useTranslations("wizard");
   return (
     <div>
-      <h3 className="font-semibold text-base mb-1">{t("step6Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-5">{t("step6Subtitle")}</p>
+      <h3 className="font-semibold text-base mb-1">{t("step7Title")}</h3>
+      <p className="text-sm text-muted-foreground mb-5">{t("step7Subtitle")}</p>
 
       <div className="border rounded-xl divide-y overflow-hidden mb-6 text-sm">
         <div className="flex justify-between px-4 py-3">
