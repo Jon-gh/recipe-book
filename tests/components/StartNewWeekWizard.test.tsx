@@ -40,6 +40,30 @@ const mockEntry: MealPlanEntry = {
   scheduledMeals: [],
 };
 
+const mockRecipeWithStaples: Recipe = {
+  id: "r2",
+  name: "Spiced Chicken",
+  servings: 2,
+  instructions: "Cook.",
+  tags: [],
+  favourite: false,
+  notes: "",
+  nativeLocale: "en",
+  createdAt: "2026-01-01",
+  updatedAt: "2026-01-01",
+  ingredients: [
+    {
+      id: 10,
+      quantity: 1,
+      unit: "tsp",
+      preparation: "",
+      productId: 10,
+      recipeId: "r2",
+      product: { id: 10, name: "cumin", category: "spices & herbs", defaultUnit: "jar", defaultQuantity: 1, source: "system" },
+    },
+  ],
+};
+
 const defaultProps = {
   open: true,
   entries: [mockEntry],
@@ -143,11 +167,21 @@ describe("StartNewWeekWizard", () => {
     expect(screen.getAllByText("🌙").length).toBeGreaterThan(0);
   });
 
-  it("shows confirm summary on step 6", async () => {
+  it("shows pantry check on step 6", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     // Steps 1 → 2 → 3 → 4 → 5 → 6
     for (let i = 0; i < 5; i++) {
+      await clickNext(user);
+    }
+    expect(screen.getByText("Check your pantry")).toBeInTheDocument();
+  });
+
+  it("shows confirm summary on step 7", async () => {
+    const user = userEvent.setup();
+    render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
+    // Steps 1 → 2 → 3 → 4 → 5 → 6 → 7
+    for (let i = 0; i < 6; i++) {
       await clickNext(user);
     }
     expect(screen.getByText("Ready to start")).toBeInTheDocument();
@@ -158,7 +192,7 @@ describe("StartNewWeekWizard", () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} onClose={onClose} />);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       await clickNext(user);
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
@@ -181,7 +215,7 @@ describe("StartNewWeekWizard", () => {
     mockFetch.mockResolvedValue({ ok: false, json: async () => ({ error: "DB error" }) });
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       await clickNext(user);
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
@@ -213,7 +247,8 @@ describe("StartNewWeekWizard", () => {
     await user.click(screen.getByText("Pasta Bolognese"));
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    // Advance through step 5 (schedule) and step 6 (confirm), then start week
+    // Advance through step 5 (schedule), step 6 (pantry), step 7 (confirm), then start week
+    await clickNext(user);
     await clickNext(user);
     await clickNext(user);
     await user.click(screen.getByRole("button", { name: "Start Week" }));
@@ -226,6 +261,69 @@ describe("StartNewWeekWizard", () => {
       expect(shoppingListCalls.length).toBeGreaterThan(0);
       const body = JSON.parse(shoppingListCalls[0][1].body);
       expect(body.name).toBe("tomatoes");
+    });
+  });
+
+  it("step 6 shows pantry check with staple items from new recipes", async () => {
+    const user = userEvent.setup();
+    render(
+      <StartNewWeekWizard
+        {...defaultProps}
+        entries={[]}
+        recipes={[mockRecipeWithStaples]}
+      />
+    );
+
+    // Navigate to step 4 and add the staple recipe
+    for (let i = 0; i < 3; i++) await clickNext(user);
+    const searchInput = screen.getByPlaceholderText("Search recipes to add…");
+    await user.click(searchInput);
+    await user.type(searchInput, "Spiced");
+    await user.click(screen.getByText("Spiced Chicken"));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    // Navigate to step 6 (pantry check)
+    await clickNext(user); // 4→5
+    await clickNext(user); // 5→6
+    expect(screen.getByText("Check your pantry")).toBeInTheDocument();
+    expect(screen.getByText("cumin")).toBeInTheDocument();
+  });
+
+  it("staple items added in step 6 are POSTed to /api/shopping-list on confirm", async () => {
+    const user = userEvent.setup();
+    render(
+      <StartNewWeekWizard
+        {...defaultProps}
+        entries={[]}
+        recipes={[mockRecipeWithStaples]}
+      />
+    );
+
+    // Navigate to step 4 and add the staple recipe
+    for (let i = 0; i < 3; i++) await clickNext(user);
+    const searchInput = screen.getByPlaceholderText("Search recipes to add…");
+    await user.click(searchInput);
+    await user.type(searchInput, "Spiced");
+    await user.click(screen.getByText("Spiced Chicken"));
+    await user.click(screen.getByRole("button", { name: "Add" }));
+
+    // Navigate to step 6 and add cumin
+    await clickNext(user); // 4→5
+    await clickNext(user); // 5→6
+    await waitFor(() => expect(screen.getByText("cumin")).toBeInTheDocument());
+    await user.click(screen.getByLabelText("Add cumin"));
+
+    // Navigate to step 7 and confirm
+    await clickNext(user); // 6→7
+    await user.click(screen.getByRole("button", { name: "Start Week" }));
+
+    await waitFor(() => {
+      const slCalls = mockFetch.mock.calls.filter(
+        (call) => call[0] === "/api/shopping-list" && call[1]?.method === "POST"
+      );
+      expect(slCalls.length).toBeGreaterThan(0);
+      const body = JSON.parse(slCalls[0][1].body);
+      expect(body.name).toBe("cumin");
     });
   });
 });

@@ -13,7 +13,7 @@ export async function GET() {
     where: { userId },
   });
   return NextResponse.json(
-    session ?? { checkedKeys: [], showStaples: false, weekStart: null, weekEnd: null }
+    session ?? { checkedKeys: [], needsStapleReview: false, weekStart: null, weekEnd: null }
   );
 }
 
@@ -23,30 +23,29 @@ export async function PUT(request: Request) {
   const { userId } = auth;
 
   const body = await request.json();
-  const { checkedKeys, showStaples, weekStart, weekEnd } = body as {
-    checkedKeys: string[];
-    showStaples: boolean;
+  const { checkedKeys, needsStapleReview, weekStart, weekEnd } = body as {
+    checkedKeys?: string[];
+    needsStapleReview?: boolean;
     weekStart?: string | null;
     weekEnd?: string | null;
   };
 
   const data: {
     userId: string;
-    checkedKeys: string[];
-    showStaples: boolean;
+    checkedKeys?: string[];
+    needsStapleReview?: boolean;
     weekStart?: Date | null;
     weekEnd?: Date | null;
-  } = {
-    userId,
-    checkedKeys,
-    showStaples,
-  };
+  } = { userId };
+
+  if (checkedKeys !== undefined) data.checkedKeys = checkedKeys;
+  if (needsStapleReview !== undefined) data.needsStapleReview = needsStapleReview;
   if (weekStart !== undefined) data.weekStart = weekStart ? new Date(weekStart) : null;
   if (weekEnd !== undefined) data.weekEnd = weekEnd ? new Date(weekEnd) : null;
 
   const session = await prisma.shoppingSession.upsert({
     where: { userId },
-    create: data,
+    create: { ...data, checkedKeys: data.checkedKeys ?? [] },
     update: data,
   });
   return NextResponse.json(session);

@@ -134,8 +134,6 @@
   "grocery": {
     "title": "Grocery List",
     "backToMealPlan": "← Meal Plan",
-    "hideStaples": "Hide staples",
-    "showStaples": "Show staples ({count})",
     "loading": "Gathering your ingredients…",
     "noItems": "No meal plan items yet.",
     "noItemsCta": "Add recipes to your meal plan",
@@ -155,7 +153,21 @@
     "unitLabel": "Unit",
     "editItem": "Edit Item",
     "removed": "{name} removed",
-    "undo": "Undo"
+    "undo": "Undo",
+    "stapleReviewBanner": "You have staples to check",
+    "stapleReviewAction": "Review",
+    "dismiss": "Dismiss"
+  },
+  "stapleCheckin": {
+    "title": "Check your pantry",
+    "subtitle": "You likely already have these — tap + to add any you need to buy.",
+    "allCovered": "All your staples are covered 👍",
+    "quantityLabel": "Quantity",
+    "unitLabel": "Unit",
+    "unitPlaceholder": "e.g. jar",
+    "addLabel": "Add {name}",
+    "done": "Done",
+    "reviewLater": "Review Later"
   },
   "mealPlan": {
     "title": "Plan",
@@ -194,7 +206,7 @@
   },
   "wizard": {
     "title": "New Week",
-    "stepOf": "Step {step} of 6",
+    "stepOf": "Step {step} of 7",
     "next": "Next",
     "nextPortionsNotFilled": "Next (portions not filled)",
     "startWeek": "Start Week",
@@ -218,8 +230,11 @@
     "step5Title": "Schedule meals",
     "step5Subtitle": "Assign recipes to meal slots. You can skip this and schedule later.",
     "portionsNeeded": "{count}p needed",
-    "step6Title": "Ready to start",
-    "step6Subtitle": "Review your new week before confirming.",
+    "step6Title": "Check your pantry",
+    "step6Subtitle": "You likely already have these — tap + to add any you need to buy this week.",
+    "step6Empty": "All your staples are covered for this week 👍",
+    "step7Title": "Ready to start",
+    "step7Subtitle": "Review your new week before confirming.",
     "weekLabel": "Week",
     "leftoverPortions": "Leftover portions",
     "newRecipesLabel": "New recipes",

@@ -4,19 +4,22 @@ import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import useSWR, { mutate } from "swr";
-import { Recipe } from "@/types";
+import { Recipe, ShoppingListItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ChevronLeft, Minus, MoreHorizontal, Plus } from "lucide-react";
-import { fetcher } from "@/lib/fetcher";
+import { fetcher, noCacheFetcher } from "@/lib/fetcher";
 import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
 import LoadingState from "@/components/LoadingState";
+import StapleCheckinSheet from "@/components/StapleCheckinSheet";
+import type { StapleItem } from "@/components/StapleCheckinSheet";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { getIngredientEmoji } from "@/lib/ingredient-emoji";
+import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
 
 const STEP_NUMBERS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
@@ -41,11 +44,17 @@ export default function RecipeDetailPage() {
   const [showPlanSheet, setShowPlanSheet] = useState(false);
   const [planServings, setPlanServings] = useState(2);
   const [addingToPlan, setAddingToPlan] = useState(false);
+  const [stapleCheckinItems, setStapleCheckinItems] = useState<StapleItem[]>([]);
+  const [showStapleCheckin, setShowStapleCheckin] = useState(false);
 
   const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(
     `/api/recipes/${id}`,
     fetcher,
     { revalidateIfStale: false }
+  );
+  const { data: shoppingListItems } = useSWR<ShoppingListItem[]>(
+    "/api/shopping-list",
+    noCacheFetcher
   );
 
   async function handleToggleFavourite() {
@@ -91,6 +100,7 @@ export default function RecipeDetailPage() {
   }
 
   async function handleAddToPlan() {
+    if (!recipe) return;
     setAddingToPlan(true);
     await fetch("/api/meal-plan", {
       method: "POST",
@@ -100,6 +110,23 @@ export default function RecipeDetailPage() {
     haptic();
     setAddingToPlan(false);
     setShowPlanSheet(false);
+
+    const slNames = new Set((shoppingListItems ?? []).map((i) => i.product.name.toLowerCase()));
+    const staples: StapleItem[] = recipe.ingredients
+      .filter((ing) => categoryIsStaple(ing.product.category))
+      .filter((ing) => !slNames.has(ing.product.name.toLowerCase()))
+      .map((ing) => ({
+        productId: ing.product.id,
+        name: ing.product.name,
+        defaultQuantity: ing.product.defaultQuantity,
+        defaultUnit: ing.product.defaultUnit,
+      }))
+      .filter((s, idx, arr) => arr.findIndex((x) => x.productId === s.productId) === idx);
+
+    if (staples.length > 0) {
+      setStapleCheckinItems(staples);
+      setShowStapleCheckin(true);
+    }
   }
 
   if (isLoading) return <LoadingState emoji="🍳" message={t("loading")} />;
@@ -297,6 +324,22 @@ export default function RecipeDetailPage() {
           </div>
         </div>
       </BottomSheet>
+
+      {/* Staple check-in sheet — shown after adding to meal plan */}
+      <StapleCheckinSheet
+        open={showStapleCheckin}
+        staples={stapleCheckinItems}
+        shoppingListItems={shoppingListItems ?? []}
+        onDone={() => setShowStapleCheckin(false)}
+        onDefer={() => {
+          setShowStapleCheckin(false);
+          fetch("/api/shopping-session", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ needsStapleReview: true }),
+          });
+        }}
+      />
     </div>
   );
 }

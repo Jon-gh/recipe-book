@@ -13,12 +13,14 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import LoadingState from "@/components/LoadingState";
 import SwipeableRow from "@/components/SwipeableRow";
+import StapleCheckinSheet from "@/components/StapleCheckinSheet";
+import type { StapleItem } from "@/components/StapleCheckinSheet";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type SessionState = {
   checkedKeys: string[];
-  showStaples: boolean;
+  needsStapleReview: boolean;
 };
 
 type DisplayItem = GroceryItem & {
@@ -84,13 +86,12 @@ export default function GroceryListPage() {
   );
 
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
-  const [showStaples, setShowStaples] = useState(false);
+  const [needsStapleReview, setNeedsStapleReview] = useState(false);
+  const [showStapleReviewSheet, setShowStapleReviewSheet] = useState(false);
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: globalMutate } = useSWRConfig();
 
-  // Add sheet state
-  // Undo-delete state for shopping list items
   const pendingDeleteRef = useRef<{
     item: DisplayItem;
     timerId: ReturnType<typeof setTimeout>;
@@ -103,7 +104,6 @@ export default function GroceryListPage() {
   const [newItemUnit, setNewItemUnit] = useState("");
   const [newItemCategory, setNewItemCategory] = useState("other");
 
-  // Edit product sheet state
   const [editingProduct, setEditingProduct] = useState<{
     id: number;
     name: string;
@@ -162,20 +162,17 @@ export default function GroceryListPage() {
     if (sessionLoading || !sessionData || sessionInitialised.current) return;
     sessionInitialised.current = true;
     setCheckedKeys(new Set(sessionData.checkedKeys));
-    setShowStaples(sessionData.showStaples);
+    setNeedsStapleReview(sessionData.needsStapleReview);
   }, [sessionData, sessionLoading]);
 
-  // Pick up session changes from other users on each SWR background refresh.
-  // Skip if there are local changes still pending upload (to avoid clobbering).
   useEffect(() => {
     if (!sessionInitialised.current || !sessionData) return;
     if (sessionSyncTimer.current !== null) return;
     setCheckedKeys(new Set(sessionData.checkedKeys));
-    setShowStaples(sessionData.showStaples);
+    setNeedsStapleReview(sessionData.needsStapleReview);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionData]);
 
-  // Commit any pending delete immediately if the user navigates away
   useEffect(() => {
     return () => {
       if (pendingDeleteRef.current) {
@@ -187,28 +184,36 @@ export default function GroceryListPage() {
 
   const isLoading = mpLoading || slLoading || sessionLoading;
 
-  const syncSession = useCallback(
-    (keys: Set<string>, staples: boolean) => {
-      if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
-      sessionSyncTimer.current = setTimeout(() => {
-        sessionSyncTimer.current = null;
-        fetch("/api/shopping-session", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ checkedKeys: Array.from(keys), showStaples: staples }),
-        });
-      }, 300);
-    },
-    []
-  );
+  const syncCheckedKeys = useCallback((keys: Set<string>) => {
+    if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
+    sessionSyncTimer.current = setTimeout(() => {
+      sessionSyncTimer.current = null;
+      fetch("/api/shopping-session", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ checkedKeys: Array.from(keys) }),
+      });
+    }, 300);
+  }, []);
+
+  function setStapleReview(value: boolean) {
+    setNeedsStapleReview(value);
+    fetch("/api/shopping-session", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ needsStapleReview: value }),
+    });
+  }
 
   const mpItems: DisplayItem[] = (mealPlanItems ?? []).map((i) => ({ ...i }));
   const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
-  const allItems: DisplayItem[] = [...mpItems, ...slItems];
+  // Meal plan items in staple categories are excluded from the display —
+  // they are handled at planning time via the staple check-in flow.
+  const displayMpItems = mpItems.filter((i) => !categoryIsStaple(i.category));
+  const allItems: DisplayItem[] = [...displayMpItems, ...slItems];
 
   function toggleItem(item: DisplayItem) {
     if (item.shoppingListId != null) {
-      // Commit any in-flight pending delete before starting a new one
       if (pendingDeleteRef.current) {
         clearTimeout(pendingDeleteRef.current.timerId);
         fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
@@ -216,13 +221,11 @@ export default function GroceryListPage() {
         setPendingDeleteItem(null);
       }
 
-      // Optimistically remove from SWR cache
       mutateSl(
         (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.shoppingListId),
         { revalidate: false }
       );
 
-      // Schedule actual deletion after undo window
       const timerId = setTimeout(() => {
         fetch(`/api/shopping-list/${item.shoppingListId}`, { method: "DELETE" });
         pendingDeleteRef.current = null;
@@ -239,7 +242,7 @@ export default function GroceryListPage() {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
-      syncSession(next, showStaples);
+      syncCheckedKeys(next);
       return next;
     });
   }
@@ -249,7 +252,7 @@ export default function GroceryListPage() {
     clearTimeout(pendingDeleteRef.current.timerId);
     pendingDeleteRef.current = null;
     setPendingDeleteItem(null);
-    mutateSl(); // re-fetch; server still has the item
+    mutateSl();
   }
 
   function openAddSheet() {
@@ -303,29 +306,25 @@ export default function GroceryListPage() {
   }
 
   const totalCount = allItems.length;
-  const stapleCount = allItems.filter((i) => categoryIsStaple(i.category) && i.shoppingListId == null).length;
 
   const baseVisibleGroups = groupByCategory(allItems)
-    .map((g) => ({
-      ...g,
-      items: showStaples || !g.isStaple ? g.items : g.items.filter((i) => i.shoppingListId != null),
-    }))
     .filter((g) => g.items.length > 0);
 
   const baseVisibleItems = baseVisibleGroups.flatMap((g) => g.items);
   const allDone = baseVisibleItems.length > 0 && baseVisibleItems.every((i) => checkedKeys.has(itemKey(i)));
 
-  // Staple items bypass the checked filter when the user explicitly shows them —
-  // their keys persist across weeks (same ingredient names), so stale checked
-  // state from a previous session would otherwise hide them permanently.
   const visibleGroups = baseVisibleGroups
     .map((g) => ({
       ...g,
-      items: g.items.filter(
-        (i) => !checkedKeys.has(itemKey(i)) || (g.isStaple && showStaples)
-      ),
+      items: g.items.filter((i) => !checkedKeys.has(itemKey(i))),
     }))
     .filter((g) => g.items.length > 0);
+
+  // Staple items for the review check-in sheet (sourced from full meal plan, not display list)
+  const stapleCheckinItems: StapleItem[] = (mealPlanItems ?? [])
+    .filter((i) => categoryIsStaple(i.category))
+    .map((i) => ({ productId: i.productId, name: i.name, defaultQuantity: 1, defaultUnit: "" }))
+    .filter((s, idx, arr) => arr.findIndex((x) => x.productId === s.productId) === idx);
 
   return (
     <>
@@ -339,7 +338,7 @@ export default function GroceryListPage() {
                 <PencilLine size={18} />
               </Button>
             </Link>
-{!isLoading && totalCount === 0 && (
+            {!isLoading && totalCount === 0 && (
               <Link href="/meal-plan">
                 <Button variant="outline" className="active:scale-95 transition-transform">
                   {t("backToMealPlan")}
@@ -353,13 +352,24 @@ export default function GroceryListPage() {
           <LoadingState emoji="🛒" message={t("loading")} />
         ) : (
           <div className="space-y-4">
-            {totalCount > 0 && stapleCount > 0 && (
-              <button
-                className="text-sm text-muted-foreground underline-offset-2 underline"
-                onClick={() => { const next = !showStaples; setShowStaples(next); syncSession(checkedKeys, next); }}
-              >
-                {showStaples ? t("hideStaples") : t("showStaples", { count: stapleCount })}
-              </button>
+            {needsStapleReview && stapleCheckinItems.length > 0 && (
+              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm">
+                <span className="font-medium">{t("stapleReviewBanner")}</span>
+                <div className="flex gap-3 ml-4 shrink-0">
+                  <button
+                    className="font-semibold text-blue-600 dark:text-blue-400"
+                    onClick={() => setShowStapleReviewSheet(true)}
+                  >
+                    {t("stapleReviewAction")}
+                  </button>
+                  <button
+                    className="text-muted-foreground"
+                    onClick={() => setStapleReview(false)}
+                  >
+                    {t("dismiss")}
+                  </button>
+                </div>
+              </div>
             )}
 
             {totalCount === 0 && (
@@ -394,7 +404,6 @@ export default function GroceryListPage() {
                     <ul className="divide-y">
                       {catItems.map((item) => {
                         const key = itemKey(item);
-                        const isChecked = checkedKeys.has(key);
                         const isUserProduct = item.source === "user" && item.shoppingListId != null;
                         const row = (
                           <li key={key}>
@@ -403,10 +412,8 @@ export default function GroceryListPage() {
                                 className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
                                 onClick={() => toggleItem(item)}
                               >
-                                <span className={isChecked ? "font-medium line-through text-muted-foreground" : "font-medium"}>
-                                  {item.name}
-                                </span>
-                                <span className={`text-sm ml-auto ${isChecked ? "line-through text-muted-foreground" : "text-muted-foreground"}`}>
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-sm ml-auto text-muted-foreground">
                                   {item.quantity % 1 === 0
                                     ? item.quantity
                                     : item.quantity.toFixed(1)}
@@ -449,6 +456,15 @@ export default function GroceryListPage() {
     >
       <Plus size={26} strokeWidth={2.5} />
     </button>
+
+    {/* Staple review sheet */}
+    <StapleCheckinSheet
+      open={showStapleReviewSheet}
+      staples={stapleCheckinItems}
+      shoppingListItems={shoppingListItems ?? []}
+      onDone={() => { setShowStapleReviewSheet(false); setStapleReview(false); mutateSl(); }}
+      onDefer={() => { setShowStapleReviewSheet(false); }}
+    />
 
     {/* Add item sheet */}
     <BottomSheet
