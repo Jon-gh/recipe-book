@@ -12,7 +12,7 @@ First, detect the language of the input. Then return ONLY a valid JSON object wi
     {"name": "red wine", "displayName": "vin rouge", "quantity": 750.0, "unit": "ml", "preparation": "", "category": "drinks"},
     {"name": "bay leaf", "displayName": "feuille de laurier", "quantity": 2.0, "unit": "", "preparation": "", "category": "spices & herbs"}
   ],
-  "instructions": "Étape 1: ...\\nÉtape 2: ...",
+  "instructions": "Étape 1: ...\\n\\nÉtape 2: ...\\n\\nÉtape 3: ...",
   "tags": ["français", "bœuf", "mijoté"]
 }
 
@@ -28,7 +28,7 @@ Rules:
 - Do not include size qualifiers (fat, small, large, big) in the unit field — e.g. "2 fat cloves garlic" → quantity 2, unit "clove", name "garlic"
 - ingredient name must be the pure ingredient only — no preparation details and no size qualifiers
 - preparation describes how to prepare the ingredient in the native language; use "" if none
-- instructions must be newline-separated steps
+- instructions must be double-newline-separated steps (use "\\n\\n" between each step, never single "\\n")
 - tags must be a list of 1-5 lowercase category keywords in the native language
 - category must be exactly one of: "fruit & veg", "meat & fish", "dairy & eggs", "bakery", "frozen", "drinks", "grains & pulses", "canned & jarred", "nuts & seeds", "baking & sweeteners", "condiments & sauces", "spices & herbs", "personal care", "household & cleaning", "health & pharmacy", "pet care", "other"
 - Omit water and other universally available household basics (e.g. tap water, ice) from the ingredients list

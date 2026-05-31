@@ -25,7 +25,10 @@ import { useTranslations } from "next-intl";
 const STEP_NUMBERS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
 
 function splitInstructions(text: string): string[] {
-  return text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean);
+  // Prefer double-newline paragraph splits; fall back to single-newline for older recipes
+  const doubled = text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean);
+  if (doubled.length > 1) return doubled;
+  return text.split(/\n/).map((s) => s.trim()).filter(Boolean);
 }
 
 function stepLabel(i: number): string {
