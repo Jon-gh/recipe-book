@@ -44,10 +44,11 @@ Browser
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
-| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category, staple toggle, shopping mode with localStorage persistence; persistent shopping list extras via DB |
+| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category; meal-plan staple items excluded (handled via check-in flow); shopping mode with session persistence; persistent shopping list extras via DB; `needsStapleReview` banner |
+| `src/components/StapleCheckinSheet.tsx` | Reusable bottom sheet for the staple check-in flow — shown after "Add to Meal Plan" and as step 6 of the new-week wizard; lets user choose which staples to buy with purchase quantities; adds them to the shopping list |
 | `src/app/api/shopping-list/` | REST: list/add/delete persistent shopping list items |
 | `src/app/api/scheduled-meals/` | REST: list/schedule/patch/delete `ScheduledMeal` entries — assigns meal plan entries to specific dates and meal slots |
-| `src/app/api/shopping-session/` | GET/PUT — per-user shopping session state (`checkedKeys`, `showStaples`, `weekStart`/`weekEnd`) |
+| `src/app/api/shopping-session/` | GET/PUT — per-user shopping session state (`checkedKeys`, `needsStapleReview`, `weekStart`/`weekEnd`); PUT accepts partial updates |
 | `src/app/api/user/locale/` | GET/PATCH — read and update the user's preferred locale; sets `NEXT_LOCALE` cookie |
 | `src/app/schedule/` | Weekly calendar view — schedule meal plan entries on specific dates and meal slots |
 | `src/app/settings/` | User settings page — language/locale preference |
@@ -109,10 +110,12 @@ Browser
 - When the shopping list POST resolves a product name, it checks: (1) user's own product, (2) system product, (3) create a new user product.
 
 ### `ShoppingSession` — per-user (not singleton)
-**Why:** Previously a singleton row with `id = "session"`. With multiple users, each user needs their own shopping session state (checked items, week dates, show-staples flag).
+**Why:** Previously a singleton row with `id = "session"`. With multiple users, each user needs their own shopping session state (checked items, week dates, staple review flag).
 
-- Changed from `@id @default("session")` to `id String @id @default(cuid())` with `userId String @unique`.
-- All upserts now use `where: { userId }` instead of `where: { id: "session" }`.
+- `checkedKeys String[]` — item keys the user has ticked during a shopping trip (meal-plan items only; shopping list items are deleted when tapped).
+- `needsStapleReview Boolean @default(false)` — set to `true` when the user skips the staple check-in step; the grocery list page shows a reminder banner. Reset to `false` when review is completed or dismissed.
+- `weekStart`/`weekEnd` — dates of the active shopping week.
+- All upserts use `where: { userId }`; the PUT route accepts partial bodies so individual flags can be updated without touching other fields.
 
 ### `ShoppingListItem` — persistent user-added grocery extras
 **Why:** Users want to add items to the grocery list at any time (not just during a shopping session) and have them persist across devices. `ShoppingListItem` links to `Ingredient` via FK so category assignment is automatic and items sort into the correct aisle. The same find-or-create logic used on recipe save is applied here.

@@ -160,12 +160,14 @@ Returns `409` if the slot (`mealPlanEntryId + date + mealType`) is already occup
 ```json
 {
   "checkedKeys": ["item-key-1"],
-  "showStaples": false,
+  "needsStapleReview": false,
   "weekStart": "2025-06-01",
   "weekEnd": "2025-06-07"
 }
 ```
-`checkedKeys` persists which grocery list items the user has ticked during a shopping trip. `weekStart`/`weekEnd` track the active week. Missing fields default to `[]`, `false`, and `null`.
+`checkedKeys` persists which grocery list items the user has ticked during a shopping trip. `needsStapleReview` is set to `true` when the user skips the staple check-in step — the grocery list page shows a reminder banner when this is `true`. `weekStart`/`weekEnd` track the active week. Missing fields default to `[]`, `false`, and `null`.
+
+**Partial PUT:** All fields are optional. Send only the fields you want to update — e.g. `{ "needsStapleReview": true }` updates only that flag without touching `checkedKeys` or week dates.
 
 ## User Preferences
 
