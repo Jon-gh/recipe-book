@@ -14,7 +14,20 @@ import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
+import LoadingState from "@/components/LoadingState";
+import { getRecipeEmoji } from "@/lib/recipe-emoji";
+import { getIngredientEmoji } from "@/lib/ingredient-emoji";
 import { useTranslations } from "next-intl";
+
+const STEP_NUMBERS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
+
+function splitInstructions(text: string): string[] {
+  return text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean);
+}
+
+function stepLabel(i: number): string {
+  return i < STEP_NUMBERS.length ? STEP_NUMBERS[i] : `(${i + 1})`;
+}
 
 export default function RecipeDetailPage() {
   const t = useTranslations("recipeDetail");
@@ -22,6 +35,7 @@ export default function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [showActionsSheet, setShowActionsSheet] = useState(false);
+  const [starPopped, setStarPopped] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [showPlanSheet, setShowPlanSheet] = useState(false);
@@ -37,6 +51,8 @@ export default function RecipeDetailPage() {
   async function handleToggleFavourite() {
     if (!recipe) return;
     haptic();
+    setStarPopped(true);
+    setTimeout(() => setStarPopped(false), 200);
     const updated = { ...recipe, favourite: !recipe.favourite };
     mutateRecipe(updated, false);
     await fetch(`/api/recipes/${id}`, {
@@ -86,12 +102,16 @@ export default function RecipeDetailPage() {
     setShowPlanSheet(false);
   }
 
-  if (isLoading) return <p className="text-muted-foreground">{tCommon("loading")}</p>;
+  if (isLoading) return <LoadingState emoji="🍳" message={t("loading")} />;
   if (!recipe) return <p className="text-muted-foreground">{t("notFound")}</p>;
+
+  const recipeEmoji = getRecipeEmoji(recipe.name);
+  const instructionSteps = splitInstructions(recipe.instructions);
 
   return (
     <div className="max-w-2xl">
-      <div className="flex items-start gap-1 mb-3 -mx-1.5">
+      {/* Header row */}
+      <div className="flex items-start gap-1 mb-2 -mx-1.5">
         <Link
           href="/recipes"
           className="p-1.5 mt-0.5 rounded-lg text-muted-foreground active:bg-muted transition-colors shrink-0"
@@ -102,7 +122,7 @@ export default function RecipeDetailPage() {
         <h1 className="flex-1 text-xl font-bold leading-snug pt-1">{recipe.name}</h1>
         <button
           onClick={handleToggleFavourite}
-          className="p-1.5 mt-0.5 shrink-0 text-xl leading-none active:scale-95 transition-transform"
+          className={`p-1.5 mt-0.5 shrink-0 text-xl leading-none ${starPopped ? "animate-star-pop" : ""}`}
           aria-label={recipe.favourite ? t("removeFromFavourites") : t("addToFavourites")}
         >
           {recipe.favourite ? "★" : "☆"}
@@ -115,28 +135,37 @@ export default function RecipeDetailPage() {
           <MoreHorizontal size={20} />
         </button>
       </div>
-      <p className="text-sm text-muted-foreground mb-3 pl-1">
-        {tCommon("servings", { count: recipe.servings })} · {tCommon("ingredients", { count: recipe.ingredients.length })}
-      </p>
 
-      {recipe.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-4">
-          {recipe.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
+      {/* Emoji + meta row */}
+      <div className="flex items-center gap-3 mb-3 pl-1">
+        <span className="text-4xl" aria-hidden="true">{recipeEmoji}</span>
+        <div>
+          <p className="text-sm text-muted-foreground">
+            {tCommon("servings", { count: recipe.servings })} · {tCommon("ingredients", { count: recipe.ingredients.length })}
+          </p>
+          {recipe.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {recipe.tags.map((tag) => (
+                <Badge key={tag} variant="secondary">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
       <Separator className="my-4" />
 
       <section className="mb-6">
         <h2 className="font-semibold mb-3">{t("ingredients")}</h2>
-        <ul className="space-y-1">
+        <ul className="space-y-2">
           {recipe.ingredients.map((ing) => (
-            <li key={ing.id} className="text-sm flex gap-2">
-              <span className="font-medium tabular-nums">
+            <li key={ing.id} className="text-sm flex items-baseline gap-2">
+              <span className="text-base shrink-0" aria-hidden="true">
+                {getIngredientEmoji(ing.product.name, ing.product.category ?? "other")}
+              </span>
+              <span className="font-medium tabular-nums shrink-0">
                 {ing.quantity} {ing.unit}
               </span>
               <span>
@@ -152,9 +181,16 @@ export default function RecipeDetailPage() {
 
       <section className="mb-6">
         <h2 className="font-semibold mb-3">{t("instructions")}</h2>
-        <div className="text-sm whitespace-pre-wrap leading-relaxed">
-          {recipe.instructions}
-        </div>
+        <ol className="space-y-3">
+          {instructionSteps.map((step, i) => (
+            <li key={i} className="flex gap-3 text-sm leading-relaxed">
+              <span className="shrink-0 text-base font-semibold text-green-600 dark:text-green-400 mt-0.5">
+                {stepLabel(i)}
+              </span>
+              <span className="whitespace-pre-wrap">{step}</span>
+            </li>
+          ))}
+        </ol>
       </section>
 
       {recipe.notes && (

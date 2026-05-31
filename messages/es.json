@@ -22,7 +22,9 @@
     "defaultUnit": "Unidad por defecto",
     "unitPlaceholder": "g, ml, cda.…",
     "servings": "{count, plural, one {# porción} other {# porciones}}",
-    "ingredients": "{count, plural, one {# ingrediente} other {# ingredientes}}"
+    "ingredients": "{count, plural, one {# ingrediente} other {# ingredientes}}",
+    "errorTitle": "Algo se quemó.",
+    "errorSubtext": "Desliza hacia abajo para reintentar."
   },
   "languages": {
     "en": "English",
@@ -71,10 +73,15 @@
     "favourites": "★ Favoritos",
     "noRecipes": "No se encontraron recetas.",
     "addOne": "¡Añade una!",
+    "loading": "Revisando el recetario…",
     "loadError": "No se pudieron cargar las recetas. Comprueba tu conexión.",
-    "newRecipe": "Nueva receta"
+    "newRecipe": "Nueva receta",
+    "emptyTitle": "Tu recetario está vacío.",
+    "emptySubtext": "Importa una receta pegando texto, una URL o tomando una foto.",
+    "emptyAddFirstRecipe": "Añadir mi primera receta"
   },
   "recipeDetail": {
+    "loading": "Cargando la receta…",
     "notFound": "Receta no encontrada.",
     "ingredients": "Ingredientes",
     "instructions": "Instrucciones",
@@ -126,10 +133,15 @@
   },
   "grocery": {
     "title": "Lista de la compra",
+    "loading": "Reuniendo tus ingredientes…",
     "backToMealPlan": "← Plan de comidas",
     "hideStaples": "Ocultar básicos",
     "showStaples": "Mostrar básicos ({count})",
     "noItems": "No hay artículos en el plan de comidas.",
+    "emptyTitle": "Tu carrito está vacío.",
+    "emptySubtext": "Planifica comidas para preparar tu lista de la compra.",
+    "allDoneTitle": "¡Todo listo! Buena compra.",
+    "allDoneSubtext": "Todo está en el carrito.",
     "noItemsCta": "Añade recetas a tu plan de comidas",
     "noItemsOr": "para empezar, o toca + para añadir extras.",
     "inTrolley": "En el carrito",
@@ -149,8 +161,12 @@
     "title": "Plan",
     "newWeek": "Nueva semana",
     "searchPlaceholder": "Buscar recetas para añadir…",
+    "loading": "Preparando tu semana…",
     "noRecipesYet": "Aún no hay recetas planificadas",
     "searchHint": "Busca arriba para añadir recetas a tu plan",
+    "emptyTitle": "Nada planificado todavía.",
+    "emptySubtext": "Explora tus recetas y empieza a armar el menú de la semana.",
+    "emptyBrowseRecipes": "Ver recetas",
     "noRecipesFound": "No se encontraron recetas.",
     "ready": "Listo",
     "servingsScheduled": "{allocated}/{total} porciones programadas",

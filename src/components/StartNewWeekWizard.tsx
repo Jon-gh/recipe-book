@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { normalizeUnit } from "@/lib/grocery-list";
+import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { useTranslations } from "next-intl";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -20,8 +21,8 @@ function toDateStr(d: Date) {
 
 function nextMonday(from: Date = new Date()) {
   const d = new Date(from);
-  const day = d.getDay(); // 0=Sun, 1=Mon...
-  const diff = day === 0 ? 1 : 8 - day; // days until next Monday
+  const day = d.getDay();
+  const diff = day === 0 ? 1 : 8 - day;
   d.setDate(d.getDate() + diff);
   return toDateStr(d);
 }
@@ -51,7 +52,26 @@ function formatDay(dateStr: string) {
   });
 }
 
-type SlotPortions = Record<string, { lunch: number; dinner: number }>;
+function formatDayShort(dateStr: string) {
+  const d = new Date(dateStr + "T00:00:00");
+  return {
+    weekday: d.toLocaleDateString("en-GB", { weekday: "short" }),
+    date: d.getDate(),
+  };
+}
+
+function todayStr() {
+  return toDateStr(new Date());
+}
+
+const CARD_BG_COLORS = [
+  "bg-amber-50 dark:bg-amber-950/30",
+  "bg-rose-50 dark:bg-rose-950/30",
+  "bg-orange-50 dark:bg-orange-950/30",
+  "bg-emerald-50 dark:bg-emerald-950/30",
+  "bg-violet-50 dark:bg-violet-950/30",
+  "bg-sky-50 dark:bg-sky-950/30",
+];
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
@@ -69,11 +89,9 @@ type PlanSlot = {
   date: string;
   mealType: "lunch" | "dinner";
   servings: number;
-  // Recipe slot (one of these set)
   recipeName?: string;
   existingEntryId?: number;
   newRecipeId?: string;
-  // Custom note slot
   customNote?: string;
 };
 
@@ -83,6 +101,27 @@ interface Props {
   recipes: Recipe[];
   checkedKeys: Set<string>;
   onClose: (result?: { weekStart: string; weekEnd: string }) => void;
+}
+
+// ── progress bar ──────────────────────────────────────────────────────────────
+
+function ProgressBar({ step, total = 6 }: { step: number; total?: number }) {
+  return (
+    <div className="flex items-center gap-1">
+      {Array.from({ length: total }, (_, i) => i + 1).map((s) => (
+        <div
+          key={s}
+          className={`h-1.5 rounded-full transition-all duration-300 ${
+            s < step
+              ? "bg-green-500 flex-1"
+              : s === step
+              ? "bg-green-500 flex-[1.5] ring-2 ring-green-500/25 ring-offset-1"
+              : "bg-muted flex-1"
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
 // ── component ─────────────────────────────────────────────────────────────────
@@ -102,12 +141,14 @@ export default function StartNewWeekWizard({
   // Step 1 — consumed portions
   const [consumed, setConsumed] = useState<Record<number, number>>({});
 
-  // Step 2 — week dates
+  // Step 2 — week dates (always Mon–Sun)
   const [weekStart, setWeekStart] = useState("");
   const [weekEnd, setWeekEnd] = useState("");
 
-  // Step 3 — portions per slot
-  const [slotPortions, setSlotPortions] = useState<SlotPortions>({});
+  // Step 3 — global defaults + per-day exceptions
+  const [lunchDefault, setLunchDefault] = useState(2);
+  const [dinnerDefault, setDinnerDefault] = useState(2);
+  const [exceptions, setExceptions] = useState<Record<string, { lunch?: number; dinner?: number }>>({});
 
   // Step 4 — new recipes
   const [newRecipes, setNewRecipes] = useState<NewRecipeEntry[]>([]);
@@ -116,7 +157,7 @@ export default function StartNewWeekWizard({
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [servings, setServings] = useState(2);
 
-  // Step 5 — schedule planning (local, no API until confirm)
+  // Step 5 — schedule planning
   const [planSlots, setPlanSlots] = useState<PlanSlot[]>([]);
   const [pickerDate, setPickerDate] = useState<string | null>(null);
   const [pickerMealType, setPickerMealType] = useState<"lunch" | "dinner" | null>(null);
@@ -141,15 +182,12 @@ export default function StartNewWeekWizard({
     setConsumed(init);
 
     const start = nextMonday();
-    const end = addDays(start, 6);
     setWeekStart(start);
-    setWeekEnd(end);
+    setWeekEnd(addDays(start, 6));
 
-    const slots: SlotPortions = {};
-    for (const d of daysInRange(start, end)) {
-      slots[d] = { lunch: 2, dinner: 2 };
-    }
-    setSlotPortions(slots);
+    setLunchDefault(2);
+    setDinnerDefault(2);
+    setExceptions({});
     setNewRecipes([]);
     setPlanSlots([]);
     setSearch("");
@@ -160,37 +198,48 @@ export default function StartNewWeekWizard({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Rebuild slot portions when week dates change
-  function applyWeekDates(start: string, end: string) {
-    const days = daysInRange(start, end);
-    setSlotPortions((prev) => {
-      const next: SlotPortions = {};
-      for (const d of days) next[d] = prev[d] ?? { lunch: 2, dinner: 2 };
+  // Week navigation helpers (step 2)
+  function shiftWeek(n: number) {
+    const newStart = addDays(weekStart, n);
+    setWeekStart(newStart);
+    setWeekEnd(addDays(newStart, 6));
+  }
+
+  // Step 3 helpers
+  function resolvedPortions(day: string): { lunch: number; dinner: number } {
+    return {
+      lunch: exceptions[day]?.lunch ?? lunchDefault,
+      dinner: exceptions[day]?.dinner ?? dinnerDefault,
+    };
+  }
+
+  function setException(day: string, meal: "lunch" | "dinner", val: number) {
+    setExceptions((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], [meal]: val },
+    }));
+  }
+
+  function clearException(day: string) {
+    setExceptions((prev) => {
+      const next = { ...prev };
+      delete next[day];
       return next;
     });
   }
 
-  function handleWeekStartChange(val: string) {
-    setWeekStart(val);
-    if (val && weekEnd) applyWeekDates(val, weekEnd);
-  }
-
-  function handleWeekEndChange(val: string) {
-    setWeekEnd(val);
-    if (weekStart && val) applyWeekDates(weekStart, val);
-  }
-
   // Totals
+  const scheduleDays = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
   const leftoverServings = entries.reduce((sum, e) => {
     const c = consumed[e.id] ?? e.targetServings;
     return sum + Math.max(0, e.targetServings - c);
   }, 0);
   const newServings = newRecipes.reduce((s, r) => s + r.targetServings, 0);
   const totalPlanned = leftoverServings + newServings;
-  const totalNeeded = Object.values(slotPortions).reduce(
-    (s, p) => s + p.lunch + p.dinner,
-    0
-  );
+  const totalNeeded = scheduleDays.reduce((sum, day) => {
+    const p = resolvedPortions(day);
+    return sum + p.lunch + p.dinner;
+  }, 0);
 
   // Step 4 search
   const showDropdown = searchFocused && search.length > 0 && !selectedRecipe;
@@ -292,17 +341,10 @@ export default function StartNewWeekWizard({
   function confirmPickerSlot() {
     if (!pickerDate || !pickerMealType) return;
     const id = String(Date.now());
-
     if (pickerNote.trim()) {
       setPlanSlots((prev) => [
         ...prev,
-        {
-          id,
-          date: pickerDate,
-          mealType: pickerMealType,
-          servings: 1,
-          customNote: pickerNote.trim(),
-        },
+        { id, date: pickerDate, mealType: pickerMealType, servings: 1, customNote: pickerNote.trim() },
       ]);
     } else if (pickerSource) {
       setPlanSlots((prev) => [
@@ -379,32 +421,30 @@ export default function StartNewWeekWizard({
 
   if (!open) return null;
 
-  const scheduleDays = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
-
   return (
     <>
-    {/* Main overlay — header + scrollable content only, NO footer here */}
+    {/* Main overlay */}
     <div
       className="fixed inset-0 z-50 bg-background overflow-hidden"
       aria-modal="true"
       role="dialog"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-background">
-        <button
-          onClick={() => onClose()}
-          className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
-        <h2 className="font-semibold text-base">{t("title")}</h2>
-        <span className="text-xs text-muted-foreground ml-auto">
-          {t("stepOf", { step })}
-        </span>
+      <div className="px-4 py-3 border-b bg-background">
+        <div className="flex items-center gap-3 mb-2">
+          <button
+            onClick={() => onClose()}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+          <h2 className="font-semibold text-base">{t("title")}</h2>
+        </div>
+        <ProgressBar step={step} />
       </div>
 
-      {/* Scrollable step content — pb-28 so content never hides behind the footer */}
+      {/* Scrollable step content */}
       <div className="overflow-y-auto h-full px-4 pt-4 pb-28">
         {step > 1 && (
           <button
@@ -430,21 +470,21 @@ export default function StartNewWeekWizard({
           <Step2
             weekStart={weekStart}
             weekEnd={weekEnd}
-            onWeekStartChange={handleWeekStartChange}
-            onWeekEndChange={handleWeekEndChange}
+            onShiftWeek={shiftWeek}
           />
         )}
 
         {step === 3 && (
           <Step3
-            slotPortions={slotPortions}
+            scheduleDays={scheduleDays}
+            lunchDefault={lunchDefault}
+            dinnerDefault={dinnerDefault}
+            exceptions={exceptions}
             totalNeeded={totalNeeded}
-            onPortionChange={(day, meal, val) =>
-              setSlotPortions((prev) => ({
-                ...prev,
-                [day]: { ...prev[day], [meal]: val },
-              }))
-            }
+            onLunchDefaultChange={setLunchDefault}
+            onDinnerDefaultChange={setDinnerDefault}
+            onSetException={setException}
+            onClearException={clearException}
           />
         )}
 
@@ -472,12 +512,8 @@ export default function StartNewWeekWizard({
             onServingsChange={setServings}
             onAddRecipe={addNewRecipe}
             onRemoveRecipe={removeNewRecipe}
-            onDropdownPointerDown={() => {
-              dropdownPressedRef.current = true;
-            }}
-            onCancelPointerDown={() => {
-              cancelPressedRef.current = true;
-            }}
+            onDropdownPointerDown={() => { dropdownPressedRef.current = true; }}
+            onCancelPointerDown={() => { cancelPressedRef.current = true; }}
           />
         )}
 
@@ -486,7 +522,7 @@ export default function StartNewWeekWizard({
             scheduleSources={scheduleSources}
             planSlots={planSlots}
             scheduleDays={scheduleDays}
-            slotPortions={slotPortions}
+            resolvedPortions={resolvedPortions}
             getPlanSlot={getPlanSlot}
             onOpenPicker={openPicker}
             onRemoveSlot={removePlanSlot}
@@ -506,10 +542,9 @@ export default function StartNewWeekWizard({
           />
         )}
       </div>
-
     </div>
 
-    {/* Footer — completely independent fixed element, cannot be pushed off-screen */}
+    {/* Footer */}
     <div
       className="fixed bottom-0 left-0 right-0 z-[51] bg-background border-t px-4 pt-3"
       style={{ paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))" }}
@@ -520,6 +555,7 @@ export default function StartNewWeekWizard({
           variant={nextVariant}
           disabled={isNextDisabled}
           onClick={() => setStep((s) => (s + 1) as typeof step)}
+          data-testid="wizard-next"
         >
           {nextLabel}
         </Button>
@@ -531,7 +567,7 @@ export default function StartNewWeekWizard({
       )}
     </div>
 
-    {/* Slot picker overlay — at root level so z-[52] beats the footer at z-[51] */}
+    {/* Slot picker overlay */}
     {pickerDate && pickerMealType && (
       <div
         className="fixed inset-0 bg-black/40 flex items-end z-[52]"
@@ -543,7 +579,7 @@ export default function StartNewWeekWizard({
         >
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold text-sm">
-              {formatDay(pickerDate)} · {pickerMealType}
+              {formatDay(pickerDate)} · {pickerMealType === "lunch" ? "☀️" : "🌙"} {pickerMealType}
             </h3>
             <button onClick={closePicker} className="text-muted-foreground p-1">
               <X size={18} />
@@ -596,9 +632,7 @@ export default function StartNewWeekWizard({
                 >
                   <Minus size={14} />
                 </button>
-                <span className="text-sm font-semibold w-8 text-center tabular-nums">
-                  {pickerServings}
-                </span>
+                <span className="text-sm font-semibold w-8 text-center tabular-nums">{pickerServings}</span>
                 <button
                   onClick={() => {
                     const remaining = remainingForSource(pickerSource);
@@ -612,7 +646,6 @@ export default function StartNewWeekWizard({
             </div>
           )}
 
-          {/* Custom note */}
           <div className="mb-4">
             <label className="text-xs font-medium text-muted-foreground block mb-1.5">
               {scheduleSources.length > 0 ? tSchedule("orCustomNote") : tSchedule("customNote")}
@@ -641,7 +674,7 @@ export default function StartNewWeekWizard({
   );
 }
 
-// ── Step 1 ────────────────────────────────────────────────────────────────────
+// ── Step 1 — pastel recipe cards ──────────────────────────────────────────────
 
 function Step1({
   entries,
@@ -656,26 +689,24 @@ function Step1({
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step1Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        {t("step1Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{t("step1Subtitle")}</p>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-6">
-          {t("noRecipesInPlan")}
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-6">{t("noRecipesInPlan")}</p>
       ) : (
-        <div className="border rounded-xl divide-y overflow-hidden mb-6">
-          {entries.map((entry) => {
+        <div className="space-y-2 mb-6">
+          {entries.map((entry, index) => {
             const c = consumed[entry.id] ?? entry.targetServings;
             const leftover = entry.targetServings - c;
+            const cardBg = CARD_BG_COLORS[index % CARD_BG_COLORS.length];
             return (
-              <div key={entry.id} className="px-4 py-3">
-                <div className="flex items-center justify-between gap-3">
+              <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl shrink-0" aria-hidden="true">
+                    {getRecipeEmoji(entry.recipe.name)}
+                  </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {entry.recipe.name}
-                    </p>
+                    <p className="text-sm font-medium truncate">{entry.recipe.name}</p>
                     <p className="text-xs text-muted-foreground">
                       {t("portionsTotal", { total: entry.targetServings })}
                       {leftover > 0 && (
@@ -684,27 +715,21 @@ function Step1({
                         </span>
                       )}
                       {c >= entry.targetServings && (
-                        <span className="text-muted-foreground ml-1">
-                          · {t("fullyConsumed")}
-                        </span>
+                        <span className="text-muted-foreground ml-1">· {t("fullyConsumed")}</span>
                       )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => onConsumedChange(entry.id, Math.max(0, c - 1))}
-                      className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                      className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="text-sm font-semibold w-6 text-center tabular-nums">
-                      {c}
-                    </span>
+                    <span className="text-sm font-semibold w-6 text-center tabular-nums">{c}</span>
                     <button
-                      onClick={() =>
-                        onConsumedChange(entry.id, Math.min(entry.targetServings, c + 1))
-                      }
-                      className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                      onClick={() => onConsumedChange(entry.id, Math.min(entry.targetServings, c + 1))}
+                      className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
                     >
                       <Plus size={13} />
                     </button>
@@ -715,119 +740,212 @@ function Step1({
           })}
         </div>
       )}
-
     </div>
   );
 }
 
-// ── Step 2 ────────────────────────────────────────────────────────────────────
+// ── Step 2 — week chip navigation ─────────────────────────────────────────────
 
 function Step2({
   weekStart,
   weekEnd,
-  onWeekStartChange,
-  onWeekEndChange,
+  onShiftWeek,
 }: {
   weekStart: string;
   weekEnd: string;
-  onWeekStartChange: (v: string) => void;
-  onWeekEndChange: (v: string) => void;
+  onShiftWeek: (n: number) => void;
 }) {
   const t = useTranslations("wizard");
+  const today = todayStr();
+  const days = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
+
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step2Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-5">
-        {t("step2Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-5">{t("step2Subtitle")}</p>
 
-      <div className="space-y-4 mb-6">
-        <div>
-          <label className="text-sm font-medium block mb-1">{t("startLabel")}</label>
-          <input
-            type="date"
-            value={weekStart}
-            onChange={(e) => onWeekStartChange(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
-          />
+      <div className="flex items-center justify-between mb-3 gap-3">
+        <button
+          onClick={() => onShiftWeek(-7)}
+          className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-transform text-sm font-medium"
+          aria-label="Previous week"
+        >
+          ←
+        </button>
+
+        <div className="flex-1 flex items-center justify-center gap-1">
+          {days.map((day) => {
+            const { weekday, date } = formatDayShort(day);
+            const isToday = day === today;
+            return (
+              <div
+                key={day}
+                className={`flex flex-col items-center justify-center w-10 h-12 rounded-xl text-xs font-medium transition-colors ${
+                  isToday
+                    ? "bg-green-500 text-white ring-2 ring-amber-400"
+                    : "bg-green-500 text-white"
+                }`}
+              >
+                <span className="opacity-75 text-[10px]">{weekday}</span>
+                <span className="font-bold text-sm leading-none">{date}</span>
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <label className="text-sm font-medium block mb-1">{t("endLabel")}</label>
-          <input
-            type="date"
-            value={weekEnd}
-            min={weekStart}
-            onChange={(e) => onWeekEndChange(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 text-sm bg-background"
-          />
-        </div>
+
+        <button
+          onClick={() => onShiftWeek(7)}
+          className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-transform text-sm font-medium"
+          aria-label="Next week"
+        >
+          →
+        </button>
       </div>
 
+      <p className="text-xs text-center text-muted-foreground">
+        {weekStart && weekEnd ? `${formatDay(weekStart)} – ${formatDay(weekEnd)}` : ""}
+      </p>
     </div>
   );
 }
 
-// ── Step 3 ────────────────────────────────────────────────────────────────────
+// ── Step 3 — global defaults + per-day exceptions ─────────────────────────────
 
 function Step3({
-  slotPortions,
+  scheduleDays,
+  lunchDefault,
+  dinnerDefault,
+  exceptions,
   totalNeeded,
-  onPortionChange,
+  onLunchDefaultChange,
+  onDinnerDefaultChange,
+  onSetException,
+  onClearException,
 }: {
-  slotPortions: SlotPortions;
+  scheduleDays: string[];
+  lunchDefault: number;
+  dinnerDefault: number;
+  exceptions: Record<string, { lunch?: number; dinner?: number }>;
   totalNeeded: number;
-  onPortionChange: (day: string, meal: "lunch" | "dinner", val: number) => void;
+  onLunchDefaultChange: (v: number) => void;
+  onDinnerDefaultChange: (v: number) => void;
+  onSetException: (day: string, meal: "lunch" | "dinner", val: number) => void;
+  onClearException: (day: string) => void;
 }) {
   const t = useTranslations("wizard");
   const tSchedule = useTranslations("schedule");
-  const days = Object.keys(slotPortions).sort();
+  const today = todayStr();
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step3Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        {t("step3Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{t("step3Subtitle")}</p>
 
-      <div className="space-y-3 mb-4">
-        {days.map((day) => {
-          const p = slotPortions[day] ?? { lunch: 2, dinner: 2 };
+      {/* Global defaults */}
+      <div className="border rounded-xl divide-y overflow-hidden mb-4">
+        {(["lunch", "dinner"] as const).map((meal) => {
+          const val = meal === "lunch" ? lunchDefault : dinnerDefault;
+          const onChange = meal === "lunch" ? onLunchDefaultChange : onDinnerDefaultChange;
           return (
-            <div key={day} className="border rounded-xl overflow-hidden">
-              <div className="bg-muted/50 px-4 py-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {formatDay(day)}
-                </p>
-              </div>
-              <div className="divide-y">
-                {(["lunch", "dinner"] as const).map((meal) => (
-                  <div key={meal} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
-                    <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                      {meal === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}
-                    </span>
-                    <div className="flex items-center gap-2 ml-auto">
-                      <button
-                        onClick={() => onPortionChange(day, meal, Math.max(0, p[meal] - 1))}
-                        className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                      >
-                        <Minus size={13} />
-                      </button>
-                      <span className="text-sm font-semibold w-7 text-center tabular-nums">
-                        {p[meal]}
-                      </span>
-                      <button
-                        onClick={() => onPortionChange(day, meal, p[meal] + 1)}
-                        className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                      >
-                        <Plus size={13} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+            <div key={meal} className="flex items-center gap-3 px-4 py-3">
+              <span className="text-lg shrink-0" aria-hidden="true">{meal === "lunch" ? "☀️" : "🌙"}</span>
+              <span className="text-sm font-medium flex-1">
+                {meal === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onChange(Math.max(0, val - 1))}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Minus size={13} />
+                </button>
+                <span className="text-sm font-semibold w-7 text-center tabular-nums">{val}</span>
+                <button
+                  onClick={() => onChange(val + 1)}
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                >
+                  <Plus size={13} />
+                </button>
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Per-day exception chips */}
+      {scheduleDays.length > 0 && (
+        <div className="mb-4">
+          <p className="text-xs font-medium text-muted-foreground mb-2">Per-day exceptions</p>
+          <div className="flex gap-1.5 flex-wrap">
+            {scheduleDays.map((day) => {
+              const { weekday, date } = formatDayShort(day);
+              const hasException = !!exceptions[day];
+              const isToday = day === today;
+              const isExpanded = expandedDay === day;
+              return (
+                <div key={day} className="flex flex-col">
+                  <button
+                    onClick={() => setExpandedDay(isExpanded ? null : day)}
+                    className={`relative flex flex-col items-center justify-center w-10 h-12 rounded-xl text-xs font-medium transition-colors ${
+                      isExpanded
+                        ? "bg-green-500 text-white"
+                        : isToday
+                        ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300"
+                        : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    <span className="opacity-75 text-[10px]">{weekday}</span>
+                    <span className="font-bold text-sm leading-none">{date}</span>
+                    {hasException && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-500 rounded-full" />
+                    )}
+                  </button>
+
+                  {isExpanded && (
+                    <div className="mt-2 bg-muted/50 border rounded-xl p-3 min-w-[180px] absolute z-10">
+                      {(["lunch", "dinner"] as const).map((meal) => {
+                        const resolved = meal === "lunch"
+                          ? (exceptions[day]?.lunch ?? lunchDefault)
+                          : (exceptions[day]?.dinner ?? dinnerDefault);
+                        return (
+                          <div key={meal} className="flex items-center gap-2 mb-2 last:mb-0">
+                            <span className="text-sm shrink-0">{meal === "lunch" ? "☀️" : "🌙"}</span>
+                            <span className="text-xs flex-1">{meal === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}</span>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => onSetException(day, meal, Math.max(0, resolved - 1))}
+                                className="w-6 h-6 rounded-full bg-background flex items-center justify-center active:scale-95"
+                              >
+                                <Minus size={11} />
+                              </button>
+                              <span className="text-xs font-semibold w-5 text-center">{resolved}</span>
+                              <button
+                                onClick={() => onSetException(day, meal, resolved + 1)}
+                                className="w-6 h-6 rounded-full bg-background flex items-center justify-center active:scale-95"
+                              >
+                                <Plus size={11} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {(exceptions[day]) && (
+                        <button
+                          onClick={() => onClearException(day)}
+                          className="text-xs text-muted-foreground hover:text-foreground mt-1"
+                        >
+                          Reset to default
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <p className="text-sm text-muted-foreground text-center mb-4">
         {t("totalPortionsNeeded", { count: totalNeeded })}
@@ -836,7 +954,7 @@ function Step3({
   );
 }
 
-// ── Step 4 ────────────────────────────────────────────────────────────────────
+// ── Step 4 — pastel recipe cards ──────────────────────────────────────────────
 
 function Step4({
   totalNeeded,
@@ -892,17 +1010,13 @@ function Step4({
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step4Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-1">
-        {t("step4Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-1">{t("step4Subtitle")}</p>
 
       {/* Tally */}
       <div className={`flex items-center justify-between rounded-xl px-4 py-3 mb-4 text-sm font-medium ${filled ? "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400" : "bg-muted/60"}`}>
         <span>
           {leftoverServings > 0 && (
-            <span className="text-muted-foreground font-normal mr-1">
-              {leftoverServings} leftover +
-            </span>
+            <span className="text-muted-foreground font-normal mr-1">{leftoverServings} leftover +</span>
           )}
           {newRecipes.reduce((s, r) => s + r.targetServings, 0)} new
         </span>
@@ -980,35 +1094,38 @@ function Step4({
         )}
       </div>
 
-      {/* Added recipes */}
+      {/* Added recipes — pastel cards */}
       {newRecipes.length > 0 && (
-        <div className="border rounded-xl divide-y overflow-hidden mb-4">
-          {newRecipes.map(({ recipe, targetServings }) => (
-            <div key={recipe.id} className="flex items-center gap-3 px-4 py-3">
+        <div className="space-y-2 mb-4">
+          {newRecipes.map(({ recipe, targetServings }, index) => (
+            <div
+              key={recipe.id}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl ${CARD_BG_COLORS[index % CARD_BG_COLORS.length]}`}
+            >
+              <span className="text-xl shrink-0" aria-hidden="true">{getRecipeEmoji(recipe.name)}</span>
               <span className="flex-1 text-sm font-medium truncate">{recipe.name}</span>
               <span className="text-xs text-muted-foreground shrink-0">{targetServings}p</span>
               <button
                 onClick={() => onRemoveRecipe(recipe.id)}
-                className="text-muted-foreground hover:text-destructive shrink-0 text-xs"
+                className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
               >
-                ✕
+                <X size={14} />
               </button>
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 }
 
-// ── Step 5 ────────────────────────────────────────────────────────────────────
+// ── Step 5 — schedule with dashed pills ───────────────────────────────────────
 
 function Step5({
   scheduleSources,
   planSlots,
   scheduleDays,
-  slotPortions,
+  resolvedPortions,
   getPlanSlot,
   onOpenPicker,
   onRemoveSlot,
@@ -1016,7 +1133,7 @@ function Step5({
   scheduleSources: ScheduleSource[];
   planSlots: PlanSlot[];
   scheduleDays: string[];
-  slotPortions: SlotPortions;
+  resolvedPortions: (day: string) => { lunch: number; dinner: number };
   getPlanSlot: (date: string, mealType: "lunch" | "dinner") => PlanSlot | undefined;
   onOpenPicker: (date: string, mealType: "lunch" | "dinner") => void;
   onRemoveSlot: (id: string) => void;
@@ -1024,15 +1141,16 @@ function Step5({
   const t = useTranslations("wizard");
   const tCommon = useTranslations("common");
   const tSchedule = useTranslations("schedule");
+  const today = todayStr();
+
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step5Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-4">
-        {t("step5Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-4">{t("step5Subtitle")}</p>
 
+      {/* Source allocation summary — pastel rows */}
       {scheduleSources.length > 0 && (
-        <div className="border rounded-xl divide-y overflow-hidden mb-4 text-sm">
+        <div className="space-y-1.5 mb-4">
           {scheduleSources.map((src, i) => {
             const allocated = planSlots
               .filter((s) =>
@@ -1042,9 +1160,15 @@ function Step5({
               )
               .reduce((sum, s) => sum + s.servings, 0);
             return (
-              <div key={i} className="flex items-center justify-between px-4 py-2.5">
-                <span className="truncate flex-1 mr-2 text-sm">{src.recipeName}</span>
-                <span className={`text-xs shrink-0 ${allocated >= src.totalServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+              <div
+                key={i}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${CARD_BG_COLORS[i % CARD_BG_COLORS.length]}`}
+              >
+                <span className="truncate flex-1 mr-2">
+                  <span className="mr-1.5" aria-hidden="true">{getRecipeEmoji(src.recipeName)}</span>
+                  {src.recipeName}
+                </span>
+                <span className={`text-xs shrink-0 font-medium ${allocated >= src.totalServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
                   {allocated}/{src.totalServings}p
                 </span>
               </div>
@@ -1055,66 +1179,76 @@ function Step5({
 
       {/* Day cards */}
       <div className="space-y-3">
-        {scheduleDays.map((day) => (
-          <div key={day} className="border rounded-xl overflow-hidden">
-            <div className="bg-muted/50 px-4 py-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                {formatDay(day)}
-              </p>
-            </div>
-            <div className="divide-y">
-              {(["lunch", "dinner"] as const).map((mealType) => {
-                const slot = getPlanSlot(day, mealType);
-                const targetPortions = slotPortions[day]?.[mealType];
-                return (
-                  <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
-                    <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                      {mealType === "lunch" ? tSchedule("lunch") : tSchedule("dinner")}
-                    </span>
-                    {slot ? (
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className="flex-1 min-w-0">
-                          {slot.customNote ? (
-                            <p className="text-sm italic text-muted-foreground leading-snug">
-                              {slot.customNote}
-                            </p>
-                          ) : (
-                            <>
-                              <p className="text-sm font-medium leading-snug">{slot.recipeName}</p>
-                              <p className="text-xs text-muted-foreground">{tCommon("servings", { count: slot.servings })}</p>
-                            </>
-                          )}
+        {scheduleDays.map((day) => {
+          const isToday = day === today;
+          const p = resolvedPortions(day);
+          return (
+            <div
+              key={day}
+              className={`rounded-xl overflow-hidden border ${isToday ? "border-amber-300 dark:border-amber-700" : "border-border"}`}
+            >
+              <div className={`px-4 py-2 flex items-center gap-2 ${isToday ? "bg-amber-50 dark:bg-amber-950/20" : "bg-muted/50"}`}>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  {formatDay(day)}
+                </p>
+                {isToday && (
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+                    Today
+                  </span>
+                )}
+              </div>
+              <div className="divide-y">
+                {(["lunch", "dinner"] as const).map((mealType) => {
+                  const slot = getPlanSlot(day, mealType);
+                  const targetPortions = p[mealType];
+                  return (
+                    <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
+                      <span className="text-base shrink-0" aria-hidden="true">
+                        {mealType === "lunch" ? "☀️" : "🌙"}
+                      </span>
+                      {slot ? (
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div className="flex-1 min-w-0">
+                            {slot.customNote ? (
+                              <p className="text-sm italic text-muted-foreground leading-snug">{slot.customNote}</p>
+                            ) : (
+                              <>
+                                <p className="text-sm font-medium leading-snug">{slot.recipeName}</p>
+                                <p className="text-xs text-muted-foreground">{tCommon("servings", { count: slot.servings })}</p>
+                              </>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => onRemoveSlot(slot.id)}
+                            className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
+                            aria-label="Remove slot"
+                          >
+                            <X size={14} />
+                          </button>
                         </div>
+                      ) : (
                         <button
-                          onClick={() => onRemoveSlot(slot.id)}
-                          className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
-                          aria-label="Remove slot"
+                          onClick={() => onOpenPicker(day, mealType)}
+                          className="flex flex-col active:scale-95 transition-transform"
                         >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => onOpenPicker(day, mealType)}
-                        className="flex flex-col active:scale-95 transition-transform"
-                      >
-                        <span className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-                          <Plus size={14} />
-                          {tSchedule("addMeal")}
-                        </span>
-                        {targetPortions != null && targetPortions > 0 && (
-                          <span className="text-xs text-muted-foreground/60 ml-[22px]">
-                            {t("portionsNeeded", { count: targetPortions })}
+                          <span className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground border-2 border-dashed border-muted-foreground/25 rounded-full px-3 py-0.5">
+                            <Plus size={12} />
+                            {tSchedule("addMeal")}
                           </span>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
+                          {targetPortions > 0 && (
+                            <span className="text-xs text-muted-foreground/60 ml-1 mt-0.5">
+                              {t("portionsNeeded", { count: targetPortions })}
+                            </span>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -1145,16 +1279,12 @@ function Step6({
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step6Title")}</h3>
-      <p className="text-sm text-muted-foreground mb-5">
-        {t("step6Subtitle")}
-      </p>
+      <p className="text-sm text-muted-foreground mb-5">{t("step6Subtitle")}</p>
 
       <div className="border rounded-xl divide-y overflow-hidden mb-6 text-sm">
         <div className="flex justify-between px-4 py-3">
           <span className="text-muted-foreground">{t("weekLabel")}</span>
-          <span className="font-medium">
-            {formatDay(weekStart)} → {formatDay(weekEnd)}
-          </span>
+          <span className="font-medium">{formatDay(weekStart)} → {formatDay(weekEnd)}</span>
         </div>
         <div className="flex justify-between px-4 py-3">
           <span className="text-muted-foreground">{t("leftoverPortions")}</span>
@@ -1179,9 +1309,7 @@ function Step6({
         </div>
       </div>
 
-      {error && (
-        <p className="text-sm text-destructive mb-4 text-center">{error}</p>
-      )}
+      {error && <p className="text-sm text-destructive mb-4 text-center">{error}</p>}
     </div>
   );
 }

@@ -78,14 +78,26 @@ beforeEach(() => {
 describe("GroceryListPage", () => {
   it("shows loading state initially", () => {
     renderPage();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Gathering your ingredients…")).toBeInTheDocument();
   });
 
   it("shows empty state when no items in either list", async () => {
     setupFetch({ groceryList: [], shoppingList: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText(/No meal plan items yet/)).toBeInTheDocument();
+      expect(screen.getByText("Your trolley is empty.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows all-done celebration when all items are checked", async () => {
+    const sessionWithChecked = {
+      checkedKeys: ["pasta__g", "eggs__", "flour__kg"],
+      showStaples: false,
+    };
+    setupFetch({ session: sessionWithChecked });
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("All done! Great shop.")).toBeInTheDocument();
     });
   });
 
@@ -136,8 +148,8 @@ describe("GroceryListPage", () => {
   it("groups items by category", async () => {
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("Grains & pulses")).toBeInTheDocument();
-      expect(screen.getByText("Dairy & eggs")).toBeInTheDocument();
+      expect(screen.getByText(/Grains & pulses/)).toBeInTheDocument();
+      expect(screen.getByText(/Dairy & eggs/)).toBeInTheDocument();
     });
   });
 });
@@ -260,34 +272,28 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
   });
 
-  it("tapping an item moves it to In Trolley with strikethrough", async () => {
+  it("tapping an item shows it with strikethrough inline", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
 
-    // In Trolley section is hidden by default; toggle button appears
-    expect(screen.getByRole("button", { name: /Show in trolley/i })).toBeInTheDocument();
-    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
-
-    // Reveal the section and verify strikethrough
-    await userEvent.click(screen.getByRole("button", { name: /Show in trolley/i }));
-    expect(screen.getByText("In Trolley")).toBeInTheDocument();
+    // Item stays in place with line-through styling
     expect(screen.getByText("Pasta").className).toContain("line-through");
+    // No separate In Trolley section
+    expect(screen.queryByText(/In Trolley/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Show in trolley/i })).not.toBeInTheDocument();
   });
 
-  it("tapping a checked item unchecks it and removes In Trolley section", async () => {
+  it("tapping a checked item unchecks it and removes strikethrough", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    // Reveal in-trolley items first
-    await userEvent.click(screen.getByRole("button", { name: /Show in trolley/i }));
-    expect(screen.getByText("In Trolley")).toBeInTheDocument();
+    expect(screen.getByText("Pasta").className).toContain("line-through");
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Show in trolley/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Pasta").className).not.toContain("line-through");
   });
 
   it("tapping a shopping list item optimistically removes it and shows undo toast", async () => {
@@ -302,17 +308,17 @@ describe("GroceryListPage — checking items", () => {
     // DELETE not called immediately
     expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
     // Does not move to In Trolley
-    expect(screen.queryByText("In Trolley")).not.toBeInTheDocument();
+    expect(screen.queryByText(/In Trolley/)).not.toBeInTheDocument();
   });
 
 });
 
 describe("GroceryListPage — server session persistence", () => {
-  it("restores checked keys from server session", async () => {
+  it("restores checked keys from server session and shows strikethrough", async () => {
     setupFetch({ session: { id: "session", checkedKeys: ["pasta__g"], showStaples: false } });
     renderPage();
-    // In Trolley section is collapsed by default; toggle button shows the count
-    await waitFor(() => expect(screen.getByRole("button", { name: /Show in trolley/i })).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.getByText("Pasta").className).toContain("line-through");
   });
 
   it("sends PUT to server when an item is checked", async () => {

@@ -20,6 +20,10 @@ function toDateStr(d: Date) {
   ].join("-");
 }
 
+function todayStr() {
+  return toDateStr(new Date());
+}
+
 function daysInRange(from: string, to: string): string[] {
   const days: string[] = [];
   const end = new Date(to + "T00:00:00");
@@ -39,6 +43,14 @@ function formatDay(dateStr: string) {
   });
 }
 
+function formatWeekRange(from: string, to: string) {
+  const start = new Date(from + "T00:00:00");
+  const end = new Date(to + "T00:00:00");
+  const startStr = start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  return `${startStr} – ${endStr}`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SchedulePage() {
@@ -50,22 +62,14 @@ export default function SchedulePage() {
     mutate: mutateEntries,
   } = useSWR<MealPlanEntry[]>("/api/meal-plan", fetcher);
 
-  const [scheduleFrom, setScheduleFrom] = useState(() => toDateStr(new Date()));
-  const [scheduleTo, setScheduleTo] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 6);
-    return toDateStr(d);
-  });
-
-  const scheduleKey = `/api/scheduled-meals?from=${scheduleFrom}&to=${scheduleTo}`;
-  const { data: scheduledMeals, mutate: mutateSchedule } =
-    useSWR<ScheduledMeal[]>(scheduleKey, fetcher);
-
   const { data: sessionData } = useSWR<{
     checkedKeys: string[];
     weekStart: string | null;
     weekEnd: string | null;
   }>("/api/shopping-session", fetcher);
+
+  const [scheduleFrom, setScheduleFrom] = useState<string | null>(null);
+  const [scheduleTo, setScheduleTo] = useState<string | null>(null);
 
   const sessionApplied = useRef(false);
   useEffect(() => {
@@ -75,6 +79,12 @@ export default function SchedulePage() {
     if (sessionData.weekEnd) setScheduleTo(sessionData.weekEnd.slice(0, 10));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionData]);
+
+  const scheduleKey = scheduleFrom && scheduleTo
+    ? `/api/scheduled-meals?from=${scheduleFrom}&to=${scheduleTo}`
+    : null;
+  const { data: scheduledMeals, mutate: mutateSchedule } =
+    useSWR<ScheduledMeal[]>(scheduleKey, fetcher);
 
   // ── slot state ──────────────────────────────────────────────────────────────
   const [slotDate, setSlotDate] = useState<string | null>(null);
@@ -147,7 +157,9 @@ export default function SchedulePage() {
     await Promise.all([mutateEntries(), mutateSchedule()]);
   }
 
-  const days = daysInRange(scheduleFrom, scheduleTo);
+  const today = todayStr();
+  const days = scheduleFrom && scheduleTo ? daysInRange(scheduleFrom, scheduleTo) : [];
+  const hasWeek = !!(scheduleFrom && scheduleTo);
 
   return (
     <>
@@ -155,10 +167,21 @@ export default function SchedulePage() {
       <div>
         <div className="mb-5">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
+          {hasWeek && (
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {formatWeekRange(scheduleFrom!, scheduleTo!)}
+            </p>
+          )}
         </div>
 
         {loadingEntries ? (
           <p className="text-muted-foreground">{tCommon("loading")}</p>
+        ) : !hasWeek ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <p className="text-5xl mb-4">📅</p>
+            <p className="font-medium text-foreground">{t("noRecipes")}</p>
+            <p className="text-sm mt-1">{t("noRecipesHint")}</p>
+          </div>
         ) : (entries ?? []).length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
             <p className="text-5xl mb-4">📅</p>
@@ -166,41 +189,31 @@ export default function SchedulePage() {
             <p className="text-sm mt-1">{t("noRecipesHint")}</p>
           </div>
         ) : (
-          <>
-            {/* Date range picker */}
-            <div className="flex items-center gap-2 mb-4">
-              <input
-                type="date"
-                value={scheduleFrom}
-                onChange={(e) => setScheduleFrom(e.target.value)}
-                className="border rounded-lg px-2 py-1.5 text-sm bg-background"
-              />
-              <span className="text-muted-foreground">→</span>
-              <input
-                type="date"
-                value={scheduleTo}
-                min={scheduleFrom}
-                onChange={(e) => setScheduleTo(e.target.value)}
-                className="border rounded-lg px-2 py-1.5 text-sm bg-background"
-              />
-            </div>
-
-            {/* Day cards */}
-            <div className="space-y-3">
-              {days.map((day) => (
-                <div key={day} className="border rounded-xl overflow-hidden">
-                  <div className="bg-muted/50 px-4 py-2">
+          <div className="space-y-3">
+            {days.map((day) => {
+              const isToday = day === today;
+              return (
+                <div
+                  key={day}
+                  className={`rounded-xl overflow-hidden border ${isToday ? "border-amber-300 dark:border-amber-700" : "border-border"}`}
+                >
+                  <div className={`px-4 py-2 flex items-center gap-2 ${isToday ? "bg-amber-50 dark:bg-amber-950/20" : "bg-muted/50"}`}>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {formatDay(day)}
                     </p>
+                    {isToday && (
+                      <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
+                        Today
+                      </span>
+                    )}
                   </div>
                   <div className="divide-y">
                     {(["lunch", "dinner"] as const).map((mealType) => {
                       const meal = getMeal(day, mealType);
                       return (
                         <div key={mealType} className="flex items-center gap-3 px-4 py-3 min-h-[44px]">
-                          <span className="text-xs font-medium text-muted-foreground w-12 shrink-0">
-                            {mealType === "lunch" ? t("lunch") : t("dinner")}
+                          <span className="text-base shrink-0" aria-hidden="true">
+                            {mealType === "lunch" ? "☀️" : "🌙"}
                           </span>
                           {meal ? (
                             <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -231,10 +244,9 @@ export default function SchedulePage() {
                           ) : (
                             <button
                               onClick={() => openAddSlot(day, mealType)}
-                              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
+                              className="flex-1 border-2 border-dashed border-muted-foreground/25 rounded-full px-4 py-1 text-sm text-muted-foreground/60 text-left hover:border-muted-foreground/40 hover:text-muted-foreground active:scale-95 transition-all"
                             >
-                              <Plus size={14} />
-                              {t("addMeal")}
+                              + {t("addMeal")}
                             </button>
                           )}
                         </div>
@@ -242,14 +254,14 @@ export default function SchedulePage() {
                     })}
                   </div>
                 </div>
-              ))}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
     </PullToRefresh>
 
-    {/* Add slot sheet — outside PullToRefresh so transform doesn't break fixed positioning */}
+    {/* Add slot sheet */}
     {slotDate && slotMealType && (
       <div
         className="fixed inset-0 z-50 flex items-end bg-black/40"
@@ -261,7 +273,7 @@ export default function SchedulePage() {
         >
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold">
-              {formatDay(slotDate)} · {slotMealType === "lunch" ? t("lunch") : t("dinner")}
+              {formatDay(slotDate)} · {slotMealType === "lunch" ? "☀️ " + t("lunch") : "🌙 " + t("dinner")}
             </h3>
             <button
               onClick={() => setSlotDate(null)}

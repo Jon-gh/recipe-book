@@ -25,3 +25,23 @@ export const CATEGORY_NAMES = CATEGORIES.map((c) => c.name);
 export function categoryIsStaple(name: string): boolean {
   return CATEGORIES.find((c) => c.name === name)?.isStaple ?? false;
 }
+
+export const CATEGORY_EMOJI: Record<string, string> = {
+  "fruit & veg": "🥦",
+  "meat & fish": "🥩",
+  "dairy & eggs": "🥛",
+  "bakery": "🍞",
+  "frozen": "❄️",
+  "drinks": "🧃",
+  "grains & pulses": "🌾",
+  "canned & jarred": "🥫",
+  "nuts & seeds": "🥜",
+  "baking & sweeteners": "🍯",
+  "condiments & sauces": "🫙",
+  "spices & herbs": "🧂",
+  "personal care": "🪥",
+  "household & cleaning": "🧹",
+  "health & pharmacy": "💊",
+  "pet care": "🐾",
+  "other": "🛒",
+};

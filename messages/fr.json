@@ -22,7 +22,9 @@
     "defaultUnit": "Unité par défaut",
     "unitPlaceholder": "g, ml, c. à s.…",
     "servings": "{count, plural, one {# portion} other {# portions}}",
-    "ingredients": "{count, plural, one {# ingrédient} other {# ingrédients}}"
+    "ingredients": "{count, plural, one {# ingrédient} other {# ingrédients}}",
+    "errorTitle": "Quelque chose a brûlé.",
+    "errorSubtext": "Tirez vers le bas pour réessayer."
   },
   "languages": {
     "en": "English",
@@ -71,10 +73,15 @@
     "favourites": "★ Favoris",
     "noRecipes": "Aucune recette trouvée.",
     "addOne": "Ajoutez-en une !",
+    "loading": "On vérifie le carnet…",
     "loadError": "Impossible de charger les recettes. Vérifiez votre connexion.",
-    "newRecipe": "Nouvelle recette"
+    "newRecipe": "Nouvelle recette",
+    "emptyTitle": "Votre carnet est vide.",
+    "emptySubtext": "Importez une recette en collant du texte, une URL ou une photo.",
+    "emptyAddFirstRecipe": "Ajouter ma première recette"
   },
   "recipeDetail": {
+    "loading": "Chargement de la recette…",
     "notFound": "Recette introuvable.",
     "ingredients": "Ingrédients",
     "instructions": "Instructions",
@@ -126,10 +133,15 @@
   },
   "grocery": {
     "title": "Liste de courses",
+    "loading": "On rassemble vos ingrédients…",
     "backToMealPlan": "← Plan de repas",
     "hideStaples": "Masquer les essentiels",
     "showStaples": "Afficher les essentiels ({count})",
     "noItems": "Aucun article dans le plan de repas.",
+    "emptyTitle": "Votre panier est vide.",
+    "emptySubtext": "Planifiez des repas pour préparer votre liste de courses.",
+    "allDoneTitle": "Tout est fait ! Belles courses.",
+    "allDoneSubtext": "Tout est dans le panier.",
     "noItemsCta": "Ajoutez des recettes à votre plan de repas",
     "noItemsOr": "pour commencer, ou appuyez sur + pour ajouter des extras.",
     "inTrolley": "Dans le chariot",
@@ -147,10 +159,14 @@
   },
   "mealPlan": {
     "title": "Plan",
+    "loading": "On prépare votre semaine…",
     "newWeek": "Nouvelle semaine",
     "searchPlaceholder": "Rechercher des recettes à ajouter…",
     "noRecipesYet": "Aucune recette planifiée",
     "searchHint": "Recherchez ci-dessus pour ajouter des recettes",
+    "emptyTitle": "Rien de planifié pour l'instant.",
+    "emptySubtext": "Parcourez vos recettes et commencez à composer le menu de la semaine.",
+    "emptyBrowseRecipes": "Voir les recettes",
     "noRecipesFound": "Aucune recette trouvée.",
     "ready": "Prêt",
     "servingsScheduled": "{allocated}/{total} portions planifiées",

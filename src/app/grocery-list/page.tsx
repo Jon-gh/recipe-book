@@ -4,13 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { GroceryItem, ShoppingListItem, Product } from "@/types";
-import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple } from "@/lib/categories";
+import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple, CATEGORY_EMOJI } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
+import LoadingState from "@/components/LoadingState";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -84,7 +85,6 @@ export default function GroceryListPage() {
 
   const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
   const [showStaples, setShowStaples] = useState(false);
-  const [showInTrolley, setShowInTrolley] = useState(false);
   const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: globalMutate } = useSWRConfig();
@@ -302,17 +302,18 @@ export default function GroceryListPage() {
     await Promise.all([mutateMp(), mutateSl(), mutateSession()]);
   }
 
-  const uncheckedItems = allItems.filter((item) => !checkedKeys.has(itemKey(item)));
-  const checkedItems = allItems.filter((item) => checkedKeys.has(itemKey(item)));
   const totalCount = allItems.length;
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category) && i.shoppingListId == null).length;
 
-  const visibleUncheckedGroups = groupByCategory(uncheckedItems)
+  const visibleGroups = groupByCategory(allItems)
     .map((g) => ({
       ...g,
       items: showStaples || !g.isStaple ? g.items : g.items.filter((i) => i.shoppingListId != null),
     }))
     .filter((g) => g.items.length > 0);
+
+  const visibleItems = visibleGroups.flatMap((g) => g.items);
+  const allDone = visibleItems.length > 0 && visibleItems.every((i) => checkedKeys.has(itemKey(i)));
 
   return (
     <>
@@ -337,7 +338,7 @@ export default function GroceryListPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState emoji="🛒" message={t("loading")} />
         ) : (
           <div className="space-y-4">
             {totalCount > 0 && stapleCount > 0 && (
@@ -350,25 +351,38 @@ export default function GroceryListPage() {
             )}
 
             {totalCount === 0 && (
-              <p className="text-muted-foreground">
-                {t("noItems")}{" "}
-                <Link href="/meal-plan" className="underline">
-                  {t("noItemsCta")}
-                </Link>{" "}
-                {t("noItemsOr")}
-              </p>
+              <div className="flex flex-col items-center gap-3 py-16 text-center">
+                <span className="text-6xl">🛒</span>
+                <p className="font-bold text-lg">{t("emptyTitle")}</p>
+                <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
+                <Link
+                  href="/meal-plan"
+                  className="mt-2 px-5 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+                >
+                  {t("backToMealPlan")}
+                </Link>
+              </div>
             )}
 
-            {visibleUncheckedGroups.map(({ category, items: catItems }) => (
+            {allDone && (
+              <div className="flex flex-col items-center gap-3 py-12 text-center">
+                <span className="text-6xl">🎉</span>
+                <p className="font-bold text-lg">{t("allDoneTitle")}</p>
+                <p className="text-sm text-muted-foreground">{t("allDoneSubtext")}</p>
+              </div>
+            )}
+
+            {visibleGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
-                  {tCat(category)}
+                  {CATEGORY_EMOJI[category] ?? "🛒"} {tCat(category)}
                 </p>
                 <Card>
                   <CardContent className="pt-4">
                     <ul className="divide-y">
                       {catItems.map((item) => {
                         const key = itemKey(item);
+                        const isChecked = checkedKeys.has(key);
                         const isUserProduct = item.source === "user" && item.shoppingListId != null;
                         const row = (
                           <li key={key}>
@@ -377,8 +391,10 @@ export default function GroceryListPage() {
                                 className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
                                 onClick={() => toggleItem(item)}
                               >
-                                <span className="font-medium">{item.name}</span>
-                                <span className="text-muted-foreground text-sm ml-auto">
+                                <span className={isChecked ? "font-medium line-through text-muted-foreground" : "font-medium"}>
+                                  {item.name}
+                                </span>
+                                <span className={`text-sm ml-auto ${isChecked ? "line-through text-muted-foreground" : "text-muted-foreground"}`}>
                                   {item.quantity % 1 === 0
                                     ? item.quantity
                                     : item.quantity.toFixed(1)}
@@ -409,50 +425,6 @@ export default function GroceryListPage() {
               </div>
             ))}
 
-            {checkedItems.length > 0 && (
-              <div>
-                <button
-                  className="text-sm text-muted-foreground underline-offset-2 underline mb-2"
-                  onClick={() => setShowInTrolley((v) => !v)}
-                >
-                  {showInTrolley ? t("hideInTrolley") : t("showInTrolley", { count: checkedItems.length })}
-                </button>
-                {showInTrolley && (
-                  <>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-2 px-1">
-                    {t("inTrolley")}
-                  </p>
-                  <Card>
-                    <CardContent className="pt-4">
-                      <ul className="divide-y">
-                        {checkedItems.map((item) => {
-                          const key = itemKey(item);
-                          return (
-                            <li key={key}>
-                              <button
-                                className="w-full flex items-baseline gap-2 py-3 text-left min-h-[44px] active:bg-muted transition-colors"
-                                onClick={() => toggleItem(item)}
-                              >
-                                <span className="font-medium line-through text-muted-foreground">
-                                  {item.name}
-                                </span>
-                                <span className="text-muted-foreground text-sm ml-auto line-through">
-                                  {item.quantity % 1 === 0
-                                    ? item.quantity
-                                    : item.quantity.toFixed(1)}
-                                  {item.unit ? ` ${item.unit}` : ""}
-                                </span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </CardContent>
-                  </Card>
-                  </>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>

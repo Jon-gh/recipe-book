@@ -48,6 +48,10 @@ const defaultProps = {
   onClose: vi.fn(),
 };
 
+function clickNext(user: ReturnType<typeof userEvent.setup>) {
+  return user.click(screen.getByTestId("wizard-next"));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mockFetch.mockResolvedValue({ ok: true, json: async () => ({ entries: [] }) });
@@ -62,7 +66,7 @@ describe("StartNewWeekWizard", () => {
   it("renders step 1 when opened", () => {
     render(<StartNewWeekWizard {...defaultProps} />);
     expect(screen.getByText("What did you eat?")).toBeInTheDocument();
-    expect(screen.getByText("Step 1 of 6")).toBeInTheDocument();
+    expect(screen.getByTestId("wizard-next")).toBeInTheDocument();
   });
 
   it("shows current entry in step 1 with default fully consumed", () => {
@@ -72,28 +76,36 @@ describe("StartNewWeekWizard", () => {
     expect(screen.getByText(/fully consumed/)).toBeInTheDocument();
   });
 
+  it("step 1 recipe cards show food emoji", () => {
+    render(<StartNewWeekWizard {...defaultProps} />);
+    // Pasta Bolognese → 🍝
+    expect(screen.getByText("🍝")).toBeInTheDocument();
+  });
+
   it("advances to step 2 when Next is clicked", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} />);
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await clickNext(user);
     expect(screen.getByText("New week dates")).toBeInTheDocument();
-    expect(screen.getByText("Step 2 of 6")).toBeInTheDocument();
+    // Step 2 shows week chip navigation arrows
+    expect(screen.getByRole("button", { name: "Previous week" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Next week" })).toBeInTheDocument();
   });
 
   it("can navigate back from step 2 to step 1", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} />);
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await clickNext(user);
     await user.click(screen.getByRole("button", { name: /Back/ }));
     expect(screen.getByText("What did you eat?")).toBeInTheDocument();
   });
 
-  it("step 3 shows day cards with Lunch and Dinner labels", async () => {
+  it("step 3 shows global lunch/dinner steppers", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} />);
     // step 1 → 2 → 3
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
+    await clickNext(user);
+    await clickNext(user);
     await waitFor(() => expect(screen.getByText("Portions per meal")).toBeInTheDocument());
     expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Dinner").length).toBeGreaterThan(0);
@@ -103,11 +115,10 @@ describe("StartNewWeekWizard", () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} />);
     // step 1 → 2 → 3 → 4
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    await user.click(screen.getByRole("button", { name: "Next" }));
-    expect(screen.getByText("Step 4 of 6")).toBeInTheDocument();
-    expect(screen.getByText("Add recipes")).toBeInTheDocument();
+    await clickNext(user);
+    await clickNext(user);
+    await clickNext(user);
+    await waitFor(() => expect(screen.getByText("Add recipes")).toBeInTheDocument());
   });
 
   it("shows step 5 schedule grid before confirm", async () => {
@@ -115,22 +126,21 @@ describe("StartNewWeekWizard", () => {
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     // Steps 1 → 2 → 3 → 4 → 5
     for (let i = 0; i < 4; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
     expect(screen.getByText("Schedule meals")).toBeInTheDocument();
-    expect(screen.getByText("Step 5 of 6")).toBeInTheDocument();
   });
 
-  it("step 5 shows day cards with Lunch and Dinner labels", async () => {
+  it("step 5 shows ☀️ and 🌙 emoji labels on meal slots", async () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     // Steps 1 → 2 → 3 → 4 → 5
     for (let i = 0; i < 4; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
     await waitFor(() => expect(screen.getByText("Schedule meals")).toBeInTheDocument());
-    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Dinner").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("☀️").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("🌙").length).toBeGreaterThan(0);
   });
 
   it("shows confirm summary on step 6", async () => {
@@ -138,7 +148,7 @@ describe("StartNewWeekWizard", () => {
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     // Steps 1 → 2 → 3 → 4 → 5 → 6
     for (let i = 0; i < 5; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
     expect(screen.getByText("Ready to start")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start Week" })).toBeInTheDocument();
@@ -149,7 +159,7 @@ describe("StartNewWeekWizard", () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} onClose={onClose} />);
     for (let i = 0; i < 5; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
 
@@ -172,7 +182,7 @@ describe("StartNewWeekWizard", () => {
     const user = userEvent.setup();
     render(<StartNewWeekWizard {...defaultProps} entries={[]} />);
     for (let i = 0; i < 5; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
     await user.click(screen.getByRole("button", { name: "Start Week" }));
     await waitFor(() => {
@@ -191,9 +201,9 @@ describe("StartNewWeekWizard", () => {
       />
     );
 
-    // Navigate to step 4
+    // Navigate to step 4 (3 clicks: 1→2, 2→3, 3→4)
     for (let i = 0; i < 3; i++) {
-      await user.click(screen.getByRole("button", { name: /Next/ }));
+      await clickNext(user);
     }
 
     // Add mockRecipe
@@ -204,8 +214,8 @@ describe("StartNewWeekWizard", () => {
     await user.click(screen.getByRole("button", { name: "Add" }));
 
     // Advance through step 5 (schedule) and step 6 (confirm), then start week
-    await user.click(screen.getByRole("button", { name: /Next/ }));
-    await user.click(screen.getByRole("button", { name: /Next/ }));
+    await clickNext(user);
+    await clickNext(user);
     await user.click(screen.getByRole("button", { name: "Start Week" }));
 
     // Should call shopping-list API for the already-bought "tomatoes__g" ingredient
