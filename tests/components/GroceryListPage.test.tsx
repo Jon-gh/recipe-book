@@ -272,28 +272,26 @@ describe("GroceryListPage — checking items", () => {
     expect(screen.queryByRole("button", { name: "Start Shopping" })).not.toBeInTheDocument();
   });
 
-  it("tapping an item shows it with strikethrough inline", async () => {
+  it("tapping an item hides it from the list", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
 
-    // Item stays in place with line-through styling
-    expect(screen.getByText("Pasta").className).toContain("line-through");
-    // No separate In Trolley section
-    expect(screen.queryByText(/In Trolley/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Show in trolley/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
+    // Other items remain visible
+    expect(screen.getByText("Eggs")).toBeInTheDocument();
   });
 
-  it("tapping a checked item unchecks it and removes strikethrough", async () => {
+  it("checking all items shows the all-done celebration", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    expect(screen.getByText("Pasta").className).toContain("line-through");
+    await userEvent.click(screen.getByRole("button", { name: /Eggs/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Flour/ }));
 
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
-    expect(screen.getByText("Pasta").className).not.toContain("line-through");
+    await waitFor(() => expect(screen.getByText("All done! Great shop.")).toBeInTheDocument());
   });
 
   it("tapping a shopping list item optimistically removes it and shows undo toast", async () => {
@@ -314,11 +312,11 @@ describe("GroceryListPage — checking items", () => {
 });
 
 describe("GroceryListPage — server session persistence", () => {
-  it("restores checked keys from server session and shows strikethrough", async () => {
+  it("restores checked keys from server session and hides checked items", async () => {
     setupFetch({ session: { id: "session", checkedKeys: ["pasta__g"], showStaples: false } });
     renderPage();
-    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    expect(screen.getByText("Pasta").className).toContain("line-through");
+    await waitFor(() => expect(screen.getByText("Eggs")).toBeInTheDocument());
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
   });
 
   it("sends PUT to server when an item is checked", async () => {
