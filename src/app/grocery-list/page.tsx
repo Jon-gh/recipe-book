@@ -305,15 +305,27 @@ export default function GroceryListPage() {
   const totalCount = allItems.length;
   const stapleCount = allItems.filter((i) => categoryIsStaple(i.category) && i.shoppingListId == null).length;
 
-  const visibleGroups = groupByCategory(allItems)
+  const baseVisibleGroups = groupByCategory(allItems)
     .map((g) => ({
       ...g,
       items: showStaples || !g.isStaple ? g.items : g.items.filter((i) => i.shoppingListId != null),
     }))
     .filter((g) => g.items.length > 0);
 
-  const visibleItems = visibleGroups.flatMap((g) => g.items);
-  const allDone = visibleItems.length > 0 && visibleItems.every((i) => checkedKeys.has(itemKey(i)));
+  const baseVisibleItems = baseVisibleGroups.flatMap((g) => g.items);
+  const allDone = baseVisibleItems.length > 0 && baseVisibleItems.every((i) => checkedKeys.has(itemKey(i)));
+
+  // Staple items bypass the checked filter when the user explicitly shows them —
+  // their keys persist across weeks (same ingredient names), so stale checked
+  // state from a previous session would otherwise hide them permanently.
+  const visibleGroups = baseVisibleGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (i) => !checkedKeys.has(itemKey(i)) || (g.isStaple && showStaples)
+      ),
+    }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <>
