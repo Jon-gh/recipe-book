@@ -23,7 +23,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-stone-50/90 backdrop-blur-md border-t border-stone-200/50 dark:bg-stone-900/90 dark:border-stone-700/50 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-stone-50 border-t border-stone-200 dark:bg-stone-900 dark:border-stone-700 pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-16">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
