@@ -71,6 +71,21 @@ describe("MealPlanPage — Plan tab", () => {
     });
   });
 
+  it("renders entries as pastel cards with food emoji", async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
+      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
+      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    // Pasta → 🍝 emoji
+    expect(screen.getByText("🍝")).toBeInTheDocument();
+    // Card should have a pastel bg class
+    const emojiEl = screen.getByText("🍝");
+    const card = emojiEl.closest("[class*='bg-']");
+    expect(card).not.toBeNull();
+  });
+
   it("shows total servings summary", async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })

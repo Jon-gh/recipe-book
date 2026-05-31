@@ -33,6 +33,36 @@ const mockEntries = [
   },
 ];
 
+function makeWeek() {
+  const today = new Date();
+  // Find Monday of current week
+  const d = new Date(today);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  const weekStart = d.toISOString().slice(0, 10);
+  d.setDate(d.getDate() + 6);
+  const weekEnd = d.toISOString().slice(0, 10);
+  return { weekStart, weekEnd };
+}
+
+const { weekStart, weekEnd } = makeWeek();
+const mockSession = { checkedKeys: [], weekStart, weekEnd };
+
+function setupFetch({
+  entries = mockEntries,
+  scheduled = [] as object[],
+  session = mockSession as object,
+} = {}) {
+  mockFetch.mockImplementation((url: string) => {
+    if (url === "/api/meal-plan") return Promise.resolve({ ok: true, json: async () => entries });
+    if (url === "/api/shopping-session") return Promise.resolve({ ok: true, json: async () => session });
+    if (url.startsWith("/api/scheduled-meals")) return Promise.resolve({ ok: true, json: async () => scheduled });
+    if (url.startsWith("/api/scheduled-meals/")) return Promise.resolve({ ok: true, json: async () => ({}) });
+    return Promise.resolve({ ok: true, json: async () => [] });
+  });
+}
+
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -47,40 +77,63 @@ beforeEach(() => {
 
 describe("SchedulePage", () => {
   it("shows loading state initially", () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    setupFetch();
     renderPage();
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("shows empty state when no entries in plan", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+  it("shows empty state when no session week is set", async () => {
+    setupFetch({ session: { checkedKeys: [], weekStart: null, weekEnd: null } });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
-      expect(screen.getByText("Add recipes in the Plan tab first")).toBeInTheDocument();
     });
   });
 
-  it("shows day cards with Lunch and Dinner rows when entries exist", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValue({ ok: true, json: async () => [] });             // scheduled-meals + session
-
-    renderPage();
-    await waitFor(() => expect(screen.getByText("Schedule")).toBeInTheDocument());
-
-    expect(screen.getAllByText("Lunch").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Dinner").length).toBeGreaterThan(0);
-  });
-
-  it("shows Add meal button in empty slots", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValue({ ok: true, json: async () => [] });             // scheduled-meals + session
-
+  it("shows empty state when no entries in plan", async () => {
+    setupFetch({ entries: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getAllByText("Add meal").length).toBeGreaterThan(0);
+      expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
+    });
+  });
+
+  it("shows week range header from session", async () => {
+    setupFetch();
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Schedule")).toBeInTheDocument());
+    // Header should show a formatted date range string
+    await waitFor(() => {
+      const heading = screen.getByText(/–/);
+      expect(heading).toBeInTheDocument();
+    });
+  });
+
+  it("shows ☀️ and 🌙 emoji labels on meal slots", async () => {
+    setupFetch();
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Schedule")).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getAllByText("☀️").length).toBeGreaterThan(0);
+      expect(screen.getAllByText("🌙").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("shows Add meal dashed pill buttons in empty slots", async () => {
+    setupFetch();
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0);
+    });
+  });
+
+  it("highlights today's card with a Today pill", async () => {
+    setupFetch();
+    renderPage();
+    await waitFor(() => {
+      const todayPills = screen.queryAllByText("Today");
+      // Today is within the current week, so exactly one Today pill should appear
+      expect(todayPills.length).toBe(1);
     });
   });
 
@@ -94,12 +147,7 @@ describe("SchedulePage", () => {
       note: null,
       mealPlanEntry: mockEntries[0],
     };
-
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => [scheduledMeal] }) // scheduled-meals
-      .mockResolvedValue({ ok: true, json: async () => [] }); // session
-
+    setupFetch({ scheduled: [scheduledMeal] });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument();
@@ -107,14 +155,11 @@ describe("SchedulePage", () => {
   });
 
   it("opens slot picker when clicking Add meal", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValue({ ok: true, json: async () => [] });
-
+    setupFetch();
     renderPage();
-    await waitFor(() => expect(screen.getAllByText("Add meal").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
 
-    await userEvent.click(screen.getAllByText("Add meal")[0]);
+    await userEvent.click(screen.getAllByText(/Add meal/)[0]);
 
     await waitFor(() => {
       expect(screen.getByText("Pick a recipe or add a custom note")).toBeInTheDocument();
@@ -122,14 +167,11 @@ describe("SchedulePage", () => {
   });
 
   it("closes slot picker when clicking X", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValue({ ok: true, json: async () => [] });
-
+    setupFetch();
     renderPage();
-    await waitFor(() => expect(screen.getAllByText("Add meal").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
 
-    await userEvent.click(screen.getAllByText("Add meal")[0]);
+    await userEvent.click(screen.getAllByText(/Add meal/)[0]);
     await waitFor(() => expect(screen.getByText("Pick a recipe or add a custom note")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: "Close slot picker" }));
@@ -140,19 +182,14 @@ describe("SchedulePage", () => {
   });
 
   it("posts to /api/scheduled-meals with recipe when confirming slot", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // scheduled-meals
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // session
-      .mockResolvedValue({ ok: true, json: async () => [] });              // POST + revalidations
-
+    setupFetch();
     renderPage();
-    await waitFor(() => expect(screen.getAllByText("Add meal").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
 
-    await userEvent.click(screen.getAllByText("Add meal")[0]);
+    await userEvent.click(screen.getAllByText(/Add meal/)[0]);
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByText("Pasta Carbonara")); // select recipe in picker
+    await userEvent.click(screen.getByText("Pasta Carbonara"));
     await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
     await waitFor(() => {
@@ -164,16 +201,11 @@ describe("SchedulePage", () => {
   });
 
   it("posts a note to /api/scheduled-meals when confirming with custom note", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValue({ ok: true, json: async () => [] });
-
+    setupFetch();
     renderPage();
-    await waitFor(() => expect(screen.getAllByText("Add meal").length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
 
-    await userEvent.click(screen.getAllByText("Add meal")[0]);
+    await userEvent.click(screen.getAllByText(/Add meal/)[0]);
     await waitFor(() =>
       expect(screen.getByPlaceholderText("e.g. Eating outside, Dinner with friends…")).toBeInTheDocument()
     );
@@ -205,13 +237,7 @@ describe("SchedulePage", () => {
       note: null,
       mealPlanEntry: mockEntries[0],
     };
-
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => [scheduledMeal] })
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })
-      .mockResolvedValue({ ok: true, json: async () => [] });
-
+    setupFetch({ scheduled: [scheduledMeal] });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 

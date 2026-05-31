@@ -181,6 +181,39 @@ describe("RecipeDetailPage — ⋯ actions menu", () => {
   });
 });
 
+describe("RecipeDetailPage — visual refresh", () => {
+  it("shows the recipe food emoji in the header", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    expect(screen.getByText("🍝")).toBeInTheDocument();
+  });
+
+  it("shows ingredient emoji bullet for each ingredient", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    // eggs → 🥚
+    expect(screen.getByText("🥚")).toBeInTheDocument();
+  });
+
+  it("renders instructions as numbered step chips", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    expect(screen.getByText("①")).toBeInTheDocument();
+  });
+
+  it("renders multi-paragraph instructions as multiple numbered steps", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ ...mockRecipe, instructions: "Step one.\n\nStep two.\n\nStep three." }),
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    expect(screen.getByText("①")).toBeInTheDocument();
+    expect(screen.getByText("②")).toBeInTheDocument();
+    expect(screen.getByText("③")).toBeInTheDocument();
+  });
+});
+
 describe("RecipeDetailPage — haptic feedback", () => {
   it("vibrates on favourite toggle", async () => {
     renderPage();

@@ -25,6 +25,7 @@ Browser
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
 | `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper; `CATEGORY_EMOJI` map for grocery list category headers |
 | `src/lib/recipe-emoji.ts` | `getRecipeEmoji(name)` — maps recipe name keywords to a representative emoji (e.g. "pasta" → 🍝); used on recipe list cards; no DB dependency |
+| `src/lib/ingredient-emoji.ts` | `getIngredientEmoji(name, category)` — maps ingredient name keywords to emoji; falls back to `CATEGORY_EMOJI[category]` so every ingredient always gets an emoji; used on recipe detail ingredient list |
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
 | `src/middleware.ts` | Better Auth middleware — redirects unauthenticated requests to `/auth/signin`; excludes `/auth/*`, `/api/auth/*`, and static assets |

@@ -11,10 +11,20 @@ import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import { categoryIsStaple } from "@/lib/categories";
+import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import PullToRefresh from "@/components/PullToRefresh";
 import StartNewWeekWizard from "@/components/StartNewWeekWizard";
 import LoadingState from "@/components/LoadingState";
 import { useTranslations } from "next-intl";
+
+const CARD_BG_COLORS = [
+  "bg-amber-50 dark:bg-amber-950/30",
+  "bg-rose-50 dark:bg-rose-950/30",
+  "bg-orange-50 dark:bg-orange-950/30",
+  "bg-emerald-50 dark:bg-emerald-950/30",
+  "bg-violet-50 dark:bg-violet-950/30",
+  "bg-sky-50 dark:bg-sky-950/30",
+];
 
 export default function MealPlanPage() {
   const t = useTranslations("mealPlan");
@@ -284,69 +294,75 @@ export default function MealPlanPage() {
             <p className="text-sm text-muted-foreground mb-3">
               {t("recipeSummary", { recipeCount: entries!.length, totalServings })}
             </p>
-            <div className="border rounded-xl overflow-hidden divide-y">
-              {entries!.map((entry) => {
+            <div className="space-y-2">
+              {entries!.map((entry, index) => {
                 const allocated = allocatedForEntry(entry.id);
                 const ready = isReadyToCook(entry);
+                const cardBg = CARD_BG_COLORS[index % CARD_BG_COLORS.length];
                 return (
-                  <div key={entry.id} className={`flex items-start gap-3 px-4 py-3.5 ${ready ? "bg-green-50 dark:bg-green-950/20" : ""}`}>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start gap-1.5 min-w-0">
-                        <Link
-                          href={`/recipes/${entry.recipe.id}`}
-                          className="font-medium text-sm leading-snug hover:underline"
-                        >
-                          {entry.recipe.name}
-                        </Link>
-                        {ready && (
-                          <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full mt-0.5">
-                            {t("ready")}
-                          </span>
+                  <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl mt-0.5 shrink-0" aria-hidden="true">
+                        {getRecipeEmoji(entry.recipe.name)}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start gap-1.5 min-w-0">
+                          <Link
+                            href={`/recipes/${entry.recipe.id}`}
+                            className="font-medium text-sm leading-snug hover:underline"
+                          >
+                            {entry.recipe.name}
+                          </Link>
+                          {ready && (
+                            <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full mt-0.5">
+                              {t("ready")}
+                            </span>
+                          )}
+                        </div>
+                        {entry.recipe.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {entry.recipe.tags.slice(0, 3).map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs py-0">
+                                {tag}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        {allocated > 0 && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {t("servingsScheduled", { allocated, total: entry.targetServings })}
+                          </p>
                         )}
                       </div>
-                      {entry.recipe.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {entry.recipe.tags.slice(0, 3).map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs py-0">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      {allocated > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {t("servingsScheduled", { allocated, total: entry.targetServings })}
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                      <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                        <button
+                          onClick={() => updateServings(entry.id, Math.max(1, entry.targetServings - 1))}
+                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label="Decrease servings"
+                        >
+                          <Minus size={13} />
+                        </button>
+                        <span className="text-sm font-semibold w-6 text-center tabular-nums">
+                          {entry.targetServings}
+                        </span>
+                        <button
+                          onClick={() => updateServings(entry.id, entry.targetServings + 1)}
+                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
+                          aria-label="Increase servings"
+                        >
+                          <Plus size={13} />
+                        </button>
+                      </div>
+
                       <button
-                        onClick={() => updateServings(entry.id, Math.max(1, entry.targetServings - 1))}
-                        className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        aria-label="Decrease servings"
+                        onClick={() => removeEntry(entry.id)}
+                        className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform mt-0.5"
+                        aria-label="Remove from plan"
                       >
-                        <Minus size={13} />
-                      </button>
-                      <span className="text-sm font-semibold w-6 text-center tabular-nums">
-                        {entry.targetServings}
-                      </span>
-                      <button
-                        onClick={() => updateServings(entry.id, entry.targetServings + 1)}
-                        className="w-7 h-7 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                        aria-label="Increase servings"
-                      >
-                        <Plus size={13} />
+                        <Trash2 size={16} />
                       </button>
                     </div>
-
-                    <button
-                      onClick={() => removeEntry(entry.id)}
-                      className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform mt-0.5"
-                      aria-label="Remove from plan"
-                    >
-                      <Trash2 size={16} />
-                    </button>
                   </div>
                 );
               })}
