@@ -240,6 +240,28 @@ describe("GroceryListPage — staples", () => {
     expect(screen.getByText("Hide staples")).toBeInTheDocument();
   });
 
+  it("shows checked staple items when Show staples is toggled (stale session keys)", async () => {
+    // Checked keys from a previous week persist with the same names for staples.
+    // Toggling showStaples must reveal all staples regardless of checked state.
+    setupFetch({
+      groceryList: [
+        ...mockMealPlanItems,
+        { name: "cumin", quantity: 1, unit: "tsp", category: "spices & herbs", productId: 10, source: "system" },
+        { name: "paprika", quantity: 0.5, unit: "tsp", category: "spices & herbs", productId: 11, source: "system" },
+      ],
+      session: { checkedKeys: ["cumin__tsp", "paprika__tsp"], showStaples: false },
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    // Both checked staples are hidden while showStaples is off
+    expect(screen.queryByText("cumin")).not.toBeInTheDocument();
+    expect(screen.queryByText("paprika")).not.toBeInTheDocument();
+    // Toggling showStaples reveals all staples, even checked ones
+    await userEvent.click(screen.getByText(/Show staples/));
+    expect(screen.getByText("cumin")).toBeInTheDocument();
+    expect(screen.getByText("paprika")).toBeInTheDocument();
+  });
+
   it("always shows manually added shopping list items even if their category is a staple", async () => {
     const ketchupShoppingItem = {
       id: 42,
