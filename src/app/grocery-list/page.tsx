@@ -55,6 +55,8 @@ export default function GroceryListPage() {
     timerId: ReturnType<typeof setTimeout>;
   } | null>(null);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<ShoppingListItem | null>(null);
+  // track whether the list ever had items this session, to show the cheer state on completion
+  const [wasEverNonEmpty, setWasEverNonEmpty] = useState(false);
 
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -208,6 +210,14 @@ export default function GroceryListPage() {
   const items = shoppingListItems ?? [];
   const visibleGroups = groupByCategory(items).filter((g) => g.items.length > 0);
 
+  // Once items are observed for the first time, remember they existed this session
+  useEffect(() => {
+    if (!wasEverNonEmpty && items.length > 0) setWasEverNonEmpty(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items.length]);
+
+  const showAllDone = wasEverNonEmpty && items.length === 0 && !isLoading;
+
   return (
     <>
     <PullToRefresh onRefresh={handleRefresh}>
@@ -234,7 +244,14 @@ export default function GroceryListPage() {
           <LoadingState message={t("loading")} />
         ) : (
           <div className="space-y-4">
-            {items.length === 0 && (
+            {items.length === 0 && showAllDone && (
+              <div className="flex flex-col items-center gap-3 py-16 text-center">
+                <Cocotte pose="cheer" size={140} />
+                <p className="font-bold text-lg">{t("allDoneTitle")}</p>
+                <p className="text-sm text-muted-foreground max-w-xs">{t("allDoneSubtext")}</p>
+              </div>
+            )}
+            {items.length === 0 && !showAllDone && (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
                 <Cocotte pose="hold-basket" size={140} />
                 <p className="font-bold text-lg">{t("emptyTitle")}</p>

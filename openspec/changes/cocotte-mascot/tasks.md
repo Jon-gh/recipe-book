@@ -24,11 +24,11 @@
 
 ## 4. Phase 3 — Motion + celebration
 
-- [ ] 4.1 Add CSS keyframes for idle steam loop and entry bounce (reuse the mockup `rise`/`bob` keyframes); place in `globals.css` or a scoped module
-- [ ] 4.2 Wire Cheer + confetti into the grocery all-done state and the shopping-mode "Done" moment (`src/app/grocery-list/page.tsx`), replacing 🎉
-- [ ] 4.3 Wire Shrug into error / nothing-found states (e.g. empty search on recipes), replacing 🔥/plain error text
-- [ ] 4.4 Gate all looping/entry/confetti motion behind `@media (prefers-reduced-motion: reduce)` → static
-- [ ] 4.5 Add/extend tests for all-done (cheer) and error (shrug) states; run `pre-pr`
+- [x] 4.1 Add CSS keyframes for idle steam loop and entry bounce (reuse the mockup `rise`/`bob` keyframes); place in `globals.css` or a scoped module
+- [x] 4.2 Wire Cheer + confetti into the grocery all-done state and the shopping-mode "Done" moment (`src/app/grocery-list/page.tsx`), replacing 🎉
+- [x] 4.3 Wire Shrug into error / nothing-found states (e.g. empty search on recipes), replacing 🔥/plain error text
+- [x] 4.4 Gate all looping/entry/confetti motion behind `@media (prefers-reduced-motion: reduce)` → static
+- [x] 4.5 Add/extend tests for all-done (cheer) and error (shrug) states; run `pre-pr`
 
 ## 5. Phase 4 — Cocotte-voice copy (all locales)
 

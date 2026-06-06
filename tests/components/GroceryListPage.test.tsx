@@ -80,11 +80,24 @@ describe("GroceryListPage", () => {
     expect(screen.getByText("Gathering your ingredients…")).toBeInTheDocument();
   });
 
-  it("shows empty state when shopping list is empty", async () => {
+  it("shows empty state (hold-basket) when shopping list starts empty", async () => {
     setupFetch({ shoppingList: [] });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Your trolley is empty.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows all-done state (cheer) after tapping the last item away", async () => {
+    setupFetch({ shoppingList: [mockShoppingItems[0]] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    // tap the only item — optimistic remove leaves list empty after it was non-empty
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    await waitFor(() => {
+      expect(screen.getByText("All done! Great shop.")).toBeInTheDocument();
     });
   });
 
