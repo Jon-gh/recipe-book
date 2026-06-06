@@ -55,8 +55,6 @@ Browser
 | `src/i18n/config.ts` | Supported locales list (`en`, `fr`, `es`, `zh-CN`) and `isValidLocale()` helper |
 | `src/i18n/request.ts` | next-intl request config — resolves locale from `NEXT_LOCALE` cookie |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
-| `src/app/api/generate-icon/` | Temporary edge route — generates Cocotte PNG icons via `next/og`; delete after generating PNGs |
-| `src/app/api/generate-splash/` | Temporary edge route — generates branded splash screen PNG via `next/og` (`?w=1290&h=2796`); delete after generating splash.png |
 | `src/components/cocotte/seasonal.ts` | `CocotteTopper` type (`"sprout"\|"santa"\|"pumpkin"\|"flower"`) and `getSeasonalTopper()` — returns the topper for the current month (santa=Dec, pumpkin=Oct 20–Nov 2, flower=Mar 20–May 15, else sprout) |
 | `src/components/cocotte/CocotteBody.tsx` | Shared SVG geometry: round-belly Dutch-oven body and ear handles; exports `CocotteLid({ transform?, topper? })` with four topper variants (sprout/santa/pumpkin/flower) |
 | `src/components/cocotte/Cocotte.tsx` | App mascot: accepts `pose` (`wave`\|`stir`\|`hold-basket`\|`cheer`\|`shrug`), `size`, `className`, `label`, and optional `topper` (overrides seasonal auto-select); CSS keyframe animations gated behind `prefers-reduced-motion` |
