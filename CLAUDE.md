@@ -156,6 +156,17 @@ vi.mocked(requireUserId).mockResolvedValue(
 );
 ```
 
+### SVG `className` in tests is an `SVGAnimatedString`
+When asserting CSS classes on an `<svg>` element in jsdom, `element.className` returns an `SVGAnimatedString` object, not a plain string. Use `.baseVal` to get the string value:
+```typescript
+// ✓ correct
+expect(svg?.className.baseVal).toContain("cocotte-hop");
+
+// ✗ will always fail — SVGAnimatedString is not a string
+expect(svg?.className).toContain("cocotte-hop");
+```
+This affects any test that checks classes on the Cocotte SVG or any other `<svg>` root element.
+
 ### Prisma Client
 Generated into `src/generated/prisma` — not committed to git. Run `npx prisma generate` after any schema change. Vercel rebuilds this automatically via `prisma generate && next build` in `package.json`.
 

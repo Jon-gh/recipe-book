@@ -39,10 +39,10 @@
 
 ## 6. Documentation
 
-- [ ] 6.1 Update `docs/architecture.md` — add `src/components/cocotte/*` to the key-directories table and note the mascot pose/steam system; update the `LoadingState` entry
-- [ ] 6.2 Update `README.md` to reflect the mascot identity where stack/purpose is described
-- [ ] 6.3 Add a CLAUDE.md gotcha only if one emerges (e.g. SVG/reduced-motion or i18n pitfall); otherwise state "Docs: not required" reasons in the PRs
-- [ ] 6.4 Final full `npm test` + `npx tsc --noEmit` + `npm run lint` green before the last PR
+- [x] 6.1 Update `docs/architecture.md` — add `src/components/cocotte/*` to the key-directories table and note the mascot pose/steam system; update the `LoadingState` entry
+- [x] 6.2 Update `README.md` to reflect the mascot identity where stack/purpose is described
+- [x] 6.3 Add a CLAUDE.md gotcha only if one emerges (e.g. SVG/reduced-motion or i18n pitfall); otherwise state "Docs: not required" reasons in the PRs
+- [x] 6.4 Final full `npm test` + `npx tsc --noEmit` + `npm run lint` green before the last PR
 
 ## 7. Phase 5 — Brand polish (optional / later)
 

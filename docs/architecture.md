@@ -56,8 +56,11 @@ Browser
 | `src/i18n/request.ts` | next-intl request config — resolves locale from `NEXT_LOCALE` cookie |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
+| `src/components/cocotte/CocotteBody.tsx` | Shared SVG geometry: round-belly Dutch-oven body and ear handles (body A2 from design mockups) |
+| `src/components/cocotte/CocotteLid.tsx` | Exported from `CocotteBody.tsx` — lid + two-leaf sprout topper (T2); separate so the shrug pose can tilt it independently |
+| `src/components/cocotte/Cocotte.tsx` | App mascot: accepts `pose` (`wave`\|`stir`\|`hold-basket`\|`cheer`\|`shrug`), `size`, `className`, `label`; composes shared body with per-pose arms/face/props/steam; `aria-hidden` when decorative, `aria-label` when standalone; CSS keyframe animations (`cocotte-bob`/`cocotte-hop`) gated behind `prefers-reduced-motion` |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
-| `src/components/LoadingState.tsx` | Reusable full-page loading indicator: large pulsing emoji + localised message string; used on recipe list, recipe detail, meal plan, and grocery list pages |
+| `src/components/LoadingState.tsx` | Reusable full-page loading indicator: Cocotte `stir` pose + localised message string; accepts `{ message }` only (no emoji prop); used on recipe list, recipe detail, meal plan, and grocery list pages |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
 | `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ScheduledMeal`, `ShoppingListItem`, `Product`, `ShoppingSession` |

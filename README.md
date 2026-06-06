@@ -2,6 +2,8 @@
 
 A mobile-friendly web app for managing recipes, meal planning, and grocery list generation. Supports manual entry and AI-assisted import from text, URL, or image via the Claude API. Installable as a PWA on iPhone and Android.
 
+Meet **Cocotte** — the app's mascot, a cheerful enamelled Dutch-oven pot who greets you in empty states and loading screens so the experience feels personal, not off-the-shelf.
+
 ## Features
 
 - **Multi-user login** — email+password and Google OAuth via Better Auth; each user's data is fully private
