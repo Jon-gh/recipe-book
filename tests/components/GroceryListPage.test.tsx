@@ -84,7 +84,7 @@ describe("GroceryListPage", () => {
     setupFetch({ shoppingList: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("Your trolley is empty.")).toBeInTheDocument();
+      expect(screen.getByText("Basket's empty — add some meals!")).toBeInTheDocument();
     });
   });
 
@@ -97,7 +97,7 @@ describe("GroceryListPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
 
     await waitFor(() => {
-      expect(screen.getByText("All done! Great shop.")).toBeInTheDocument();
+      expect(screen.getByText("That's everything — go eat!")).toBeInTheDocument();
     });
   });
 

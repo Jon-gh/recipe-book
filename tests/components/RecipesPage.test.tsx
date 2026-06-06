@@ -87,7 +87,7 @@ describe("RecipesPage", () => {
     renderPage();
 
     await waitFor(() => {
-      expect(screen.getByText("Your cookbook is empty.")).toBeInTheDocument();
+      expect(screen.getByText("Let's fill this cookbook!")).toBeInTheDocument();
     });
   });
 

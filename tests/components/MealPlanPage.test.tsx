@@ -99,7 +99,7 @@ describe("MealPlanPage — Plan tab", () => {
     setupFetch({ entries: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
+      expect(screen.getByText("Nothing on the menu yet.")).toBeInTheDocument();
     });
   });
 
@@ -129,7 +129,7 @@ describe("MealPlanPage — Plan tab", () => {
   it("filters recipe search results", async () => {
     setupFetch({ entries: [] });
     renderPage();
-    await waitFor(() => expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Nothing on the menu yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "pasta");
     expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -149,7 +149,7 @@ describe("MealPlanPage — Plan tab", () => {
   it("adds entry when selecting a recipe and clicking Add", async () => {
     setupFetch({ entries: [] });
     renderPage();
-    await waitFor(() => expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("Nothing on the menu yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "Pasta");
     await userEvent.click(screen.getByText("Pasta"));

@@ -32,10 +32,10 @@
 
 ## 5. Phase 4 — Cocotte-voice copy (all locales)
 
-- [ ] 5.1 Rewrite affected empty/loading/all-done/error strings in Cocotte's first-person voice in the `en` message file
-- [ ] 5.2 Mirror the updated keys in `fr`, `es`, and `zh-CN` message files (localise tone, not literal English); add any new keys to all four
-- [ ] 5.3 Verify no i18n key falls back to its raw string in any locale for the touched messages
-- [ ] 5.4 Run `pre-pr`
+- [x] 5.1 Rewrite affected empty/loading/all-done/error strings in Cocotte's first-person voice in the `en` message file
+- [x] 5.2 Mirror the updated keys in `fr`, `es`, and `zh-CN` message files (localise tone, not literal English); add any new keys to all four
+- [x] 5.3 Verify no i18n key falls back to its raw string in any locale for the touched messages
+- [x] 5.4 Run `pre-pr`
 
 ## 6. Documentation
 
