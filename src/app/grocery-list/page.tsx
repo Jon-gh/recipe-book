@@ -98,6 +98,7 @@ export default function GroceryListPage() {
   } | null>(null);
   const [pendingDeleteItem, setPendingDeleteItem] = useState<DisplayItem | null>(null);
 
+  const [showChecked, setShowChecked] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemQty, setNewItemQty] = useState("1");
@@ -211,6 +212,10 @@ export default function GroceryListPage() {
   // they are handled at planning time via the staple check-in flow.
   const displayMpItems = mpItems.filter((i) => !categoryIsStaple(i.category));
   const allItems: DisplayItem[] = [...displayMpItems, ...slItems];
+
+  // Checked meal-plan items shown in the collapsible "In Trolley" section.
+  // Shopping list items are deleted on tap (undo toast) so they never land here.
+  const checkedMpItems = displayMpItems.filter((i) => checkedKeys.has(itemKey(i)));
 
   function toggleItem(item: DisplayItem) {
     if (item.shoppingListId != null) {
@@ -443,6 +448,47 @@ export default function GroceryListPage() {
                 </Card>
               </div>
             ))}
+
+            {checkedMpItems.length > 0 && (
+              <div>
+                <button
+                  onClick={() => setShowChecked((v) => !v)}
+                  className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1 w-full"
+                  aria-expanded={showChecked}
+                >
+                  <span>✓ {showChecked ? t("hideInTrolley") : t("showInTrolley", { count: checkedMpItems.length })}</span>
+                  <span className="ml-auto">{showChecked ? "▲" : "▼"}</span>
+                </button>
+                {showChecked && (
+                  <Card>
+                    <CardContent className="pt-4">
+                      <ul className="divide-y">
+                        {checkedMpItems.map((item) => {
+                          const key = itemKey(item);
+                          return (
+                            <li key={key}>
+                              <button
+                                className="flex-1 flex items-baseline gap-2 text-left w-full py-3 min-h-[44px] opacity-50"
+                                onClick={() => toggleItem(item)}
+                                aria-label={`Uncheck ${item.name}`}
+                              >
+                                <span className="line-through font-medium">{item.name}</span>
+                                <span className="text-sm ml-auto line-through">
+                                  {item.quantity % 1 === 0
+                                    ? item.quantity
+                                    : item.quantity.toFixed(1)}
+                                  {item.unit ? ` ${item.unit}` : ""}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
 
           </div>
         )}

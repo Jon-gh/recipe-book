@@ -303,7 +303,7 @@ export default function MealPlanPage() {
                   <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
                     <div className="flex items-start gap-3">
                       <span className="text-2xl mt-0.5 shrink-0" aria-hidden="true">
-                        {getRecipeEmoji(entry.recipe.name)}
+                        {getRecipeEmoji(entry.recipe.ingredients.map((i) => i.product.name))}
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start gap-1.5 min-w-0">

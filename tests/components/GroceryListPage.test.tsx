@@ -362,6 +362,86 @@ describe("GroceryListPage — checking items", () => {
   });
 });
 
+describe("GroceryListPage — in trolley section", () => {
+  it("shows 'In Trolley' toggle after checking a meal-plan item", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /In Trolley \(1\)/i })).toBeInTheDocument()
+    );
+  });
+
+  it("checked item is not visible in the list (collapsed by default)", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
+  });
+
+  it("expanding 'In Trolley' shows the checked item", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /In Trolley \(1\)/i })).toBeInTheDocument()
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /In Trolley \(1\)/i }));
+
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+  });
+
+  it("tapping a checked item in 'In Trolley' restores it to the main list", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    // check it
+    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+
+    // expand in-trolley section
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /In Trolley \(1\)/i })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: /In Trolley \(1\)/i }));
+
+    // uncheck it
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /Uncheck Pasta/i })).toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole("button", { name: /Uncheck Pasta/i }));
+
+    // restored to main list
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Pasta/ })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /In Trolley/i })).not.toBeInTheDocument();
+  });
+
+  it("restores checked items from session into In Trolley section", async () => {
+    setupFetch({ session: { checkedKeys: ["pasta__g"], needsStapleReview: false } });
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: /In Trolley \(1\)/i })).toBeInTheDocument()
+    );
+  });
+
+  it("does not show In Trolley for shopping-list items (they use undo toast instead)", async () => {
+    setupFetch({ shoppingList: [mockShoppingItem] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
+
+    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+
+    // undo toast appears, no In Trolley section
+    await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /In Trolley/i })).not.toBeInTheDocument();
+  });
+});
+
 describe("GroceryListPage — server session persistence", () => {
   it("restores checked keys from server session and hides checked items", async () => {
     setupFetch({ session: { checkedKeys: ["pasta__g"], needsStapleReview: false } });

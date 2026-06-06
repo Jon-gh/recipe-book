@@ -18,6 +18,15 @@ vi.mock("next/link", () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+const mockProduct = (name: string) => ({
+  id: 0,
+  name,
+  category: "other",
+  defaultUnit: "",
+  defaultQuantity: 1,
+  source: "system",
+});
+
 const mockRecipes = [
   {
     id: "1",
@@ -25,7 +34,10 @@ const mockRecipes = [
     servings: 4,
     tags: ["Italian"],
     favourite: true,
-    ingredients: [{ id: 1 }, { id: 2 }],
+    ingredients: [
+      { id: 1, product: mockProduct("pasta") },
+      { id: 2, product: mockProduct("eggs") },
+    ],
   },
   {
     id: "2",
@@ -33,7 +45,11 @@ const mockRecipes = [
     servings: 2,
     tags: ["Thai", "quick"],
     favourite: false,
-    ingredients: [{ id: 3 }, { id: 4 }, { id: 5 }],
+    ingredients: [
+      { id: 3, product: mockProduct("beef") },
+      { id: 4, product: mockProduct("garlic") },
+      { id: 5, product: mockProduct("soy sauce") },
+    ],
   },
 ];
 

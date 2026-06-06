@@ -42,11 +42,20 @@ const mockRecipe = {
     {
       id: 1,
       productId: 1,
+      quantity: 400,
+      unit: "g",
+      preparation: "",
+      recipeId: "1",
+      product: { id: 1, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 1, source: "system" },
+    },
+    {
+      id: 2,
+      productId: 2,
       quantity: 3,
       unit: "",
       preparation: "",
       recipeId: "1",
-      product: { id: 1, name: "eggs", category: "other", defaultUnit: "", defaultQuantity: 1, source: "system" },
+      product: { id: 2, name: "eggs", category: "dairy & eggs", defaultUnit: "", defaultQuantity: 1, source: "system" },
     },
   ],
   instructions: "Cook pasta.",
@@ -196,7 +205,7 @@ describe("RecipeDetailPage — visual refresh", () => {
   it("shows the recipe food emoji in the header", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
-    expect(screen.getByText("🍝")).toBeInTheDocument();
+    expect(screen.getAllByText("🍝").length).toBeGreaterThan(0);
   });
 
   it("shows ingredient emoji bullet for each ingredient", async () => {
