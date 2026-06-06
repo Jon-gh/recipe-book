@@ -14,6 +14,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import RecipeForm from "@/components/RecipeForm";
 import LoadingState from "@/components/LoadingState";
+import Cocotte from "@/components/cocotte/Cocotte";
 import { useTranslations } from "next-intl";
 
 const CARD_BG_COLORS = [
@@ -117,13 +118,13 @@ export default function RecipesPage() {
           <LoadingState emoji="🍳" message={t("loading")} />
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <span className="text-5xl">🔥</span>
+            <Cocotte pose="shrug" size={120} />
             <p className="font-semibold">{tCommon("errorTitle")}</p>
             <p className="text-sm text-muted-foreground">{tCommon("errorSubtext")}</p>
           </div>
         ) : (recipes ?? []).length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <span className="text-6xl">🧑‍🍳</span>
+            <Cocotte pose="wave" size={140} />
             <p className="font-bold text-lg">{t("emptyTitle")}</p>
             <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
             <button

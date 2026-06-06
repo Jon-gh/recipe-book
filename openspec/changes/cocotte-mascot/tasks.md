@@ -9,11 +9,11 @@
 
 ## 2. Phase 1 — Wire poses into empty states
 
-- [ ] 2.1 Recipes empty state (`src/app/recipes/page.tsx`): replace 🧑‍🍳 with `<Cocotte pose="wave" />`; keep heading/subtext/CTA
-- [ ] 2.2 Meal-plan empty state (`src/app/meal-plan/page.tsx`): replace 📅 with `<Cocotte pose="wave" />`; keep heading/subtext/CTA
-- [ ] 2.3 Grocery empty state (`src/app/grocery-list/page.tsx`): replace 🛒 with `<Cocotte pose="hold-basket" />` (coordinate/sequence with `staple-checkin-flow`)
-- [ ] 2.4 Update/extend component tests for each empty state to assert the mascot renders and CTAs still work (jsdom, `waitFor`)
-- [ ] 2.5 Run `pre-pr`; open a focused PR for the empty-state wiring
+- [x] 2.1 Recipes empty state (`src/app/recipes/page.tsx`): replace 🧑‍🍳 with `<Cocotte pose="wave" />`; keep heading/subtext/CTA
+- [x] 2.2 Meal-plan empty state (`src/app/meal-plan/page.tsx`): replace 📅 with `<Cocotte pose="wave" />`; keep heading/subtext/CTA
+- [x] 2.3 Grocery empty state (`src/app/grocery-list/page.tsx`): replace 🛒 with `<Cocotte pose="hold-basket" />` (coordinate/sequence with `staple-checkin-flow`)
+- [x] 2.4 Update/extend component tests for each empty state to assert the mascot renders and CTAs still work (jsdom, `waitFor`)
+- [x] 2.5 Run `pre-pr`; open a focused PR for the empty-state wiring
 
 ## 3. Phase 2 — LoadingState → Stir pose (app-wide)
 

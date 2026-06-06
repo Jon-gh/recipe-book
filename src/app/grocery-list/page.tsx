@@ -12,6 +12,7 @@ import { noCacheFetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import LoadingState from "@/components/LoadingState";
+import Cocotte from "@/components/cocotte/Cocotte";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -235,7 +236,7 @@ export default function GroceryListPage() {
           <div className="space-y-4">
             {items.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
-                <span className="text-6xl">🛒</span>
+                <Cocotte pose="hold-basket" size={140} />
                 <p className="font-bold text-lg">{t("emptyTitle")}</p>
                 <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
                 <Link
