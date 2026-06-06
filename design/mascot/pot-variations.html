@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recipe Book — Pot variations (round 2)</title>
+<style>
+  :root{
+    --enamel:#16a34a; --enamel-light:#22c55e; --enamel-dark:#15803d;
+    --outline:#14532d; --blush:#fb7185; --citrus:#f59e0b; --citrus-dark:#d97706;
+    --sprout:#4ade80; --tomato:#ef4444;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:ui-rounded,"SF Pro Rounded","Segoe UI",system-ui,sans-serif;
+    background:hsl(60 33% 98%);color:#1c1410;padding:32px 20px 64px;}
+  .wrap{max-width:1000px;margin:0 auto;}
+  h1{font-size:26px;margin:0 0 6px;}
+  .lead{margin:0 0 28px;color:#6b6258;font-size:15px;max-width:64ch;}
+  h2.section{font-size:18px;margin:34px 0 14px;border-bottom:2px solid #ece6dc;padding-bottom:8px;}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));}
+  .card{background:#fff;border:1px solid #ece6dc;border-radius:20px;padding:18px 16px 20px;
+    text-align:center;box-shadow:0 8px 24px rgba(20,83,45,.06);}
+  .stage{background:hsl(48 38% 96%);border-radius:16px;padding:10px 0 6px;margin-bottom:12px;}
+  .tag{font-size:12px;font-weight:700;color:var(--enamel);letter-spacing:.02em;text-transform:uppercase;}
+  .card h3{font-size:16px;margin:5px 0 4px;}
+  .card p{font-size:12.5px;line-height:1.45;color:#6b6258;margin:7px 0 0;}
+  .toprow .card{padding-bottom:14px;}
+  .steam path{animation:rise 3.2s ease-in-out infinite;transform-origin:center;}
+  .steam path:nth-child(2){animation-delay:.5s;}
+  .steam path:nth-child(3){animation-delay:1s;}
+  @keyframes rise{0%{opacity:0;transform:translateY(7px) scaleY(.85);}45%{opacity:.75;}100%{opacity:0;transform:translateY(-7px) scaleY(1.1);}}
+  .stage svg.big{animation:bob 3.8s ease-in-out infinite;}
+  @keyframes bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-4px);}}
+  footer{margin:36px auto 0;font-size:13px;color:#9c948a;text-align:center;max-width:1000px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🍲 Pot — round 2: Dutch oven vs Cauldron</h1>
+  <p class="lead">Fixed the Dutch oven (wide shallow <em>overhanging</em> lid + low squat body + ear handles)
+    and cleaned up the topper. <strong>Pick a body</strong> from the two families below, then
+    <strong>pick a topper</strong> from the bottom row — they combine freely.</p>
+
+  <!-- ===================================================================== -->
+  <h2 class="section">Dutch oven — 3 takes</h2>
+  <div class="grid">
+
+    <!-- A1 classic -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Classic Dutch oven">
+          <ellipse cx="100" cy="180" rx="46" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 52 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 54 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <!-- topper: two-leaf sprout -->
+          <line x1="100" y1="80" x2="100" y2="68" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,68) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,68) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <!-- shallow wide dome -->
+          <path d="M34 102 Q100 80 166 102 Z" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="100" cy="82" r="6.5" fill="var(--outline)"/>
+          <!-- overhanging rim -->
+          <rect x="30" y="99" width="140" height="11" rx="5.5" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <!-- ear handles -->
+          <rect x="28" y="120" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <rect x="154" y="120" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <!-- low squat body -->
+          <path d="M46 109 Q100 105 154 109 L150 160 Q100 174 50 160 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <!-- face -->
+          <circle cx="85" cy="130" r="6" fill="var(--outline)"/><circle cx="87" cy="128" r="2" fill="#fff"/>
+          <circle cx="115" cy="130" r="6" fill="var(--outline)"/><circle cx="117" cy="128" r="2" fill="#fff"/>
+          <path d="M90 142 q10 9 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="76" cy="140" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/><ellipse cx="124" cy="140" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+          <!-- arms + spoon -->
+          <path d="M52 152 q-12 6 -13 18" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="39" cy="172" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M148 152 q12 6 13 16" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="161" cy="170" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="161" y1="170" x2="176" y2="140" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="178" cy="136" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">A1</div><h3>Classic</h3>
+      <p>Wide shallow overhanging lid, low body, small ear tabs. The textbook Le&nbsp;Creuset read.</p>
+    </div>
+
+    <!-- A2 round belly -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Round-belly Dutch oven">
+          <ellipse cx="100" cy="180" rx="50" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 52 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 54 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <line x1="100" y1="80" x2="100" y2="68" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,68) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,68) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <path d="M34 102 Q100 80 166 102 Z" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="100" cy="82" r="6.5" fill="var(--outline)"/>
+          <rect x="30" y="99" width="140" height="11" rx="5.5" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <rect x="26" y="122" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <rect x="156" y="122" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <!-- bulged belly -->
+          <path d="M46 109 Q100 105 154 109 Q176 132 150 162 Q100 176 50 162 Q24 132 46 109 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="85" cy="130" r="6" fill="var(--outline)"/><circle cx="87" cy="128" r="2" fill="#fff"/>
+          <circle cx="115" cy="130" r="6" fill="var(--outline)"/><circle cx="117" cy="128" r="2" fill="#fff"/>
+          <path d="M90 142 q10 9 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="75" cy="140" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/><ellipse cx="125" cy="140" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+          <path d="M50 154 q-13 6 -14 18" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="36" cy="174" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M150 154 q13 6 14 16" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="164" cy="172" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="164" y1="172" x2="179" y2="142" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="181" cy="138" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">A2</div><h3>Round belly</h3>
+      <p>Same lid, but the body bulges out — chubbier and friendlier, halfway to the cauldron.</p>
+    </div>
+
+    <!-- A3 Staub w/ base -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Staub-style Dutch oven with base">
+          <ellipse cx="100" cy="182" rx="44" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 52 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 54 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <line x1="100" y1="78" x2="100" y2="66" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,66) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,66) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <!-- extra-flat wide lid + ball knob -->
+          <path d="M30 100 Q100 86 170 100 Z" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="100" cy="84" r="8" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+          <rect x="26" y="98" width="148" height="11" rx="5.5" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <rect x="26" y="120" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <rect x="156" y="120" width="18" height="13" rx="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+          <path d="M48 109 Q100 105 152 109 L148 156 Q100 168 52 156 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <!-- foot / base -->
+          <path d="M62 158 L138 158 L132 170 Q100 176 68 170 Z" fill="var(--enamel-dark)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="85" cy="128" r="6" fill="var(--outline)"/><circle cx="87" cy="126" r="2" fill="#fff"/>
+          <circle cx="115" cy="128" r="6" fill="var(--outline)"/><circle cx="117" cy="126" r="2" fill="#fff"/>
+          <path d="M90 140 q10 9 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="76" cy="138" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/><ellipse cx="124" cy="138" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+          <path d="M53 150 q-12 6 -13 17" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="40" cy="169" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M147 150 q12 6 13 15" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="160" cy="167" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="160" y1="167" x2="175" y2="138" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="177" cy="134" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">A3</div><h3>Staub + base</h3>
+      <p>Extra-flat lid, round ball knob, and a little foot/base — the most "real cookware" of the three.</p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="section">Cauldron / belly pot — 3 takes</h2>
+  <div class="grid">
+
+    <!-- C1 legs -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Cauldron with little legs">
+          <ellipse cx="100" cy="185" rx="46" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 56 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <line x1="100" y1="80" x2="100" y2="68" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,68) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,68) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <ellipse cx="100" cy="86" rx="44" ry="11" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="100" cy="82" r="6.5" fill="var(--outline)"/>
+          <path d="M60 90 Q100 98 140 90 Q166 106 164 134 Q160 170 100 174 Q40 170 36 134 Q34 106 60 90 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <!-- legs -->
+          <rect x="70" y="170" width="11" height="14" rx="5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+          <rect x="119" y="170" width="11" height="14" rx="5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+          <circle cx="85" cy="126" r="6.5" fill="var(--outline)"/><circle cx="87" cy="124" r="2.2" fill="#fff"/>
+          <circle cx="115" cy="126" r="6.5" fill="var(--outline)"/><circle cx="117" cy="124" r="2.2" fill="#fff"/>
+          <path d="M90 138 q10 10 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="75" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/><ellipse cx="125" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/>
+          <path d="M44 130 q-14 8 -14 22" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="30" cy="154" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M156 130 q14 8 14 20" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="170" cy="152" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="170" y1="152" x2="184" y2="122" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="186" cy="118" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">C1</div><h3>Little legs</h3>
+      <p>Round belly on three stubby legs — the storybook cauldron. Most overtly cute &amp; characterful.</p>
+    </div>
+
+    <!-- C2 pedestal base -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Cauldron on a base">
+          <ellipse cx="100" cy="186" rx="40" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 56 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <line x1="100" y1="80" x2="100" y2="68" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,68) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,68) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <ellipse cx="100" cy="86" rx="44" ry="11" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="100" cy="82" r="6.5" fill="var(--outline)"/>
+          <path d="M60 90 Q100 98 140 90 Q166 106 164 134 Q160 168 100 172 Q40 168 36 134 Q34 106 60 90 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <!-- pedestal -->
+          <path d="M74 170 L126 170 L134 184 Q100 190 66 184 Z" fill="var(--enamel-dark)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="85" cy="126" r="6.5" fill="var(--outline)"/><circle cx="87" cy="124" r="2.2" fill="#fff"/>
+          <circle cx="115" cy="126" r="6.5" fill="var(--outline)"/><circle cx="117" cy="124" r="2.2" fill="#fff"/>
+          <path d="M90 138 q10 10 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="75" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/><ellipse cx="125" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/>
+          <path d="M44 130 q-14 8 -14 22" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="30" cy="154" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M156 130 q14 8 14 20" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="170" cy="152" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="170" y1="152" x2="184" y2="122" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="186" cy="118" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">C2</div><h3>Pedestal base</h3>
+      <p>Belly on a small footed base instead of legs — a touch more grown-up, still rounded and warm.</p>
+    </div>
+
+    <!-- C3 wide oval -->
+    <div class="card">
+      <div class="stage">
+        <svg class="big" width="180" height="195" viewBox="0 0 200 205" role="img" aria-label="Wide oval cauldron">
+          <ellipse cx="100" cy="184" rx="52" ry="6" fill="#14532d" opacity=".10"/>
+          <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+            <path d="M84 56 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M100 54 q-7 -8 0 -16 q7 -8 0 -16"/><path d="M116 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          </g>
+          <line x1="100" y1="78" x2="100" y2="66" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(100,66) rotate(-32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(100,66) rotate(32)"><path d="M0 0 C -6 -4 -6 -13 0 -17 C 6 -13 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <ellipse cx="100" cy="84" rx="52" ry="12" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="100" cy="80" r="6.5" fill="var(--outline)"/>
+          <path d="M52 88 Q100 100 148 88 Q178 108 174 136 Q168 170 100 174 Q32 170 26 136 Q22 108 52 88 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+          <circle cx="84" cy="126" r="6.5" fill="var(--outline)"/><circle cx="86" cy="124" r="2.2" fill="#fff"/>
+          <circle cx="116" cy="126" r="6.5" fill="var(--outline)"/><circle cx="118" cy="124" r="2.2" fill="#fff"/>
+          <path d="M89 138 q11 10 22 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+          <ellipse cx="73" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/><ellipse cx="127" cy="137" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/>
+          <path d="M40 128 q-15 8 -15 22" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="25" cy="152" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <path d="M160 128 q15 8 15 20" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+          <circle cx="175" cy="150" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+          <line x1="175" y1="150" x2="189" y2="120" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+          <ellipse cx="191" cy="116" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+        </svg>
+      </div>
+      <div class="tag">C3</div><h3>Wide oval</h3>
+      <p>Squatter, wider mouth — closest to the Dutch oven but with the cauldron's soft rounded bottom.</p>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <h2 class="section">Topper options (combine with any body)</h2>
+  <div class="grid toprow">
+
+    <!-- T1 single leaf -->
+    <div class="card">
+      <div class="stage">
+        <svg width="130" height="95" viewBox="0 0 130 95" role="img" aria-label="Single leaf topper">
+          <line x1="65" y1="58" x2="65" y2="44" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(65,44) rotate(18)">
+            <path d="M0 0 C -8 -5 -8 -17 0 -23 C 8 -17 8 -5 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M0 -3 L0 -19" stroke="var(--outline)" stroke-width="1.6" opacity=".45"/>
+          </g>
+          <ellipse cx="65" cy="62" rx="40" ry="10" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="65" cy="58" r="6" fill="var(--outline)"/>
+        </svg>
+      </div>
+      <div class="tag">T1</div><h3>Single leaf</h3>
+      <p>Simplest &amp; cleanest. One tidy leaf — reads well even at icon size.</p>
+    </div>
+
+    <!-- T2 two-leaf sprout -->
+    <div class="card">
+      <div class="stage">
+        <svg width="130" height="95" viewBox="0 0 130 95" role="img" aria-label="Two-leaf sprout topper">
+          <line x1="65" y1="58" x2="65" y2="42" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <g transform="translate(65,42) rotate(-30)"><path d="M0 0 C -6 -4 -6 -14 0 -18 C 6 -14 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <g transform="translate(65,42) rotate(30)"><path d="M0 0 C -6 -4 -6 -14 0 -18 C 6 -14 6 -4 0 0 Z" fill="var(--sprout)" stroke="var(--outline)" stroke-width="2.5" stroke-linejoin="round"/></g>
+          <ellipse cx="65" cy="62" rx="40" ry="10" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="65" cy="58" r="6" fill="var(--outline)"/>
+        </svg>
+      </div>
+      <div class="tag">T2</div><h3>Two-leaf sprout</h3>
+      <p>The redrawn pair — symmetric, no overlap. "Fresh / growing." The default I'd suggest.</p>
+    </div>
+
+    <!-- T3 cherry tomato -->
+    <div class="card">
+      <div class="stage">
+        <svg width="130" height="95" viewBox="0 0 130 95" role="img" aria-label="Cherry tomato topper">
+          <line x1="65" y1="58" x2="65" y2="40" stroke="var(--outline)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="65" cy="33" r="9" fill="var(--tomato)" stroke="var(--outline)" stroke-width="3"/>
+          <circle cx="62" cy="30" r="2.4" fill="#fff" opacity=".7"/>
+          <g stroke="var(--outline)" stroke-width="2" stroke-linecap="round">
+            <path d="M65 25 l-6 -6" stroke="var(--sprout)" stroke-width="3.5"/>
+            <path d="M65 25 l0 -8" stroke="var(--sprout)" stroke-width="3.5"/>
+            <path d="M65 25 l6 -6" stroke="var(--sprout)" stroke-width="3.5"/>
+          </g>
+          <ellipse cx="65" cy="62" rx="40" ry="10" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="65" cy="58" r="6" fill="var(--outline)"/>
+        </svg>
+      </div>
+      <div class="tag">T3</div><h3>Cherry tomato</h3>
+      <p>A tomato on the vine — adds the tomato-red brand pop right up top. The most playful/foody.</p>
+    </div>
+
+    <!-- T4 none -->
+    <div class="card">
+      <div class="stage">
+        <svg width="130" height="95" viewBox="0 0 130 95" role="img" aria-label="Plain knob, no topper">
+          <ellipse cx="65" cy="62" rx="40" ry="10" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+          <circle cx="65" cy="55" r="8" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+          <circle cx="62" cy="52" r="2.4" fill="#fff" opacity=".6"/>
+        </svg>
+      </div>
+      <div class="tag">T4</div><h3>Plain knob</h3>
+      <p>No sprig at all — just a clean knob. Most minimal; loses the leaf tie-in to your logo.</p>
+    </div>
+  </div>
+
+  <footer>Draft mockups — pick a body letter (A1–A3 / C1–C3) + a topper (T1–T4). Steam &amp; bob are animated.</footer>
+</div>
+</body>
+</html>

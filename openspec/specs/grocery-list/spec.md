@@ -1,5 +1,8 @@
-## Requirements
+# grocery-list Specification
 
+## Purpose
+TBD - created by archiving change grocery-list-simplification. Update Purpose after archive.
+## Requirements
 ### Requirement: Single object type on grocery list
 The grocery list SHALL display only `ShoppingListItem` rows. There SHALL be no derived lines computed from meal plan entries.
 
@@ -43,11 +46,33 @@ Incrementing or decrementing servings on a meal plan entry SHALL add or subtract
 ### Requirement: Remove recipe applies grocery delta
 Removing a recipe from the meal plan SHALL subtract its scaled ingredient quantities from the grocery list. Rows that reach or fall below zero SHALL be deleted.
 
+#### Scenario: Remove recipe subtracts its quantities
+- **GIVEN** a recipe contributing 2 bananas is on the meal plan
+- **WHEN** the user removes that recipe from the meal plan
+- **THEN** the 2 bananas it contributed are subtracted from the grocery list
+- **AND** the banana row is deleted if its total reaches zero
+
 ### Requirement: Staple ingredients excluded from delta
 Ingredients in staple categories (`spices & herbs`, `condiments & sauces`) SHALL NOT be written to the grocery list via the delta mechanism. They are handled exclusively by the staple check-in flow.
+
+#### Scenario: Staple ingredient is not added by delta
+- **GIVEN** a recipe contains salt (a `spices & herbs` ingredient)
+- **WHEN** the recipe is added to the meal plan
+- **THEN** salt is NOT written to the grocery list via the delta mechanism
 
 ### Requirement: Manual add unchanged
 The manual add-item flow (+ button on grocery list) SHALL continue to work exactly as today: creates a `ShoppingListItem` via `POST /api/shopping-list`.
 
+#### Scenario: Manual add creates a shopping list item
+- **WHEN** the user adds an item via the + button on the grocery list
+- **THEN** a `ShoppingListItem` is created via `POST /api/shopping-list`
+- **AND** it appears on the grocery list
+
 ### Requirement: No auto-clear on week reset
 The grocery list SHALL NOT be automatically cleared when the new-week wizard completes. Rows persist until tapped by the user.
+
+#### Scenario: New-week wizard preserves grocery rows
+- **GIVEN** the grocery list has existing rows
+- **WHEN** the new-week wizard completes
+- **THEN** the existing grocery rows remain until the user taps them
+

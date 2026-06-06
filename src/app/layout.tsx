@@ -20,8 +20,9 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "Recipe Book",
+    startupImage: "/splash.png",
   },
   icons: {
     apple: "/apple-touch-icon.png",

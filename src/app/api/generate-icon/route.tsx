@@ -7,7 +7,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const size = parseInt(searchParams.get("size") ?? "512");
 
-  const p = (n: number) => n * size; // proportional unit
+  // Proportional helper — all values expressed relative to 512px master
+  const p = (n: number) => n * (size / 512);
 
   return new ImageResponse(
     (
@@ -16,162 +17,245 @@ export async function GET(request: NextRequest) {
           width: size,
           height: size,
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundImage: "linear-gradient(135deg, #22c55e 0%, #14532d 100%)",
-          borderRadius: p(0.22),
+          background: "linear-gradient(135deg, #22c55e 0%, #14532d 100%)",
+          borderRadius: p(112),
           position: "relative",
           overflow: "hidden",
         }}
       >
-        {/* Book */}
-        <div
-          style={{
-            display: "flex",
-            width: p(0.64),
-            height: p(0.5),
-            borderRadius: p(0.025),
-            overflow: "hidden",
-            boxShadow: `0 ${p(0.012)}px ${p(0.04)}px rgba(0,0,0,0.3)`,
-          }}
-        >
-          {/* Left page */}
-          <div
-            style={{
-              flex: 1,
-              backgroundColor: "white",
-              display: "flex",
-              flexDirection: "column",
-              padding: `${p(0.04)}px ${p(0.038)}px`,
-              gap: p(0.018),
-            }}
-          >
-            {/* Title */}
-            <div
-              style={{
-                height: p(0.028),
-                backgroundColor: "#16a34a",
-                borderRadius: p(0.014),
-                width: "72%",
-              }}
-            />
-            {/* Divider */}
-            <div
-              style={{
-                height: p(0.005),
-                backgroundColor: "#bbf7d0",
-                borderRadius: p(0.003),
-                width: "90%",
-                marginBottom: p(0.004),
-              }}
-            />
-            {/* Recipe lines */}
-            {([0.68, 0.82, 0.58, 0.75, 0.62, 0.78, 0.54] as number[]).map(
-              (w, i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: p(0.018),
-                    backgroundColor: "#86efac",
-                    borderRadius: p(0.009),
-                    width: `${w * 100}%`,
-                  }}
-                />
-              )
-            )}
-          </div>
-
-          {/* Spine */}
-          <div
-            style={{
-              width: p(0.042),
-              backgroundColor: "#166534",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* Spine highlight */}
-            <div
-              style={{
-                width: p(0.012),
-                height: "100%",
-                backgroundColor: "#16a34a",
-                opacity: 0.45,
-                marginLeft: p(0.008),
-              }}
-            />
-          </div>
-
-          {/* Right page */}
-          <div
-            style={{
-              flex: 1,
-              backgroundColor: "#f0fdf4",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {/* Fork */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              {/* Tines */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: p(0.018),
-                  marginBottom: 0,
-                }}
-              >
-                {([0, 1, 2] as number[]).map((i) => (
-                  <div
-                    key={i}
-                    style={{
-                      width: p(0.024),
-                      height: p(0.13),
-                      backgroundColor: "#16a34a",
-                      borderRadius: p(0.012),
-                    }}
-                  />
-                ))}
-              </div>
-              {/* Shoulder */}
-              <div
-                style={{
-                  width: p(0.108),
-                  height: p(0.026),
-                  backgroundColor: "#16a34a",
-                  borderRadius: p(0.013),
-                }}
-              />
-              {/* Handle */}
-              <div
-                style={{
-                  width: p(0.042),
-                  height: p(0.19),
-                  backgroundColor: "#16a34a",
-                  borderRadius: p(0.021),
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Red bookmark ribbon at top of spine */}
+        {/* ── drop shadow ── */}
         <div
           style={{
             position: "absolute",
-            top: p(0.25),
-            left: p(0.5) - p(0.016),
-            width: p(0.032),
-            height: p(0.07),
-            backgroundColor: "#dc2626",
-            borderRadius: `${p(0.004)}px ${p(0.004)}px 0 0`,
+            bottom: p(114),
+            left: p(126),
+            width: p(260),
+            height: p(32),
+            background: "#14532d",
+            opacity: 0.18,
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── left ear handle ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(64),
+            top: p(247),
+            width: p(47),
+            height: p(34),
+            background: "#f0fdf4",
+            border: `${p(13)}px solid #14532d`,
+            borderRadius: p(17),
+          }}
+        />
+
+        {/* ── right ear handle ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(402),
+            top: p(247),
+            width: p(47),
+            height: p(34),
+            background: "#f0fdf4",
+            border: `${p(13)}px solid #14532d`,
+            borderRadius: p(17),
+          }}
+        />
+
+        {/* ── pot body (cream, rounded bottom) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(64),
+            top: p(213),
+            width: p(384),
+            height: p(185),
+            background: "#f0fdf4",
+            border: `${p(13)}px solid #14532d`,
+            borderRadius: `${p(24)}px ${p(24)}px ${p(90)}px ${p(90)}px`,
+          }}
+        />
+
+        {/* ── lid band ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(74),
+            top: p(187),
+            width: p(364),
+            height: p(42),
+            background: "#16a34a",
+            border: `${p(13)}px solid #14532d`,
+            borderRadius: `${p(50)}px ${p(50)}px ${p(8)}px ${p(8)}px`,
+          }}
+        />
+
+        {/* ── lid arch (narrower, arching above band) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(114),
+            top: p(153),
+            width: p(284),
+            height: p(50),
+            background: "#16a34a",
+            border: `${p(13)}px solid #14532d`,
+            borderRadius: `${p(60)}px ${p(60)}px 0 0`,
+          }}
+        />
+
+        {/* ── sprout stem ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(248),
+            top: p(107),
+            width: p(16),
+            height: p(52),
+            background: "#14532d",
+            borderRadius: p(8),
+          }}
+        />
+
+        {/* ── left leaf ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(212),
+            top: p(78),
+            width: p(30),
+            height: p(50),
+            background: "#4ade80",
+            border: `${p(6)}px solid #14532d`,
+            borderRadius: `${p(15)}px ${p(15)}px ${p(4)}px ${p(15)}px`,
+            transform: "rotate(-32deg)",
+            transformOrigin: "bottom right",
+          }}
+        />
+
+        {/* ── right leaf ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(270),
+            top: p(78),
+            width: p(30),
+            height: p(50),
+            background: "#4ade80",
+            border: `${p(6)}px solid #14532d`,
+            borderRadius: `${p(15)}px ${p(15)}px ${p(15)}px ${p(4)}px`,
+            transform: "rotate(32deg)",
+            transformOrigin: "bottom left",
+          }}
+        />
+
+        {/* ── knob (connects stem to lid) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(239),
+            top: p(134),
+            width: p(34),
+            height: p(34),
+            background: "#14532d",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── left eye ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(201),
+            top: p(252),
+            width: p(32),
+            height: p(32),
+            background: "#14532d",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── left eye shine ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(212),
+            top: p(257),
+            width: p(10),
+            height: p(10),
+            background: "#ffffff",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── right eye ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(279),
+            top: p(252),
+            width: p(32),
+            height: p(32),
+            background: "#14532d",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── right eye shine ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(291),
+            top: p(257),
+            width: p(10),
+            height: p(10),
+            background: "#ffffff",
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── smile (half-circle bottom border) ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(210),
+            top: p(295),
+            width: p(92),
+            height: p(46),
+            border: `${p(9)}px solid #14532d`,
+            borderTop: "none",
+            borderRadius: `0 0 ${p(46)}px ${p(46)}px`,
+          }}
+        />
+
+        {/* ── left blush ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(167),
+            top: p(280),
+            width: p(38),
+            height: p(20),
+            background: "#fb7185",
+            opacity: 0.55,
+            borderRadius: "50%",
+          }}
+        />
+
+        {/* ── right blush ── */}
+        <div
+          style={{
+            position: "absolute",
+            left: p(307),
+            top: p(280),
+            width: p(38),
+            height: p(20),
+            background: "#fb7185",
+            opacity: 0.55,
+            borderRadius: "50%",
           }}
         />
       </div>

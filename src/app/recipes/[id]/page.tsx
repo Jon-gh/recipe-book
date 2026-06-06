@@ -132,7 +132,7 @@ export default function RecipeDetailPage() {
     }
   }
 
-  if (isLoading) return <LoadingState emoji="🍳" message={t("loading")} />;
+  if (isLoading) return <LoadingState message={t("loading")} />;
   if (!recipe) return <p className="text-muted-foreground">{t("notFound")}</p>;
 
   const recipeEmoji = getRecipeEmoji(recipe.ingredients.map((i) => i.product.name));

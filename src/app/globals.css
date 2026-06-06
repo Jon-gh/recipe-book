@@ -68,3 +68,41 @@
 .animate-star-pop {
   animation: star-pop 200ms ease-out;
 }
+
+/* ── Cocotte mascot animations ──────────────────────────────────────────────── */
+
+@keyframes cocotte-bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-4px); }
+}
+
+@keyframes cocotte-hop {
+  0%, 100% { transform: translateY(0); }
+  40%      { transform: translateY(-9px); }
+}
+
+@keyframes cocotte-rise {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.85); }
+  45%  { opacity: 0.85; }
+  100% { opacity: 0; transform: translateY(-9px) scale(1.05); }
+}
+
+.cocotte-bob  { animation: cocotte-bob  3.8s ease-in-out infinite; }
+.cocotte-hop  { animation: cocotte-hop  1.1s ease-in-out infinite; }
+
+.cocotte-steam > * {
+  animation: cocotte-rise 3.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.cocotte-steam > *:nth-child(2) { animation-delay: 0.4s; }
+.cocotte-steam > *:nth-child(3) { animation-delay: 0.8s; }
+.cocotte-steam > *:nth-child(4) { animation-delay: 1.2s; }
+.cocotte-steam > *:nth-child(5) { animation-delay: 1.6s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cocotte-bob,
+  .cocotte-hop { animation: none; }
+
+  .cocotte-steam > * { animation: none; }
+}

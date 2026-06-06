@@ -71,18 +71,23 @@ The app is installable as a Progressive Web App:
 
 PWA config lives in `src/app/manifest.ts` and the Apple-specific meta tags are in `src/app/layout.tsx`.
 
-### Generating PNG icons (required for iOS home screen)
+### Generating PNG icons and splash screen (required for iOS)
 
-iOS cannot render SVG PWA icons — it needs a PNG `apple-touch-icon`. A temporary edge route at `src/app/api/generate-icon/route.tsx` generates these. Run once after setting up the project locally, then delete the route:
+iOS cannot render SVG PWA icons — it needs a PNG `apple-touch-icon`. A temporary edge route at `src/app/api/generate-icon/route.tsx` generates Cocotte icons. A second route at `src/app/api/generate-splash/route.tsx` generates the PWA splash screen. Run once, then delete both routes:
 
 ```bash
 npm run dev   # start dev server
 
+# Icons
 curl "http://localhost:3000/api/generate-icon?size=180" -o public/apple-touch-icon.png
 curl "http://localhost:3000/api/generate-icon?size=512" -o public/icon-512.png
 
-# then delete the route
+# Splash screen (iPhone 14 Pro Max @ 3× — iOS scales for smaller devices)
+curl "http://localhost:3000/api/generate-splash?w=1290&h=2796" -o public/splash.png
+
+# Delete both temporary routes
 rm -rf src/app/api/generate-icon/
+rm -rf src/app/api/generate-splash/
 ```
 
-Commit the generated PNGs to git — they are referenced by `manifest.ts` and the `apple-touch-icon` meta tag in `layout.tsx`.
+Commit the generated PNGs to git — they are referenced by `manifest.ts`, the `apple-touch-icon` meta tag, and the `startupImage` meta tag in `layout.tsx`.

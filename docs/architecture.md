@@ -55,9 +55,11 @@ Browser
 | `src/i18n/config.ts` | Supported locales list (`en`, `fr`, `es`, `zh-CN`) and `isValidLocale()` helper |
 | `src/i18n/request.ts` | next-intl request config — resolves locale from `NEXT_LOCALE` cookie |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
-| `src/app/api/generate-icon/` | Temporary edge route — generates apple-touch-icon PNG via `next/og`; delete after generating PNGs |
+| `src/components/cocotte/seasonal.ts` | `CocotteTopper` type (`"sprout"\|"santa"\|"pumpkin"\|"flower"`) and `getSeasonalTopper()` — returns the topper for the current month (santa=Dec, pumpkin=Oct 20–Nov 2, flower=Mar 20–May 15, else sprout) |
+| `src/components/cocotte/CocotteBody.tsx` | Shared SVG geometry: round-belly Dutch-oven body and ear handles; exports `CocotteLid({ transform?, topper? })` with four topper variants (sprout/santa/pumpkin/flower) |
+| `src/components/cocotte/Cocotte.tsx` | App mascot: accepts `pose` (`wave`\|`stir`\|`hold-basket`\|`cheer`\|`shrug`), `size`, `className`, `label`, and optional `topper` (overrides seasonal auto-select); CSS keyframe animations gated behind `prefers-reduced-motion` |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
-| `src/components/LoadingState.tsx` | Reusable full-page loading indicator: large pulsing emoji + localised message string; used on recipe list, recipe detail, meal plan, and grocery list pages |
+| `src/components/LoadingState.tsx` | Reusable full-page loading indicator: Cocotte `stir` pose + localised message string; accepts `{ message }` only (no emoji prop); used on recipe list, recipe detail, meal plan, and grocery list pages |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
 | `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ScheduledMeal`, `ShoppingListItem`, `Product`, `ShoppingSession` |

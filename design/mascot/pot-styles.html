@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Recipe Book — Pot mascot style options</title>
+<style>
+  :root {
+    --enamel: #16a34a;
+    --enamel-light: #22c55e;
+    --outline: #14532d;
+    --cream: #fff7ed;
+    --blush: #fb7185;
+    --citrus: #f59e0b;
+    --citrus-dark: #d97706;
+    --sprout: #4ade80;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: ui-rounded, "SF Pro Rounded", "Segoe UI", system-ui, sans-serif;
+    /* warm cream app background, matching globals.css --background */
+    background: hsl(60 33% 98%);
+    color: #1c1410;
+    padding: 32px 20px 64px;
+  }
+  header { max-width: 980px; margin: 0 auto 28px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  header p { margin: 0; color: #6b6258; font-size: 15px; max-width: 60ch; }
+  .grid {
+    max-width: 980px; margin: 0 auto;
+    display: grid; gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+  .card {
+    background: #fff; border: 1px solid #ece6dc; border-radius: 20px;
+    padding: 20px 18px 22px; text-align: center;
+    box-shadow: 0 8px 24px rgba(20,83,45,.06);
+  }
+  .stage {
+    background: hsl(48 38% 96%);
+    border-radius: 16px; padding: 10px 0 4px; margin-bottom: 14px;
+  }
+  .card h2 { font-size: 17px; margin: 6px 0 4px; }
+  .card .tag { font-size: 12px; font-weight: 700; color: var(--enamel); letter-spacing:.02em; text-transform: uppercase; }
+  .card p { font-size: 13px; line-height: 1.45; color: #6b6258; margin: 8px 0 0; }
+  .smallrow { display:flex; align-items:center; justify-content:center; gap:14px; margin-top:14px; }
+  .smallrow svg { filter: drop-shadow(0 2px 3px rgba(0,0,0,.12)); }
+  .smallrow span { font-size:11px; color:#9c948a; }
+  /* steam animation */
+  .steam path { animation: rise 3.2s ease-in-out infinite; transform-origin: center; }
+  .steam path:nth-child(2){ animation-delay:.5s; }
+  .steam path:nth-child(3){ animation-delay:1s; }
+  @keyframes rise {
+    0%   { opacity:0; transform: translateY(7px) scaleY(.85); }
+    45%  { opacity:.75; }
+    100% { opacity:0; transform: translateY(-7px) scaleY(1.1); }
+  }
+  /* gentle idle bob on the big pots */
+  .stage svg.big { animation: bob 3.8s ease-in-out infinite; }
+  @keyframes bob { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-4px); } }
+  footer { max-width:980px; margin: 36px auto 0; font-size:13px; color:#9c948a; text-align:center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🍲 The Pot — pick a body style</h1>
+  <p>Same character system in every option: dot-eyes + blush + smile, a citrus-yellow wooden spoon,
+     a sprout on the lid (echoing your logo's leaf), and steam = mood. Only the <strong>silhouette</strong>
+     changes. Each is shown big, plus tiny (48&nbsp;px) to check it still reads as a glyph.</p>
+</header>
+
+<div class="grid">
+
+  <!-- ============================ A: DUTCH OVEN ============================ -->
+  <div class="card">
+    <div class="stage">
+      <svg class="big" width="190" height="200" viewBox="0 0 200 210" role="img" aria-label="Squat Dutch oven pot character">
+        <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+          <path d="M82 52 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M100 50 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M118 52 q-7 -8 0 -16 q7 -8 0 -16"/>
+        </g>
+        <!-- sprout -->
+        <g stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round">
+          <path d="M100 60 v-12" fill="none"/>
+          <path d="M100 52 q-12 -3 -14 -14 q13 0 14 12 Z" fill="var(--sprout)"/>
+          <path d="M100 52 q12 -3 14 -14 q-13 0 -14 12 Z" fill="var(--sprout)"/>
+        </g>
+        <!-- lid -->
+        <circle cx="100" cy="60" r="7" fill="var(--outline)"/>
+        <path d="M40 90 q0 -28 60 -30 q60 2 60 30 Z" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+        <rect x="32" y="86" width="136" height="13" rx="6.5" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- ear handles -->
+        <rect x="22" y="112" width="20" height="16" rx="8" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+        <rect x="158" y="112" width="20" height="16" rx="8" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- squat wide body -->
+        <rect x="38" y="96" width="124" height="66" rx="26" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- face -->
+        <circle cx="84" cy="120" r="6" fill="var(--outline)"/><circle cx="86" cy="118" r="2" fill="#fff"/>
+        <circle cx="116" cy="120" r="6" fill="var(--outline)"/><circle cx="118" cy="118" r="2" fill="#fff"/>
+        <path d="M90 132 q10 9 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse cx="76" cy="130" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <ellipse cx="124" cy="130" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <!-- arms + spoon -->
+        <path d="M44 150 q-12 6 -14 18" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="30" cy="170" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <path d="M156 150 q12 6 14 16" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="170" cy="168" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <line x1="170" y1="168" x2="184" y2="138" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="186" cy="134" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <div class="tag">Option A</div>
+    <h2>Dutch oven</h2>
+    <p>Squat, wide, ear-handles — the Le&nbsp;Creuset / cocotte silhouette. Reads "home cooking &amp; comfort"
+       most strongly. Wide face = very characterful. Cosy-leaning.</p>
+    <div class="smallrow">
+      <svg width="40" height="42" viewBox="40 80 124 90" aria-hidden="true">
+        <path d="M40 90 q0 -28 60 -30 q60 2 60 30 Z" fill="#22c55e" stroke="#14532d" stroke-width="5"/>
+        <rect x="32" y="86" width="136" height="13" rx="6.5" fill="#22c55e" stroke="#14532d" stroke-width="5"/>
+        <rect x="38" y="96" width="124" height="66" rx="26" fill="#16a34a" stroke="#14532d" stroke-width="5"/>
+        <circle cx="84" cy="124" r="6" fill="#14532d"/><circle cx="116" cy="124" r="6" fill="#14532d"/>
+        <path d="M90 136 q10 9 20 0" fill="none" stroke="#14532d" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <span>48&nbsp;px</span>
+    </div>
+  </div>
+
+  <!-- ============================ B: STOCKPOT ============================ -->
+  <div class="card">
+    <div class="stage">
+      <svg class="big" width="190" height="200" viewBox="0 0 200 210" role="img" aria-label="Tall stockpot character">
+        <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+          <path d="M84 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M100 54 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M116 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+        </g>
+        <g stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round">
+          <path d="M100 64 v-12" fill="none"/>
+          <path d="M100 56 q-12 -3 -14 -14 q13 0 14 12 Z" fill="var(--sprout)"/>
+          <path d="M100 56 q12 -3 14 -14 q-13 0 -14 12 Z" fill="var(--sprout)"/>
+        </g>
+        <circle cx="100" cy="64" r="7" fill="var(--outline)"/>
+        <!-- flat lid -->
+        <ellipse cx="100" cy="78" rx="52" ry="12" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- tall straight body, slight taper -->
+        <path d="M56 84 q44 10 88 0 l-6 96 q-38 8 -76 0 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+        <!-- side loop handles -->
+        <path d="M52 100 q-14 2 -14 14 q0 12 14 12" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <path d="M148 100 q14 2 14 14 q0 12 -14 12" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <!-- face -->
+        <circle cx="86" cy="116" r="6" fill="var(--outline)"/><circle cx="88" cy="114" r="2" fill="#fff"/>
+        <circle cx="114" cy="116" r="6" fill="var(--outline)"/><circle cx="116" cy="114" r="2" fill="#fff"/>
+        <path d="M91 128 q9 9 18 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse cx="79" cy="126" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <ellipse cx="121" cy="126" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <!-- arms + spoon -->
+        <path d="M60 160 q-12 8 -12 20" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="48" cy="182" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <path d="M140 160 q12 8 12 18" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="152" cy="180" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <line x1="152" y1="180" x2="168" y2="150" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="170" cy="146" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <div class="tag">Option B</div>
+    <h2>Stockpot</h2>
+    <p>Tall, upright, loop handles — "big batch / soup pot." More modern and a touch energetic.
+       Taller body gives room for the lid to become a hat or hold props.</p>
+    <div class="smallrow">
+      <svg width="38" height="42" viewBox="50 74 100 110" aria-hidden="true">
+        <ellipse cx="100" cy="78" rx="52" ry="12" fill="#22c55e" stroke="#14532d" stroke-width="5"/>
+        <path d="M56 84 q44 10 88 0 l-6 96 q-38 8 -76 0 Z" fill="#16a34a" stroke="#14532d" stroke-width="5"/>
+        <circle cx="86" cy="120" r="6" fill="#14532d"/><circle cx="114" cy="120" r="6" fill="#14532d"/>
+        <path d="M91 132 q9 9 18 0" fill="none" stroke="#14532d" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <span>48&nbsp;px</span>
+    </div>
+  </div>
+
+  <!-- ============================ C: CAULDRON ============================ -->
+  <div class="card">
+    <div class="stage">
+      <svg class="big" width="190" height="200" viewBox="0 0 200 210" role="img" aria-label="Round belly cauldron character">
+        <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+          <path d="M84 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M100 54 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M116 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+        </g>
+        <g stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round">
+          <path d="M100 62 v-12" fill="none"/>
+          <path d="M100 54 q-12 -3 -14 -14 q13 0 14 12 Z" fill="var(--sprout)"/>
+          <path d="M100 54 q12 -3 14 -14 q-13 0 -14 12 Z" fill="var(--sprout)"/>
+        </g>
+        <circle cx="100" cy="62" r="7" fill="var(--outline)"/>
+        <ellipse cx="100" cy="78" rx="44" ry="11" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- round belly that narrows at the neck -->
+        <path d="M62 84 q38 8 76 0 q22 14 22 44 q0 40 -60 40 q-60 0 -60 -40 q0 -30 22 -44 Z"
+              fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+        <!-- little legs -->
+        <rect x="74" y="166" width="12" height="14" rx="5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+        <rect x="114" y="166" width="12" height="14" rx="5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="4"/>
+        <!-- face -->
+        <circle cx="85" cy="120" r="6.5" fill="var(--outline)"/><circle cx="87" cy="118" r="2.2" fill="#fff"/>
+        <circle cx="115" cy="120" r="6.5" fill="var(--outline)"/><circle cx="117" cy="118" r="2.2" fill="#fff"/>
+        <path d="M90 132 q10 10 20 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse cx="76" cy="131" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/>
+        <ellipse cx="124" cy="131" rx="6.5" ry="3.6" fill="var(--blush)" opacity=".55"/>
+        <!-- arms + spoon -->
+        <path d="M44 132 q-14 8 -14 22" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="30" cy="156" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <path d="M156 132 q14 8 14 20" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="170" cy="154" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <line x1="170" y1="154" x2="184" y2="124" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="186" cy="120" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <div class="tag">Option C</div>
+    <h2>Cauldron / belly pot</h2>
+    <p>Round pot-belly with tiny legs — the most storybook &amp; cute. Maximum "huggable."
+       Leans whimsical/fun; the rounded belly is the friendliest shape of the four.</p>
+    <div class="smallrow">
+      <svg width="40" height="42" viewBox="40 74 120 110" aria-hidden="true">
+        <ellipse cx="100" cy="78" rx="44" ry="11" fill="#22c55e" stroke="#14532d" stroke-width="5"/>
+        <path d="M62 84 q38 8 76 0 q22 14 22 44 q0 40 -60 40 q-60 0 -60 -40 q0 -30 22 -44 Z" fill="#16a34a" stroke="#14532d" stroke-width="5"/>
+        <circle cx="85" cy="122" r="6.5" fill="#14532d"/><circle cx="115" cy="122" r="6.5" fill="#14532d"/>
+        <path d="M90 134 q10 10 20 0" fill="none" stroke="#14532d" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <span>48&nbsp;px</span>
+    </div>
+  </div>
+
+  <!-- ============================ D: SAUCEPAN ============================ -->
+  <div class="card">
+    <div class="stage">
+      <svg class="big" width="190" height="200" viewBox="0 0 200 210" role="img" aria-label="Saucepan with long handle character">
+        <g class="steam" fill="none" stroke="#9ca3af" stroke-width="4" stroke-linecap="round" opacity=".7">
+          <path d="M76 58 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M92 56 q-7 -8 0 -16 q7 -8 0 -16"/>
+          <path d="M108 58 q-7 -8 0 -16 q7 -8 0 -16"/>
+        </g>
+        <g stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round">
+          <path d="M92 64 v-12" fill="none"/>
+          <path d="M92 56 q-12 -3 -14 -14 q13 0 14 12 Z" fill="var(--sprout)"/>
+          <path d="M92 56 q12 -3 14 -14 q-13 0 -14 12 Z" fill="var(--sprout)"/>
+        </g>
+        <circle cx="92" cy="64" r="7" fill="var(--outline)"/>
+        <!-- long handle to the right -->
+        <rect x="138" y="118" width="56" height="13" rx="6.5" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="3"/>
+        <ellipse cx="92" cy="82" rx="50" ry="12" fill="var(--enamel-light)" stroke="var(--outline)" stroke-width="5"/>
+        <!-- shorter cylinder body -->
+        <path d="M46 88 q46 10 92 0 l-4 64 q-42 9 -84 0 Z" fill="var(--enamel)" stroke="var(--outline)" stroke-width="5" stroke-linejoin="round"/>
+        <!-- face -->
+        <circle cx="78" cy="118" r="6" fill="var(--outline)"/><circle cx="80" cy="116" r="2" fill="#fff"/>
+        <circle cx="106" cy="118" r="6" fill="var(--outline)"/><circle cx="108" cy="116" r="2" fill="#fff"/>
+        <path d="M83 130 q9 9 18 0" fill="none" stroke="var(--outline)" stroke-width="3.5" stroke-linecap="round"/>
+        <ellipse cx="70" cy="128" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <ellipse cx="114" cy="128" rx="6" ry="3.4" fill="var(--blush)" opacity=".55"/>
+        <!-- left arm holds spoon -->
+        <path d="M50 138 q-16 6 -18 22" fill="none" stroke="var(--enamel)" stroke-width="9" stroke-linecap="round"/>
+        <circle cx="30" cy="162" r="6.5" fill="var(--enamel)" stroke="var(--outline)" stroke-width="3"/>
+        <line x1="30" y1="162" x2="16" y2="132" stroke="var(--citrus-dark)" stroke-width="5" stroke-linecap="round"/>
+        <ellipse cx="14" cy="128" rx="7" ry="9" fill="var(--citrus)" stroke="var(--citrus-dark)" stroke-width="2.5"/>
+      </svg>
+    </div>
+    <div class="tag">Option D</div>
+    <h2>Saucepan</h2>
+    <p>Single long handle — the most iconic/minimal "cooking" glyph; the handle reads instantly even tiny.
+       The handle is a built-in spot for a hand or a label. Slightly more utilitarian than cute.</p>
+    <div class="smallrow">
+      <svg width="48" height="38" viewBox="44 78 152 80" aria-hidden="true">
+        <rect x="138" y="116" width="56" height="13" rx="6.5" fill="#f59e0b" stroke="#d97706" stroke-width="3"/>
+        <ellipse cx="92" cy="82" rx="50" ry="12" fill="#22c55e" stroke="#14532d" stroke-width="5"/>
+        <path d="M46 88 q46 10 92 0 l-4 64 q-42 9 -84 0 Z" fill="#16a34a" stroke="#14532d" stroke-width="5"/>
+        <circle cx="78" cy="120" r="6" fill="#14532d"/><circle cx="106" cy="120" r="6" fill="#14532d"/>
+        <path d="M83 132 q9 9 18 0" fill="none" stroke="#14532d" stroke-width="4" stroke-linecap="round"/>
+      </svg>
+      <span>48&nbsp;px</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  Draft mockups for choosing a direction — colours, outline weight, and proportions will be refined in Phase&nbsp;0.
+  Open this file in any browser. Steam &amp; bob are animated.
+</footer>
+</body>
+</html>
