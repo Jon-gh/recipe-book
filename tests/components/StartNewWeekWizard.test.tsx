@@ -77,7 +77,7 @@ const defaultProps = {
   open: true,
   entries: [mockEntry],
   recipes: [mockRecipe],
-  checkedKeys: new Set<string>(),
+  shoppingListItems: [],
   onClose: vi.fn(),
 };
 
@@ -233,44 +233,45 @@ describe("StartNewWeekWizard", () => {
     });
   });
 
-  it("creates ShoppingListItems for already-bought ingredients when adding new recipes", async () => {
-    const checkedKeys = new Set(["tomatoes__g"]);
+  it("grocery deltas for new recipes are applied server-side via new-week route, not client-side", async () => {
     const user = userEvent.setup();
     render(
       <StartNewWeekWizard
         {...defaultProps}
         entries={[]}
-        checkedKeys={checkedKeys}
       />
     );
 
-    // Navigate to step 4 (3 clicks: 1→2, 2→3, 3→4)
+    // Navigate to step 4 and add the recipe
     for (let i = 0; i < 3; i++) {
       await clickNext(user);
     }
-
-    // Add mockRecipe
     const searchInput = screen.getByPlaceholderText("Search recipes to add…");
     await user.click(searchInput);
     await user.type(searchInput, "Pasta");
     await user.click(screen.getByText("Pasta Bolognese"));
     await user.click(screen.getByRole("button", { name: "Add" }));
 
-    // Advance through step 5 (schedule), step 6 (pantry), step 7 (confirm), then start week
+    // Navigate through to confirm and start week
     await clickNext(user);
     await clickNext(user);
     await clickNext(user);
     await user.click(screen.getByRole("button", { name: "Start Week" }));
 
-    // Should call shopping-list API for the already-bought "tomatoes__g" ingredient
     await waitFor(() => {
-      const shoppingListCalls = mockFetch.mock.calls.filter(
-        (call) => call[0] === "/api/shopping-list"
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/meal-plan/new-week",
+        expect.objectContaining({ method: "POST" })
       );
-      expect(shoppingListCalls.length).toBeGreaterThan(0);
-      const body = JSON.parse(shoppingListCalls[0][1].body);
-      expect(body.name).toBe("tomatoes");
     });
+
+    // The wizard itself should NOT call /api/shopping-list for non-staple ingredients
+    // (that is done server-side via applyGroceryDelta in the new-week route)
+    const body = JSON.parse(
+      mockFetch.mock.calls.find((c) => c[0] === "/api/meal-plan/new-week")![1].body
+    );
+    expect(body.newEntries).toHaveLength(1);
+    expect(body.newEntries[0].recipeId).toBe("r1");
   });
 
   it("step 6 shows pantry check with staple items from new recipes", async () => {
@@ -280,6 +281,7 @@ describe("StartNewWeekWizard", () => {
         {...defaultProps}
         entries={[]}
         recipes={[mockRecipeWithStaples]}
+        shoppingListItems={[]}
       />
     );
 
@@ -305,6 +307,7 @@ describe("StartNewWeekWizard", () => {
         {...defaultProps}
         entries={[]}
         recipes={[mockRecipeWithStaples]}
+        shoppingListItems={[]}
       />
     );
 

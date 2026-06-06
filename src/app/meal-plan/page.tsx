@@ -4,12 +4,13 @@ import { useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MealPlanEntry, Recipe } from "@/types";
+import { MealPlanEntry, Recipe, ShoppingListItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, Minus, Plus, Search, Trash2 } from "lucide-react";
-import { fetcher } from "@/lib/fetcher";
+import { fetcher, noCacheFetcher } from "@/lib/fetcher";
+
 import { categoryIsStaple } from "@/lib/categories";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -44,11 +45,8 @@ export default function MealPlanPage() {
 
   const { mutate: globalMutate } = useSWRConfig();
 
-  const { data: sessionData } = useSWR<{
-    checkedKeys: string[];
-    weekStart: string | null;
-    weekEnd: string | null;
-  }>("/api/shopping-session", fetcher);
+  const { data: shoppingListItems } = useSWR<ShoppingListItem[]>("/api/shopping-list", noCacheFetcher);
+
 
   // ── wizard ──────────────────────────────────────────────────────────────────
   const [showNewWeekWizard, setShowNewWeekWizard] = useState(false);
@@ -66,25 +64,17 @@ export default function MealPlanPage() {
   }
 
   // ── ready-to-cook ────────────────────────────────────────────────────────────
-  const checkedKeys = useMemo(
-    () => new Set(sessionData?.checkedKeys ?? []),
-    [sessionData]
+  const shoppingProductIds = useMemo(
+    () => new Set((shoppingListItems ?? []).map((i) => i.product.id)),
+    [shoppingListItems]
   );
-
-  const checkedNames = useMemo(() => {
-    const names = new Set<string>();
-    for (const key of sessionData?.checkedKeys ?? []) {
-      names.add(key.split("__")[0]);
-    }
-    return names;
-  }, [sessionData]);
 
   function isReadyToCook(entry: MealPlanEntry): boolean {
     const nonStaple = entry.recipe.ingredients.filter(
       (i) => !categoryIsStaple(i.product?.category ?? "other")
     );
     if (nonStaple.length === 0) return false;
-    return nonStaple.every((i) => checkedNames.has(i.product.name.toLowerCase()));
+    return nonStaple.every((i) => !shoppingProductIds.has(i.product.id));
   }
 
   // ── search / add state ───────────────────────────────────────────────────────
@@ -376,7 +366,7 @@ export default function MealPlanPage() {
       open={showNewWeekWizard}
       entries={entries ?? []}
       recipes={recipes ?? []}
-      checkedKeys={checkedKeys}
+      shoppingListItems={shoppingListItems ?? []}
       onClose={handleWizardClose}
     />
     </>

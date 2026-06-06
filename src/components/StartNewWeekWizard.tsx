@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MealPlanEntry, Recipe } from "@/types";
+import { MealPlanEntry, Recipe, ShoppingListItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
-import { normalizeUnit } from "@/lib/grocery-list";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
@@ -103,7 +102,7 @@ interface Props {
   open: boolean;
   entries: MealPlanEntry[];
   recipes: Recipe[];
-  checkedKeys: Set<string>;
+  shoppingListItems: ShoppingListItem[];
   onClose: (result?: { weekStart: string; weekEnd: string }) => void;
 }
 
@@ -134,7 +133,7 @@ export default function StartNewWeekWizard({
   open,
   entries,
   recipes,
-  checkedKeys,
+  shoppingListItems: _shoppingListItems,
   onClose,
 }: Props) {
   const t = useTranslations("wizard");
@@ -413,8 +412,6 @@ export default function StartNewWeekWizard({
         setSubmitting(false);
         return;
       }
-
-      await runGroceryTransition(newRecipes, checkedKeys);
 
       // POST any staple items the user selected in step 6
       for (const addition of stapleAdditions) {
@@ -1458,29 +1455,3 @@ function Step7({
   );
 }
 
-// ── grocery transition helper ─────────────────────────────────────────────────
-
-async function runGroceryTransition(
-  newRecipes: NewRecipeEntry[],
-  checkedKeys: Set<string>
-) {
-  for (const { recipe, targetServings } of newRecipes) {
-    const factor = targetServings / recipe.servings;
-    for (const ing of recipe.ingredients) {
-      const { canonical, factor: unitFactor } = normalizeUnit(ing.unit);
-      const key = `${ing.product.name.toLowerCase()}__${canonical}`;
-      if (!checkedKeys.has(key)) continue;
-      const qty = Math.round(ing.quantity * factor * unitFactor * 1000) / 1000;
-      await fetch("/api/shopping-list", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: ing.product.name,
-          quantity: qty,
-          unit: canonical,
-          category: ing.product.category,
-        }),
-      });
-    }
-  }
-}

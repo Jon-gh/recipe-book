@@ -73,15 +73,6 @@ export type ScheduledMeal = {
   mealPlanEntry: MealPlanEntry | null;
 };
 
-export type GroceryItem = {
-  name: string;
-  quantity: number;
-  unit: string;
-  category: string;
-  productId: number;
-  source: string;
-};
-
 export type ShoppingListItem = {
   id: number;
   quantity: number;
