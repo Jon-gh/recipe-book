@@ -25,10 +25,10 @@ const CARD_BG_COLORS = [
   "bg-sky-50 dark:bg-sky-950/30",
 ];
 
-function cardBgColor(name: string): string {
+function cardBgColor(id: string): string {
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = (hash * 31 + name.charCodeAt(i)) & 0xffff;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
   }
   return CARD_BG_COLORS[hash % CARD_BG_COLORS.length];
 }
@@ -142,9 +142,9 @@ export default function RecipesPage() {
                 className="active:scale-[0.98] transition-transform block"
               >
                 <div
-                  className={`h-full rounded-xl shadow-sm ${cardBgColor(recipe.name)} p-4 flex flex-col gap-3 min-h-[160px]`}
+                  className={`h-full rounded-xl shadow-sm ${cardBgColor(recipe.id)} p-4 flex flex-col gap-3 min-h-[160px]`}
                 >
-                  <div className="text-3xl leading-none">{getRecipeEmoji(recipe.name)}</div>
+                  <div className="text-3xl leading-none">{getRecipeEmoji(recipe.ingredients.map((i) => i.product.name))}</div>
                   <div className="flex items-start justify-between gap-2 flex-1">
                     <h2 className="text-base font-bold leading-snug">
                       {recipe.name}

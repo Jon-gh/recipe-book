@@ -212,6 +212,7 @@ export default function GroceryListPage() {
   const displayMpItems = mpItems.filter((i) => !categoryIsStaple(i.category));
   const allItems: DisplayItem[] = [...displayMpItems, ...slItems];
 
+
   function toggleItem(item: DisplayItem) {
     if (item.shoppingListId != null) {
       if (pendingDeleteRef.current) {
@@ -443,6 +444,7 @@ export default function GroceryListPage() {
                 </Card>
               </div>
             ))}
+
 
           </div>
         )}

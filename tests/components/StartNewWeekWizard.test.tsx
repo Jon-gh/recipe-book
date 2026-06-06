@@ -27,7 +27,16 @@ const mockRecipe: Recipe = {
       preparation: "",
       productId: 1,
       recipeId: "r1",
-      product: { id: 1, name: "tomatoes", category: "produce", defaultUnit: "g", defaultQuantity: 1, source: "system" },
+      product: { id: 1, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 1, source: "system" },
+    },
+    {
+      id: 2,
+      quantity: 200,
+      unit: "g",
+      preparation: "",
+      productId: 2,
+      recipeId: "r1",
+      product: { id: 2, name: "tomatoes", category: "fruit & veg", defaultUnit: "g", defaultQuantity: 1, source: "system" },
     },
   ],
 };
