@@ -63,7 +63,6 @@ export default function SchedulePage() {
   } = useSWR<MealPlanEntry[]>("/api/meal-plan", fetcher);
 
   const { data: sessionData } = useSWR<{
-    checkedKeys: string[];
     weekStart: string | null;
     weekEnd: string | null;
   }>("/api/shopping-session", fetcher);
