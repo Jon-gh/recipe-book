@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import Cocotte from "@/components/cocotte/Cocotte";
+import { getSeasonalTopper } from "@/components/cocotte/seasonal";
 
 describe("Cocotte", () => {
   const poses = ["wave", "stir", "hold-basket", "cheer", "shrug"] as const;
@@ -57,5 +58,64 @@ describe("Cocotte", () => {
       const svg = container.querySelector("svg");
       expect(svg?.className.baseVal).toContain("cocotte-bob");
     });
+  });
+});
+
+describe("seasonal toppers", () => {
+  it("getSeasonalTopper returns santa in December", () => {
+    vi.setSystemTime(new Date("2025-12-15T12:00:00"));
+    expect(getSeasonalTopper()).toBe("santa");
+    vi.useRealTimers();
+  });
+
+  it("getSeasonalTopper returns pumpkin from Oct 20", () => {
+    vi.setSystemTime(new Date("2025-10-28T12:00:00"));
+    expect(getSeasonalTopper()).toBe("pumpkin");
+    vi.useRealTimers();
+  });
+
+  it("getSeasonalTopper returns flower in April", () => {
+    vi.setSystemTime(new Date("2025-04-10T12:00:00"));
+    expect(getSeasonalTopper()).toBe("flower");
+    vi.useRealTimers();
+  });
+
+  it("getSeasonalTopper returns sprout in June (no special season)", () => {
+    vi.setSystemTime(new Date("2025-06-06T12:00:00"));
+    expect(getSeasonalTopper()).toBe("sprout");
+    vi.useRealTimers();
+  });
+
+  it("topper prop overrides seasonal topper", () => {
+    vi.setSystemTime(new Date("2025-12-25T12:00:00")); // would be santa
+    const { container } = render(<Cocotte pose="wave" topper="sprout" />);
+    // sprout uses the knob circle at (100,82); santa does not
+    const circles = Array.from(container.querySelectorAll("circle"));
+    const knob = circles.find(
+      (c) => c.getAttribute("cx") === "100" && c.getAttribute("cy") === "82"
+    );
+    expect(knob, "sprout knob should be present when topper=sprout").not.toBeNull();
+    vi.useRealTimers();
+  });
+
+  it("santa topper renders red hat path", () => {
+    const { container } = render(<Cocotte pose="wave" topper="santa" />);
+    const paths = Array.from(container.querySelectorAll("path"));
+    const hat = paths.find((p) => p.getAttribute("fill") === "#ef4444");
+    expect(hat, "santa red hat path should be present").not.toBeNull();
+  });
+
+  it("pumpkin topper renders orange ellipse", () => {
+    const { container } = render(<Cocotte pose="wave" topper="pumpkin" />);
+    const ellipses = Array.from(container.querySelectorAll("ellipse"));
+    const pumpkin = ellipses.find((e) => e.getAttribute("fill") === "#f97316");
+    expect(pumpkin, "pumpkin orange ellipse should be present").not.toBeNull();
+  });
+
+  it("flower topper renders pink petals", () => {
+    const { container } = render(<Cocotte pose="wave" topper="flower" />);
+    const ellipses = Array.from(container.querySelectorAll("ellipse"));
+    const petal = ellipses.find((e) => e.getAttribute("fill") === "#fda4af");
+    expect(petal, "flower pink petal ellipse should be present").not.toBeNull();
   });
 });

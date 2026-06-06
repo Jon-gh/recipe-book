@@ -46,6 +46,6 @@
 
 ## 7. Phase 5 — Brand polish (optional / later)
 
-- [ ] 7.1 (Optional) Splash screen featuring Cocotte
-- [ ] 7.2 (Optional) Evolve `public/icon.svg` to unify book + Cocotte; regenerate PNG icons per `docs/deployment.md`
-- [ ] 7.3 (Optional) Seasonal/alternate toppers as additional poses or props
+- [x] 7.1 (Optional) Splash screen featuring Cocotte
+- [x] 7.2 (Optional) Evolve `public/icon.svg` to unify book + Cocotte; regenerate PNG icons per `docs/deployment.md`
+- [x] 7.3 (Optional) Seasonal/alternate toppers as additional poses or props

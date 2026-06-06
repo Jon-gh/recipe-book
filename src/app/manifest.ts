@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Manage your recipes, meal plans, and grocery lists",
     start_url: "/recipes",
     display: "standalone",
-    background_color: "#ffffff",
+    background_color: "#16a34a",
     theme_color: "#16a34a",
     orientation: "portrait",
     icons: [

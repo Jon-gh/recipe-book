@@ -1,14 +1,18 @@
 "use client";
 
 import CocotteBody, { CocotteLid } from "./CocotteBody";
+import { type CocotteTopper, getSeasonalTopper } from "./seasonal";
 
 export type CocottePose = "wave" | "stir" | "hold-basket" | "cheer" | "shrug";
+export type { CocotteTopper };
 
 type Props = {
   pose: CocottePose;
   size?: number;
   className?: string;
   label?: string;
+  /** Override the seasonal topper; defaults to getSeasonalTopper() */
+  topper?: CocotteTopper;
 };
 
 // ── per-pose steam/face/arms/props fragments ──────────────────────────────────
@@ -171,12 +175,13 @@ const ANIMATION_CLASS: Record<CocottePose, string> = {
   shrug: "cocotte-bob",
 };
 
-export default function Cocotte({ pose, size = 160, className = "", label }: Props) {
+export default function Cocotte({ pose, size = 160, className = "", label, topper }: Props) {
   const isDecorative = !label;
   const animClass = ANIMATION_CLASS[pose];
 
   // shrug needs a tilted lid; all other poses use the standard lid transform
   const lidTransform = pose === "shrug" ? "rotate(-9 100 100)" : undefined;
+  const activeTopper = topper ?? getSeasonalTopper();
 
   return (
     <svg
@@ -191,8 +196,8 @@ export default function Cocotte({ pose, size = 160, className = "", label }: Pro
       {/* shared body (no lid — rendered separately so shrug can tilt it) */}
       <CocotteBody />
 
-      {/* lid rendered above body, optionally tilted */}
-      <CocotteLid transform={lidTransform} />
+      {/* lid rendered above body, optionally tilted; topper defaults to seasonal */}
+      <CocotteLid transform={lidTransform} topper={activeTopper} />
 
       {/* per-pose layer */}
       {pose === "wave" && <WavePose />}
