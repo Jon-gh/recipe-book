@@ -1,12 +1,13 @@
+import Cocotte from "./cocotte/Cocotte";
+
 type Props = {
-  emoji: string;
   message: string;
 };
 
-export default function LoadingState({ emoji, message }: Props) {
+export default function LoadingState({ message }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <span className="text-5xl animate-pulse">{emoji}</span>
+      <Cocotte pose="stir" size={130} />
       <p className="text-muted-foreground text-sm">{message}</p>
     </div>
   );

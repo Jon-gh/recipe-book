@@ -4,19 +4,18 @@ import { describe, it, expect } from "vitest";
 import LoadingState from "@/components/LoadingState";
 
 describe("LoadingState", () => {
-  it("renders the emoji", () => {
-    render(<LoadingState emoji="🍳" message="Loading…" />);
-    expect(screen.getByText("🍳")).toBeInTheDocument();
-  });
-
   it("renders the message", () => {
-    render(<LoadingState emoji="🛒" message="Gathering your ingredients…" />);
-    expect(screen.getByText("Gathering your ingredients…")).toBeInTheDocument();
+    render(<LoadingState message="Loading…" />);
+    expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("applies animate-pulse to the emoji element", () => {
-    render(<LoadingState emoji="📅" message="Building your week…" />);
-    const emojiEl = screen.getByText("📅");
-    expect(emojiEl.className).toContain("animate-pulse");
+  it("renders the Cocotte stir SVG", () => {
+    const { container } = render(<LoadingState message="Gathering your ingredients…" />);
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("renders a different message correctly", () => {
+    render(<LoadingState message="Building your week…" />);
+    expect(screen.getByText("Building your week…")).toBeInTheDocument();
   });
 });

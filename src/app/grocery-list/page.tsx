@@ -231,7 +231,7 @@ export default function GroceryListPage() {
         </div>
 
         {isLoading ? (
-          <LoadingState emoji="🛒" message={t("loading")} />
+          <LoadingState message={t("loading")} />
         ) : (
           <div className="space-y-4">
             {items.length === 0 && (

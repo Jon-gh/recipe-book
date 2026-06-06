@@ -17,10 +17,10 @@
 
 ## 3. Phase 2 — LoadingState → Stir pose (app-wide)
 
-- [ ] 3.1 Change `src/components/LoadingState.tsx` to signature `{ message }` rendering `<Cocotte pose="stir" />` (remove `emoji` prop)
-- [ ] 3.2 Update all call sites (recipes, recipe detail, meal-plan, grocery) to drop the `emoji` arg; `npx tsc --noEmit` clean
-- [ ] 3.3 Update `tests/components/` LoadingState tests for the new signature/mascot
-- [ ] 3.4 Run `pre-pr`
+- [x] 3.1 Change `src/components/LoadingState.tsx` to signature `{ message }` rendering `<Cocotte pose="stir" />` (remove `emoji` prop)
+- [x] 3.2 Update all call sites (recipes, recipe detail, meal-plan, grocery) to drop the `emoji` arg; `npx tsc --noEmit` clean
+- [x] 3.3 Update `tests/components/` LoadingState tests for the new signature/mascot
+- [x] 3.4 Run `pre-pr`
 
 ## 4. Phase 3 — Motion + celebration
 

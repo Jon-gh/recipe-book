@@ -115,7 +115,7 @@ export default function RecipesPage() {
         </div>
 
         {isLoading ? (
-          <LoadingState emoji="🍳" message={t("loading")} />
+          <LoadingState message={t("loading")} />
         ) : error ? (
           <div className="flex flex-col items-center gap-2 py-16 text-center">
             <Cocotte pose="shrug" size={120} />

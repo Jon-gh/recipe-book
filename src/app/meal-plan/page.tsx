@@ -267,7 +267,7 @@ export default function MealPlanPage() {
 
         {/* Entries list */}
         {loadingEntries ? (
-          <LoadingState emoji="📅" message={t("loading")} />
+          <LoadingState message={t("loading")} />
         ) : (entries ?? []).length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <Cocotte pose="wave" size={140} />
