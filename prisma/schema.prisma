@@ -150,14 +150,13 @@ model ScheduledMeal {
 }
 
 model ShoppingSession {
-  id          String    @id @default(cuid())
-  userId      String    @unique
-  checkedKeys        String[]  @default([])
-  needsStapleReview  Boolean   @default(false)
-  weekStart          DateTime? @db.Date
-  weekEnd     DateTime? @db.Date
-  updatedAt   DateTime  @updatedAt
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  needsStapleReview Boolean   @default(false)
+  weekStart         DateTime? @db.Date
+  weekEnd           DateTime? @db.Date
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RecipeTranslation {

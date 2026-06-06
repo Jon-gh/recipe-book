@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
-import { GroceryItem, ShoppingListItem, Product } from "@/types";
-import { CATEGORIES, CATEGORY_NAMES, categoryIsStaple, CATEGORY_EMOJI } from "@/lib/categories";
+import { ShoppingListItem, Product } from "@/types";
+import { CATEGORIES, CATEGORY_NAMES, CATEGORY_EMOJI } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,90 +13,47 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import LoadingState from "@/components/LoadingState";
 import SwipeableRow from "@/components/SwipeableRow";
-import StapleCheckinSheet from "@/components/StapleCheckinSheet";
-import type { StapleItem } from "@/components/StapleCheckinSheet";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-type SessionState = {
-  checkedKeys: string[];
-  needsStapleReview: boolean;
-};
-
-type DisplayItem = GroceryItem & {
-  shoppingListId?: number;
-  productDefaultUnit?: string;
-};
-
-function itemKey(item: { name: string; unit: string; shoppingListId?: number }): string {
-  if (item.shoppingListId != null) return `sl_${item.shoppingListId}`;
-  return `${item.name.toLowerCase()}__${item.unit.toLowerCase()}`;
-}
-
 function groupByCategory(
-  items: DisplayItem[]
-): { category: string; isStaple: boolean; items: DisplayItem[] }[] {
-  const map = new Map<string, DisplayItem[]>();
+  items: ShoppingListItem[]
+): { category: string; items: ShoppingListItem[] }[] {
+  const map = new Map<string, ShoppingListItem[]>();
   for (const item of items) {
-    const cat = item.category || "other";
+    const cat = item.product.category || "other";
     if (!map.has(cat)) map.set(cat, []);
     map.get(cat)!.push(item);
   }
-  const ordered: { category: string; isStaple: boolean; items: DisplayItem[] }[] = [];
-  for (const { name, isStaple } of CATEGORIES) {
-    if (map.has(name)) ordered.push({ category: name, isStaple, items: map.get(name)! });
+  const ordered: { category: string; items: ShoppingListItem[] }[] = [];
+  for (const { name } of CATEGORIES) {
+    if (map.has(name)) ordered.push({ category: name, items: map.get(name)! });
   }
   Array.from(map.entries()).forEach(([cat, catItems]) => {
     if (!CATEGORIES.find((c) => c.name === cat)) {
-      ordered.push({ category: cat, isStaple: false, items: catItems });
+      ordered.push({ category: cat, items: catItems });
     }
   });
   return ordered;
-}
-
-function shoppingItemToDisplay(item: ShoppingListItem): DisplayItem {
-  return {
-    name: item.product.name,
-    quantity: item.quantity,
-    unit: item.unit,
-    category: item.product.category,
-    productId: item.product.id,
-    source: item.product.source,
-    shoppingListId: item.id,
-    productDefaultUnit: item.product.defaultUnit,
-  };
 }
 
 export default function GroceryListPage() {
   const t = useTranslations("grocery");
   const tCommon = useTranslations("common");
   const tCat = useTranslations("categories");
-  const { data: mealPlanItems, isLoading: mpLoading, mutate: mutateMp } = useSWR<GroceryItem[]>(
-    "/api/grocery-list",
-    noCacheFetcher
-  );
-  const { data: shoppingListItems, isLoading: slLoading, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
+
+  const { data: shoppingListItems, isLoading, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
     "/api/shopping-list",
     noCacheFetcher
   );
-  const { data: sessionData, isLoading: sessionLoading, mutate: mutateSession } = useSWR<SessionState>(
-    "/api/shopping-session",
-    noCacheFetcher,
-    { refreshInterval: 15000 }
-  );
-
-  const [checkedKeys, setCheckedKeys] = useState<Set<string>>(new Set());
-  const [needsStapleReview, setNeedsStapleReview] = useState(false);
-  const [showStapleReviewSheet, setShowStapleReviewSheet] = useState(false);
-  const sessionSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { mutate: globalMutate } = useSWRConfig();
 
   const pendingDeleteRef = useRef<{
-    item: DisplayItem;
+    item: ShoppingListItem;
     timerId: ReturnType<typeof setTimeout>;
   } | null>(null);
-  const [pendingDeleteItem, setPendingDeleteItem] = useState<DisplayItem | null>(null);
+  const [pendingDeleteItem, setPendingDeleteItem] = useState<ShoppingListItem | null>(null);
 
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -157,95 +114,37 @@ export default function GroceryListPage() {
     }
   }, [newItemName, suggestions, globalMutate]);
 
-  const sessionInitialised = useRef(false);
-  useEffect(() => {
-    if (sessionLoading || !sessionData || sessionInitialised.current) return;
-    sessionInitialised.current = true;
-    setCheckedKeys(new Set(sessionData.checkedKeys));
-    setNeedsStapleReview(sessionData.needsStapleReview);
-  }, [sessionData, sessionLoading]);
-
-  useEffect(() => {
-    if (!sessionInitialised.current || !sessionData) return;
-    if (sessionSyncTimer.current !== null) return;
-    setCheckedKeys(new Set(sessionData.checkedKeys));
-    setNeedsStapleReview(sessionData.needsStapleReview);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionData]);
-
   useEffect(() => {
     return () => {
       if (pendingDeleteRef.current) {
         clearTimeout(pendingDeleteRef.current.timerId);
-        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
+        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.id}`, { method: "DELETE" });
       }
     };
   }, []);
 
-  const isLoading = mpLoading || slLoading || sessionLoading;
-
-  const syncCheckedKeys = useCallback((keys: Set<string>) => {
-    if (sessionSyncTimer.current) clearTimeout(sessionSyncTimer.current);
-    sessionSyncTimer.current = setTimeout(() => {
-      sessionSyncTimer.current = null;
-      fetch("/api/shopping-session", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checkedKeys: Array.from(keys) }),
-      });
-    }, 300);
-  }, []);
-
-  function setStapleReview(value: boolean) {
-    setNeedsStapleReview(value);
-    fetch("/api/shopping-session", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ needsStapleReview: value }),
-    });
-  }
-
-  const mpItems: DisplayItem[] = (mealPlanItems ?? []).map((i) => ({ ...i }));
-  const slItems: DisplayItem[] = (shoppingListItems ?? []).map(shoppingItemToDisplay);
-  // Meal plan items in staple categories are excluded from the display —
-  // they are handled at planning time via the staple check-in flow.
-  const displayMpItems = mpItems.filter((i) => !categoryIsStaple(i.category));
-  const allItems: DisplayItem[] = [...displayMpItems, ...slItems];
-
-
-  function toggleItem(item: DisplayItem) {
-    if (item.shoppingListId != null) {
-      if (pendingDeleteRef.current) {
-        clearTimeout(pendingDeleteRef.current.timerId);
-        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.shoppingListId}`, { method: "DELETE" });
-        pendingDeleteRef.current = null;
-        setPendingDeleteItem(null);
-      }
-
-      mutateSl(
-        (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.shoppingListId),
-        { revalidate: false }
-      );
-
-      const timerId = setTimeout(() => {
-        fetch(`/api/shopping-list/${item.shoppingListId}`, { method: "DELETE" });
-        pendingDeleteRef.current = null;
-        setPendingDeleteItem(null);
-        mutateSl();
-      }, 10000);
-
-      pendingDeleteRef.current = { item, timerId };
-      setPendingDeleteItem(item);
-      return;
+  function tapItem(item: ShoppingListItem) {
+    if (pendingDeleteRef.current) {
+      clearTimeout(pendingDeleteRef.current.timerId);
+      fetch(`/api/shopping-list/${pendingDeleteRef.current.item.id}`, { method: "DELETE" });
+      pendingDeleteRef.current = null;
+      setPendingDeleteItem(null);
     }
-    const key = itemKey(item);
-    setCheckedKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      syncCheckedKeys(next);
-      return next;
-    });
+
+    mutateSl(
+      (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.id),
+      { revalidate: false }
+    );
+
+    const timerId = setTimeout(() => {
+      fetch(`/api/shopping-list/${item.id}`, { method: "DELETE" });
+      pendingDeleteRef.current = null;
+      setPendingDeleteItem(null);
+      mutateSl();
+    }, 10000);
+
+    pendingDeleteRef.current = { item, timerId };
+    setPendingDeleteItem(item);
   }
 
   function undoDelete() {
@@ -264,11 +163,16 @@ export default function GroceryListPage() {
     setShowAddSheet(true);
   }
 
-  function openEditSheet(item: DisplayItem) {
-    setEditingProduct({ id: item.productId, name: item.name, category: item.category, defaultUnit: item.productDefaultUnit ?? "" });
-    setEditName(item.name);
-    setEditCategory(item.category);
-    setEditUnit(item.productDefaultUnit ?? "");
+  function openEditSheet(item: ShoppingListItem) {
+    setEditingProduct({
+      id: item.product.id,
+      name: item.product.name,
+      category: item.product.category,
+      defaultUnit: item.product.defaultUnit ?? "",
+    });
+    setEditName(item.product.name);
+    setEditCategory(item.product.category);
+    setEditUnit(item.product.defaultUnit ?? "");
   }
 
   async function addItem() {
@@ -294,38 +198,14 @@ export default function GroceryListPage() {
     setEditSaving(false);
     setEditingProduct(null);
     mutateSl();
-    mutateMp();
-  }
-
-  async function removeShoppingItem(id: number) {
-    await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
-    mutateSl();
   }
 
   async function handleRefresh() {
-    await Promise.all([mutateMp(), mutateSl(), mutateSession()]);
+    await mutateSl();
   }
 
-  const totalCount = allItems.length;
-
-  const baseVisibleGroups = groupByCategory(allItems)
-    .filter((g) => g.items.length > 0);
-
-  const baseVisibleItems = baseVisibleGroups.flatMap((g) => g.items);
-  const allDone = baseVisibleItems.length > 0 && baseVisibleItems.every((i) => checkedKeys.has(itemKey(i)));
-
-  const visibleGroups = baseVisibleGroups
-    .map((g) => ({
-      ...g,
-      items: g.items.filter((i) => !checkedKeys.has(itemKey(i))),
-    }))
-    .filter((g) => g.items.length > 0);
-
-  // Staple items for the review check-in sheet (sourced from full meal plan, not display list)
-  const stapleCheckinItems: StapleItem[] = (mealPlanItems ?? [])
-    .filter((i) => categoryIsStaple(i.category))
-    .map((i) => ({ productId: i.productId, name: i.name, defaultQuantity: 1, defaultUnit: "" }))
-    .filter((s, idx, arr) => arr.findIndex((x) => x.productId === s.productId) === idx);
+  const items = shoppingListItems ?? [];
+  const visibleGroups = groupByCategory(items).filter((g) => g.items.length > 0);
 
   return (
     <>
@@ -339,7 +219,7 @@ export default function GroceryListPage() {
                 <PencilLine size={18} />
               </Button>
             </Link>
-            {!isLoading && totalCount === 0 && (
+            {!isLoading && items.length === 0 && (
               <Link href="/meal-plan">
                 <Button variant="outline" className="active:scale-95 transition-transform">
                   {t("backToMealPlan")}
@@ -353,27 +233,7 @@ export default function GroceryListPage() {
           <LoadingState emoji="🛒" message={t("loading")} />
         ) : (
           <div className="space-y-4">
-            {needsStapleReview && stapleCheckinItems.length > 0 && (
-              <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm">
-                <span className="font-medium">{t("stapleReviewBanner")}</span>
-                <div className="flex gap-3 ml-4 shrink-0">
-                  <button
-                    className="font-semibold text-blue-600 dark:text-blue-400"
-                    onClick={() => setShowStapleReviewSheet(true)}
-                  >
-                    {t("stapleReviewAction")}
-                  </button>
-                  <button
-                    className="text-muted-foreground"
-                    onClick={() => setStapleReview(false)}
-                  >
-                    {t("dismiss")}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {totalCount === 0 && (
+            {items.length === 0 && (
               <div className="flex flex-col items-center gap-3 py-16 text-center">
                 <span className="text-6xl">🛒</span>
                 <p className="font-bold text-lg">{t("emptyTitle")}</p>
@@ -387,14 +247,6 @@ export default function GroceryListPage() {
               </div>
             )}
 
-            {allDone && (
-              <div className="flex flex-col items-center gap-3 py-12 text-center">
-                <span className="text-6xl">🎉</span>
-                <p className="font-bold text-lg">{t("allDoneTitle")}</p>
-                <p className="text-sm text-muted-foreground">{t("allDoneSubtext")}</p>
-              </div>
-            )}
-
             {visibleGroups.map(({ category, items: catItems }) => (
               <div key={category}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
@@ -404,16 +256,15 @@ export default function GroceryListPage() {
                   <CardContent className="pt-4">
                     <ul className="divide-y">
                       {catItems.map((item) => {
-                        const key = itemKey(item);
-                        const isUserProduct = item.source === "user" && item.shoppingListId != null;
+                        const isUserProduct = item.product.source === "user";
                         const row = (
-                          <li key={key}>
+                          <li key={item.id}>
                             <div className="flex items-center gap-2 py-3 min-h-[44px]">
                               <button
                                 className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
-                                onClick={() => toggleItem(item)}
+                                onClick={() => tapItem(item)}
                               >
-                                <span className="font-medium">{item.name}</span>
+                                <span className="font-medium">{item.product.name}</span>
                                 <span className="text-sm ml-auto text-muted-foreground">
                                   {item.quantity % 1 === 0
                                     ? item.quantity
@@ -421,20 +272,11 @@ export default function GroceryListPage() {
                                   {item.unit ? ` ${item.unit}` : ""}
                                 </span>
                               </button>
-                              {item.shoppingListId !== undefined && (
-                                <button
-                                  className="text-muted-foreground hover:text-foreground px-1 shrink-0"
-                                  onClick={() => removeShoppingItem(item.shoppingListId!)}
-                                  aria-label={`Remove ${item.name}`}
-                                >
-                                  ×
-                                </button>
-                              )}
                             </div>
                           </li>
                         );
                         return isUserProduct ? (
-                          <SwipeableRow key={key} onEdit={() => openEditSheet(item)}>
+                          <SwipeableRow key={item.id} onEdit={() => openEditSheet(item)}>
                             {row}
                           </SwipeableRow>
                         ) : row;
@@ -444,8 +286,6 @@ export default function GroceryListPage() {
                 </Card>
               </div>
             ))}
-
-
           </div>
         )}
       </div>
@@ -458,15 +298,6 @@ export default function GroceryListPage() {
     >
       <Plus size={26} strokeWidth={2.5} />
     </button>
-
-    {/* Staple review sheet */}
-    <StapleCheckinSheet
-      open={showStapleReviewSheet}
-      staples={stapleCheckinItems}
-      shoppingListItems={shoppingListItems ?? []}
-      onDone={() => { setShowStapleReviewSheet(false); setStapleReview(false); mutateSl(); }}
-      onDefer={() => { setShowStapleReviewSheet(false); }}
-    />
 
     {/* Add item sheet */}
     <BottomSheet
@@ -542,7 +373,7 @@ export default function GroceryListPage() {
     {/* Undo toast */}
     {pendingDeleteItem && (
       <div className="fixed top-[calc(env(safe-area-inset-top)+0.5rem)] left-4 right-4 z-50 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
-        <span className="text-sm">{t("removed", { name: pendingDeleteItem.name })}</span>
+        <span className="text-sm">{t("removed", { name: pendingDeleteItem.product.name })}</span>
         <button
           onClick={undoDelete}
           className="text-sm font-semibold ml-4 shrink-0"

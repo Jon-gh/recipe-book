@@ -6,20 +6,9 @@ vi.mock("@/lib/auth", () => ({ requireUserId: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     $transaction: vi.fn(),
-    mealPlanEntry: {
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    scheduledMeal: {
-      deleteMany: vi.fn(),
-      create: vi.fn(),
-    },
-    shoppingSession: {
-      upsert: vi.fn(),
-    },
+    mealPlanEntry: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+    scheduledMeal: { deleteMany: vi.fn(), create: vi.fn() },
+    shoppingSession: { upsert: vi.fn() },
   },
 }));
 
@@ -33,18 +22,51 @@ const makeEntry = (id: number, targetServings: number) => ({
   targetServings,
   recipeId: `recipe-${id}`,
   userId: "user-1",
-  recipe: { id: `recipe-${id}`, name: `Recipe ${id}`, servings: 4, instructions: "", tags: [], favourite: false, notes: "", ingredients: [] },
+  recipe: {
+    id: `recipe-${id}`,
+    name: `Recipe ${id}`,
+    servings: 4,
+    instructions: "",
+    tags: [],
+    favourite: false,
+    notes: "",
+    ingredients: [],
+  },
   scheduledMeals: [],
 });
+
+// Shared transaction stub — populated in beforeEach
+const mockTx = {
+  mealPlanEntry: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  scheduledMeal: { deleteMany: vi.fn(), create: vi.fn() },
+  shoppingSession: { upsert: vi.fn() },
+  recipe: { findUnique: vi.fn() },
+  shoppingListItem: { findFirst: vi.fn(), create: vi.fn(), update: vi.fn(), delete: vi.fn() },
+  product: { findUnique: vi.fn() },
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(requireUserId).mockResolvedValue({ userId: "user-1" });
 
-  // Default $transaction: execute the callback with a tx that mirrors the mocked prisma
-  vi.mocked(prisma.$transaction).mockImplementation(async (fn: (tx: typeof prisma) => Promise<unknown>) => {
-    return fn(prisma as unknown as typeof prisma);
-  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (prisma.$transaction as any).mockImplementation(async (fn: (tx: unknown) => unknown) => fn(mockTx));
+
+  // Default tx stubs
+  mockTx.mealPlanEntry.findMany.mockResolvedValue([]);
+  mockTx.mealPlanEntry.findFirst.mockResolvedValue(null);
+  mockTx.mealPlanEntry.create.mockImplementation(({ data }: { data: { recipeId: string; targetServings: number } }) =>
+    Promise.resolve(makeEntry(parseInt(data.recipeId.split("-")[1] || "0"), data.targetServings))
+  );
+  mockTx.mealPlanEntry.update.mockResolvedValue(makeEntry(1, 4));
+  mockTx.mealPlanEntry.delete.mockResolvedValue({});
+  mockTx.scheduledMeal.deleteMany.mockResolvedValue({ count: 0 });
+  mockTx.scheduledMeal.create.mockResolvedValue({});
+  mockTx.shoppingSession.upsert.mockResolvedValue({});
+  mockTx.recipe.findUnique.mockResolvedValue(null);
+  mockTx.shoppingListItem.findFirst.mockResolvedValue(null);
+  mockTx.shoppingListItem.create.mockResolvedValue({});
+  mockTx.product.findUnique.mockResolvedValue({ name: "pasta" });
 });
 
 function makeReq(body: object) {
@@ -75,13 +97,11 @@ describe("POST /api/meal-plan/new-week", () => {
 
   it("deletes fully consumed entries", async () => {
     const entry = makeEntry(1, 4);
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([entry] as never);
-    vi.mocked(prisma.mealPlanEntry.delete).mockResolvedValue(entry as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    vi.mocked(prisma.mealPlanEntry.findMany)
-      .mockResolvedValueOnce([entry] as never)
-      .mockResolvedValueOnce([] as never);
+    mockTx.mealPlanEntry.findMany
+      .mockResolvedValueOnce([entry])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    mockTx.mealPlanEntry.delete.mockResolvedValue(entry);
 
     const res = await POST(
       makeReq({
@@ -92,18 +112,16 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
     expect(res.status).toBe(200);
-    expect(prisma.mealPlanEntry.delete).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(mockTx.mealPlanEntry.delete).toHaveBeenCalledWith({ where: { id: 1 } });
   });
 
   it("reduces targetServings for partially consumed entries and clears their scheduled meals", async () => {
     const entry = makeEntry(1, 4);
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([entry] as never);
-    vi.mocked(prisma.mealPlanEntry.update).mockResolvedValue({ ...entry, targetServings: 2 } as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 2 } as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    vi.mocked(prisma.mealPlanEntry.findMany)
-      .mockResolvedValueOnce([entry] as never)
-      .mockResolvedValueOnce([{ ...entry, targetServings: 2 }] as never);
+    mockTx.mealPlanEntry.findMany
+      .mockResolvedValueOnce([entry])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ ...entry, targetServings: 2 }]);
+    mockTx.mealPlanEntry.update.mockResolvedValue({ ...entry, targetServings: 2 });
 
     const res = await POST(
       makeReq({
@@ -114,20 +132,16 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
     expect(res.status).toBe(200);
-    expect(prisma.mealPlanEntry.update).toHaveBeenCalledWith({
+    expect(mockTx.mealPlanEntry.update).toHaveBeenCalledWith({
       where: { id: 1 },
       data: { targetServings: 2 },
     });
-    expect(prisma.scheduledMeal.deleteMany).toHaveBeenCalledWith({
+    expect(mockTx.scheduledMeal.deleteMany).toHaveBeenCalledWith({
       where: { mealPlanEntryId: 1 },
     });
   });
 
   it("upserts session with new week dates using userId", async () => {
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-
     await POST(
       makeReq({
         consumed: [],
@@ -137,7 +151,7 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.shoppingSession.upsert).toHaveBeenCalledWith(
+    expect(mockTx.shoppingSession.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: "user-1" },
         update: expect.objectContaining({
@@ -149,11 +163,7 @@ describe("POST /api/meal-plan/new-week", () => {
   });
 
   it("creates new entries with userId when recipe not present", async () => {
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(null as never);
-    vi.mocked(prisma.mealPlanEntry.create).mockResolvedValue(makeEntry(2, 4) as never);
+    mockTx.mealPlanEntry.create.mockResolvedValue(makeEntry(2, 4));
 
     await POST(
       makeReq({
@@ -164,17 +174,17 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.mealPlanEntry.create).toHaveBeenCalledWith({
+    expect(mockTx.mealPlanEntry.create).toHaveBeenCalledWith({
       data: { recipeId: "recipe-2", targetServings: 4, userId: "user-1" },
     });
   });
 
   it("creates scheduled meals for existing entry slots with userId", async () => {
     const entry = makeEntry(1, 4);
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([entry] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
+    mockTx.mealPlanEntry.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([entry]);
 
     await POST(
       makeReq({
@@ -186,7 +196,7 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+    expect(mockTx.scheduledMeal.create).toHaveBeenCalledWith({
       data: {
         mealPlanEntryId: 1,
         date: new Date("2026-04-28T00:00:00"),
@@ -198,12 +208,8 @@ describe("POST /api/meal-plan/new-week", () => {
   });
 
   it("creates scheduled meals for new entry slots using recipeId map with userId", async () => {
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(null as never);
-    vi.mocked(prisma.mealPlanEntry.create).mockResolvedValue(makeEntry(5, 4) as never);
+    const newEntry = makeEntry(5, 4);
+    mockTx.mealPlanEntry.create.mockResolvedValue(newEntry);
 
     await POST(
       makeReq({
@@ -215,7 +221,7 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+    expect(mockTx.scheduledMeal.create).toHaveBeenCalledWith({
       data: {
         mealPlanEntryId: 5,
         date: new Date("2026-04-29T00:00:00"),
@@ -228,11 +234,8 @@ describe("POST /api/meal-plan/new-week", () => {
 
   it("increments targetServings when new entry recipe already exists", async () => {
     const existing = makeEntry(2, 2);
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-    vi.mocked(prisma.mealPlanEntry.findFirst).mockResolvedValue(existing as never);
-    vi.mocked(prisma.mealPlanEntry.update).mockResolvedValue({ ...existing, targetServings: 6 } as never);
+    mockTx.mealPlanEntry.findFirst.mockResolvedValue(existing);
+    mockTx.mealPlanEntry.update.mockResolvedValue({ ...existing, targetServings: 6 });
 
     await POST(
       makeReq({
@@ -243,18 +246,13 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.mealPlanEntry.update).toHaveBeenCalledWith({
+    expect(mockTx.mealPlanEntry.update).toHaveBeenCalledWith({
       where: { id: 2 },
       data: { targetServings: 6 },
     });
   });
 
   it("creates a custom note slot with userId when slot has a note field", async () => {
-    vi.mocked(prisma.mealPlanEntry.findMany).mockResolvedValue([] as never);
-    vi.mocked(prisma.scheduledMeal.deleteMany).mockResolvedValue({ count: 0 } as never);
-    vi.mocked(prisma.scheduledMeal.create).mockResolvedValue({} as never);
-    vi.mocked(prisma.shoppingSession.upsert).mockResolvedValue({} as never);
-
     await POST(
       makeReq({
         consumed: [],
@@ -265,7 +263,7 @@ describe("POST /api/meal-plan/new-week", () => {
       })
     );
 
-    expect(prisma.scheduledMeal.create).toHaveBeenCalledWith({
+    expect(mockTx.scheduledMeal.create).toHaveBeenCalledWith({
       data: {
         date: new Date("2026-04-28T00:00:00"),
         mealType: "dinner",
@@ -274,5 +272,34 @@ describe("POST /api/meal-plan/new-week", () => {
         userId: "user-1",
       },
     });
+  });
+
+  it("applies grocery delta for new entries (not for consumed portions)", async () => {
+    const recipe = {
+      id: "recipe-3",
+      servings: 2,
+      ingredients: [
+        { productId: 10, quantity: 100, unit: "g", product: { id: 10, category: "grains & pulses", name: "rice" } },
+      ],
+    };
+    mockTx.mealPlanEntry.create.mockResolvedValue(makeEntry(3, 4));
+    mockTx.recipe.findUnique.mockResolvedValue(recipe);
+    mockTx.product.findUnique.mockResolvedValue({ name: "rice" });
+
+    await POST(
+      makeReq({
+        consumed: [],
+        weekStart: "2026-04-28",
+        weekEnd: "2026-05-04",
+        newEntries: [{ recipeId: "recipe-3", targetServings: 4 }],
+      })
+    );
+
+    // Delta: 4/2 × 100g = 200g rice
+    expect(mockTx.shoppingListItem.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ productId: 10, quantity: 200, unit: "g" }),
+      })
+    );
   });
 });

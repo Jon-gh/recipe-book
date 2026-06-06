@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUserId } from "@/lib/auth";
+import { applyGroceryDelta } from "@/lib/grocery-delta";
 
 export async function POST(req: NextRequest) {
   const auth = await requireUserId();
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
           data: { targetServings: entry.targetServings - consumedServings },
         });
       }
+      // No grocery delta for consumed portions — those were already bought/cooked
     }
 
     // Clear ScheduledMeals for user's entries not in the consumed list
@@ -52,9 +54,14 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Add new entries (dedup within user's plan)
+    // Add new entries and apply grocery deltas
     const newEntryMap: Record<string, number> = {};
     for (const { recipeId, targetServings } of newEntries ?? []) {
+      const recipe = await tx.recipe.findUnique({
+        where: { id: recipeId },
+        include: { ingredients: { include: { product: true } } },
+      });
+
       const existing = await tx.mealPlanEntry.findFirst({ where: { recipeId, userId } });
       if (existing) {
         await tx.mealPlanEntry.update({
@@ -65,6 +72,16 @@ export async function POST(req: NextRequest) {
       } else {
         const created = await tx.mealPlanEntry.create({ data: { recipeId, targetServings, userId } });
         newEntryMap[recipeId] = created.id;
+      }
+
+      if (recipe) {
+        const ingredients = recipe.ingredients.map((i) => ({
+          productId: i.productId,
+          category: i.product.category,
+          quantity: i.quantity,
+          unit: i.unit,
+        }));
+        await applyGroceryDelta(userId, recipe.servings, targetServings, ingredients, tx);
       }
     }
 

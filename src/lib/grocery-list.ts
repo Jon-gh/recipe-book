@@ -1,16 +1,3 @@
-export type GroceryItem = { name: string; quantity: number; unit: string; category: string; productId: number; source: string };
-
-export type MealPlanEntryWithRecipe = {
-  targetServings: number;
-  recipe: {
-    servings: number;
-    ingredients: { product: { id: number; name: string; category: string; source: string }; quantity: number; unit: string }[];
-  };
-};
-
-// Ingredients that should never appear on a shopping list
-const TRIVIAL_INGREDIENTS = new Set(["water"]);
-
 // Unambiguous SI conversions only — tsp/tbsp/cup are culturally variable and left as-is
 const METRIC_CONVERSIONS: Record<string, { canonical: string; factor: number }> = {
   kg: { canonical: "g", factor: 1000 },
@@ -58,29 +45,4 @@ export function normalizeUnit(unit: string): { canonical: string; factor: number
 
   // Tier 2b: spelling / alias normalisation (handfuls→bunch, cloves→clove, etc.)
   return { canonical: UNIT_ALIASES[base] ?? base, factor: 1 };
-}
-
-export function aggregateGroceryList(entries: MealPlanEntryWithRecipe[]): GroceryItem[] {
-  const aggregated = new Map<string, GroceryItem>();
-
-  for (const entry of entries) {
-    const factor = entry.targetServings / entry.recipe.servings;
-
-    for (const ing of entry.recipe.ingredients) {
-      const { id: productId, name, category, source } = ing.product;
-      if (TRIVIAL_INGREDIENTS.has(name.trim().toLowerCase())) continue;
-
-      const { canonical, factor: unitFactor } = normalizeUnit(ing.unit);
-      const key = `${name.toLowerCase()}__${canonical}`;
-      const scaled = Math.round(ing.quantity * factor * unitFactor * 1000) / 1000;
-
-      if (aggregated.has(key)) {
-        aggregated.get(key)!.quantity += scaled;
-      } else {
-        aggregated.set(key, { name, quantity: scaled, unit: canonical, category, productId, source });
-      }
-    }
-  }
-
-  return Array.from(aggregated.values()).sort((a, b) => a.name.localeCompare(b.name));
 }

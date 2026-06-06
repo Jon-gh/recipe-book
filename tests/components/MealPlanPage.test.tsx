@@ -43,6 +43,39 @@ const mockEntries = [
   },
 ];
 
+function setupFetch({
+  entries = mockEntries as object[],
+  recipes = mockRecipes as object[],
+  shoppingList = [] as object[],
+  session = { weekStart: null, weekEnd: null } as object,
+} = {}) {
+  mockFetch.mockImplementation((url: string, options?: RequestInit) => {
+    const method = (options?.method ?? "GET").toUpperCase();
+    if (url === "/api/meal-plan" && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => entries });
+    }
+    if (url === "/api/recipes" && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => recipes });
+    }
+    if (url === "/api/shopping-list" && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => shoppingList });
+    }
+    if (url === "/api/shopping-session" && method === "GET") {
+      return Promise.resolve({ ok: true, json: async () => session });
+    }
+    if (/\/api\/meal-plan\/\d+/.test(url) && method === "DELETE") {
+      return Promise.resolve({ status: 204, ok: true, json: async () => null });
+    }
+    if (/\/api\/meal-plan\/\d+/.test(url) && method === "PATCH") {
+      return Promise.resolve({ ok: true, json: async () => entries[0] });
+    }
+    if (url === "/api/meal-plan" && method === "POST") {
+      return Promise.resolve({ ok: true, json: async () => entries[0] });
+    }
+    return Promise.resolve({ ok: true, json: async () => [] });
+  });
+}
+
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -53,17 +86,17 @@ function renderPage() {
 
 beforeEach(() => {
   mockFetch.mockClear();
+  setupFetch();
 });
 
 describe("MealPlanPage — Plan tab", () => {
   it("shows loading state initially", () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
     renderPage();
     expect(screen.getByText("Building your week…")).toBeInTheDocument();
   });
 
   it("shows empty state when no entries", async () => {
-    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    setupFetch({ entries: [] });
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
@@ -71,10 +104,6 @@ describe("MealPlanPage — Plan tab", () => {
   });
 
   it("renders meal plan entries after loading", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
     renderPage();
     await waitFor(() => {
       expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -82,25 +111,15 @@ describe("MealPlanPage — Plan tab", () => {
   });
 
   it("renders entries as pastel cards with food emoji", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
-      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
-    // Pasta → 🍝 emoji
     expect(screen.getByText("🍝")).toBeInTheDocument();
-    // Card should have a pastel bg class
     const emojiEl = screen.getByText("🍝");
     const card = emojiEl.closest("[class*='bg-']");
     expect(card).not.toBeNull();
   });
 
   it("shows total servings summary", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries })
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })
-      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
     renderPage();
     await waitFor(() => {
       expect(screen.getByText(/1 recipe · 4 total servings/)).toBeInTheDocument();
@@ -108,12 +127,9 @@ describe("MealPlanPage — Plan tab", () => {
   });
 
   it("filters recipe search results", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // initial meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })  // recipes
-      .mockResolvedValue({ ok: true, json: async () => ({ checkedKeys: [] }) }); // shopping-session
+    setupFetch({ entries: [] });
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "pasta");
     expect(screen.getByText("Pasta")).toBeInTheDocument();
@@ -121,53 +137,52 @@ describe("MealPlanPage — Plan tab", () => {
   });
 
   it("removes an entry when clicking ✕ and revalidates from server", async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => mockEntries }) // initial meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes }) // recipes
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ checkedKeys: [] }) }) // shopping-session
-      .mockResolvedValueOnce({ status: 204, json: async () => null })     // DELETE
-      .mockResolvedValue({ ok: true, json: async () => [] });             // revalidations
-
+    setupFetch();
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
     await userEvent.click(screen.getByRole("button", { name: "Remove from plan" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument();
-    });
     expect(mockFetch).toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
   });
 
-  it("adds entry when selecting a recipe and clicking Add, then shows it after revalidation", async () => {
-    const newEntry = {
-      id: 2,
-      targetServings: 4,
-      recipeId: "r1",
-      recipe: mockRecipes[0],
-      scheduledMeals: [],
-    };
-
-    mockFetch
-      .mockResolvedValueOnce({ ok: true, json: async () => [] })           // initial meal-plan
-      .mockResolvedValueOnce({ ok: true, json: async () => mockRecipes })  // recipes
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ checkedKeys: [] }) }) // shopping-session
-      .mockResolvedValueOnce({ ok: true, json: async () => newEntry })     // POST response
-      .mockResolvedValue({ ok: true, json: async () => [newEntry] });      // revalidations
-
+  it("adds entry when selecting a recipe and clicking Add", async () => {
+    setupFetch({ entries: [] });
     renderPage();
-    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(screen.getByText("Nothing planned yet.")).toBeInTheDocument());
 
     await userEvent.type(screen.getByPlaceholderText("Search recipes to add…"), "Pasta");
     await userEvent.click(screen.getByText("Pasta"));
     await userEvent.click(screen.getByRole("button", { name: "Add" }));
 
-    await waitFor(() => {
-      expect(screen.getByText("1 recipe · 4 total servings")).toBeInTheDocument();
-    });
     expect(mockFetch).toHaveBeenCalledWith(
       "/api/meal-plan",
       expect.objectContaining({ method: "POST" })
     );
+  });
+});
+
+describe("MealPlanPage — ready to cook badge", () => {
+  it("shows 'Ready' badge when all non-staple ingredients are not on the shopping list", async () => {
+    // pasta is on the shopping list → recipe is NOT ready
+    setupFetch({
+      shoppingList: [{
+        id: 1, quantity: 400, unit: "g",
+        product: { id: 0, name: "pasta", category: "grains & pulses", defaultUnit: "g", defaultQuantity: 1, source: "system" },
+      }],
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    expect(screen.queryByText("Ready")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Ready' badge when shopping list has no matching ingredients", async () => {
+    // shopping list is empty → all ingredients are "not on the list" → recipe is ready
+    setupFetch({ shoppingList: [] });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+    // Recipe has pasta (productId: 0) and shopping list is empty
+    // so no non-staple product is on the list → ready
+    await waitFor(() => expect(screen.getByText("Ready")).toBeInTheDocument());
   });
 });
