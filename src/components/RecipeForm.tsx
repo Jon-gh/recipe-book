@@ -429,7 +429,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 onClick={() => cameraRef.current?.click()}
                 className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
-                <Camera size={22} className="text-green-600 shrink-0" />
+                <Camera size={22} className="text-primary shrink-0" />
                 <div>
                   <p className="font-medium text-sm">{t("takePhoto")}</p>
                   <p className="text-xs text-muted-foreground">{t("takePhotoSub")}</p>
@@ -440,7 +440,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 onClick={() => galleryRef.current?.click()}
                 className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
-                <ImageIcon size={22} className="text-green-600 shrink-0" />
+                <ImageIcon size={22} className="text-primary shrink-0" />
                 <div>
                   <p className="font-medium text-sm">{t("chooseFromLibrary")}</p>
                   <p className="text-xs text-muted-foreground">{t("chooseFromLibrarySub")}</p>
@@ -451,7 +451,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 onClick={() => setUrlMode(true)}
                 className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
-                <Link2 size={22} className="text-green-600 shrink-0" />
+                <Link2 size={22} className="text-primary shrink-0" />
                 <div>
                   <p className="font-medium text-sm">{t("importFromUrlOption")}</p>
                   <p className="text-xs text-muted-foreground">{t("importFromUrlSub")}</p>

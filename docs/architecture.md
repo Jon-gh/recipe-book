@@ -23,6 +23,7 @@ Browser
 | `src/lib/auth.ts` | Better Auth server config (`auth`) + `requireUserId()` helper — call at the top of every API route handler |
 | `src/lib/auth-client.ts` | Better Auth client instance (`authClient`) — use in client components for sign-in, sign-out, `useSession()` |
 | `src/lib/grocery-list.ts` | `aggregateGroceryList()` — scales ingredients by servings and merges duplicates across meal plan entries |
+| `src/lib/card-colors.ts` | `CARD_BG_COLORS` — the official decorative pastel card palette (6 entries, light + dark variants); `cardBgColor(id)` — stable hash-based colour lookup; single source of truth used by Recipes and Plan pages |
 | `src/lib/categories.ts` | `CATEGORIES` constant (10 entries, each with `name` + `isStaple`); `CATEGORY_NAMES` array; `categoryIsStaple()` helper; `CATEGORY_EMOJI` map for grocery list category headers |
 | `src/lib/recipe-emoji.ts` | `getRecipeEmoji(name)` — maps recipe name keywords to a representative emoji (e.g. "pasta" → 🍝); used on recipe list cards; no DB dependency |
 | `src/lib/ingredient-emoji.ts` | `getIngredientEmoji(name, category)` — maps ingredient name keywords to emoji; falls back to `CATEGORY_EMOJI[category]` so every ingredient always gets an emoji; used on recipe detail ingredient list |

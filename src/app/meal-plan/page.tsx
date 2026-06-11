@@ -18,15 +18,7 @@ import StartNewWeekWizard from "@/components/StartNewWeekWizard";
 import LoadingState from "@/components/LoadingState";
 import Cocotte from "@/components/cocotte/Cocotte";
 import { useTranslations } from "next-intl";
-
-const CARD_BG_COLORS = [
-  "bg-amber-50 dark:bg-amber-950/30",
-  "bg-rose-50 dark:bg-rose-950/30",
-  "bg-orange-50 dark:bg-orange-950/30",
-  "bg-emerald-50 dark:bg-emerald-950/30",
-  "bg-violet-50 dark:bg-violet-950/30",
-  "bg-sky-50 dark:bg-sky-950/30",
-];
+import { cardBgColor } from "@/lib/card-colors";
 
 export default function MealPlanPage() {
   const t = useTranslations("mealPlan");
@@ -206,7 +198,7 @@ export default function MealPlanPage() {
               onPointerDown={() => { cancelPressedRef.current = true; }}
               onPointerCancel={() => { cancelPressedRef.current = false; }}
               onClick={handleCancel}
-              className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
+              className={`overflow-hidden transition-all duration-200 shrink-0 text-primary text-sm font-medium whitespace-nowrap ${
                 showCancel ? "max-w-[72px] opacity-100" : "max-w-0 opacity-0 pointer-events-none"
               }`}
             >
@@ -275,7 +267,7 @@ export default function MealPlanPage() {
             <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
             <Link
               href="/recipes"
-              className="mt-2 px-5 py-2.5 rounded-full bg-green-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+              className="mt-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
             >
               {t("emptyBrowseRecipes")}
             </Link>
@@ -286,10 +278,10 @@ export default function MealPlanPage() {
               {t("recipeSummary", { recipeCount: entries!.length, totalServings })}
             </p>
             <div className="space-y-2">
-              {entries!.map((entry, index) => {
+              {entries!.map((entry) => {
                 const allocated = allocatedForEntry(entry.id);
                 const ready = isReadyToCook(entry);
-                const cardBg = CARD_BG_COLORS[index % CARD_BG_COLORS.length];
+                const cardBg = cardBgColor(entry.recipe.id);
                 return (
                   <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
                     <div className="flex items-start gap-3">
@@ -305,7 +297,7 @@ export default function MealPlanPage() {
                             {entry.recipe.name}
                           </Link>
                           {ready && (
-                            <span className="shrink-0 text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full mt-0.5">
+                            <span className="shrink-0 text-xs font-medium text-primary bg-green-100 dark:bg-green-900/40 px-1.5 py-0.5 rounded-full mt-0.5">
                               {t("ready")}
                             </span>
                           )}

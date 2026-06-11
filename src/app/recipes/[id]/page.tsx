@@ -214,7 +214,7 @@ export default function RecipeDetailPage() {
         <ol className="space-y-3">
           {instructionSteps.map((step, i) => (
             <li key={i} className="flex gap-3 text-sm leading-relaxed">
-              <span className="shrink-0 text-base font-semibold text-green-600 dark:text-green-400 mt-0.5">
+              <span className="shrink-0 text-base font-semibold text-primary mt-0.5">
                 {stepLabel(i)}
               </span>
               <span className="whitespace-pre-wrap">{step}</span>
