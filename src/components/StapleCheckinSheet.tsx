@@ -115,7 +115,7 @@ export default function StapleCheckinSheet({
                   />
                   <button
                     onClick={() => addItem(s)}
-                    className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-transform shrink-0"
+                    className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform shrink-0"
                     aria-label={t("addLabel", { name: s.name })}
                   >
                     <Plus size={16} strokeWidth={2.5} />

@@ -1095,7 +1095,7 @@ function Step4({
             onPointerDown={onCancelPointerDown}
             onPointerCancel={() => {}}
             onClick={onSearchCancel}
-            className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${showCancel ? "max-w-[72px] opacity-100" : "max-w-0 opacity-0 pointer-events-none"}`}
+            className={`overflow-hidden transition-all duration-200 shrink-0 text-primary text-sm font-medium whitespace-nowrap ${showCancel ? "max-w-[72px] opacity-100" : "max-w-0 opacity-0 pointer-events-none"}`}
           >
             {tCommon("cancel")}
           </button>
@@ -1221,7 +1221,7 @@ function Step5({
                   <span className="mr-1.5" aria-hidden="true">{getRecipeEmoji(src.ingredientNames)}</span>
                   {src.recipeName}
                 </span>
-                <span className={`text-xs shrink-0 font-medium ${allocated >= src.totalServings ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                <span className={`text-xs shrink-0 font-medium ${allocated >= src.totalServings ? "text-primary" : "text-muted-foreground"}`}>
                   {allocated}/{src.totalServings}p
                 </span>
               </div>
@@ -1382,7 +1382,7 @@ function Step6({
                   const unitEl = document.getElementById(`staple-unit-${s.productId}`) as HTMLInputElement | null;
                   onAdd({ ...s, defaultQuantity: parseFloat(qtyEl?.value ?? defaultQty) || 1, defaultUnit: unitEl?.value ?? s.defaultUnit });
                 }}
-                className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center active:scale-95 transition-transform shrink-0"
+                className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center active:scale-95 transition-transform shrink-0"
                 aria-label={tCheckin("addLabel", { name: s.name })}
               >
                 <Plus size={16} strokeWidth={2.5} />

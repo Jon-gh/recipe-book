@@ -258,7 +258,7 @@ export default function GroceryListPage() {
                 <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
                 <Link
                   href="/meal-plan"
-                  className="mt-2 px-5 py-2.5 rounded-full bg-blue-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+                  className="mt-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
                 >
                   {t("backToMealPlan")}
                 </Link>
@@ -312,7 +312,7 @@ export default function GroceryListPage() {
     <button
       onClick={openAddSheet}
       aria-label={t("addToShoppingList")}
-      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
     >
       <Plus size={26} strokeWidth={2.5} />
     </button>

@@ -114,6 +114,9 @@ Browser
 
 ## Key Design Decisions
 
+### Single green accent + decorative pastels
+Green is the brand accent. The semantic `--primary` token is green-700 (light) / green-400 (dark) — every accent-coloured control (`bg-primary`, `text-primary`) uses it; raw `bg-green-*` and `bg-blue-*` classes are banned. Decorative card background colours live exclusively in `src/lib/card-colors.ts` (`CARD_BG_COLORS` + `cardBgColor(id)`); recipes and plan pages import from there. Dark mode follows `prefers-color-scheme` via Tailwind `"media"` strategy (no `.dark` class toggle).
+
 ### `Ingredient` is a shared canonical entity
 `Ingredient` (id, name, category) is normalised out of `RecipeIngredient` so the same ingredient is represented once across all recipes. `RecipeIngredient` holds only the per-recipe fields: `quantity`, `unit`, `preparation`, and `ingredientId` (FK). On recipe save the API resolves ingredient name → `Ingredient` via case-insensitive find-or-create; **first-write wins** for category — later imports never overwrite an existing ingredient's category. See `docs/architecture.md` for full detail.
 

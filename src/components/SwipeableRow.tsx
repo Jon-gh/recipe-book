@@ -77,7 +77,7 @@ export default function SwipeableRow({ onEdit, children }: Props) {
         aria-hidden="true"
       >
         <button
-          className="flex-1 bg-blue-500 text-white text-sm font-semibold"
+          className="flex-1 bg-primary text-primary-foreground text-sm font-semibold"
           onClick={() => { snap(0); onEdit(); }}
           tabIndex={offset >= REVEAL_WIDTH ? 0 : -1}
         >

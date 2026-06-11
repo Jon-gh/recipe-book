@@ -16,23 +16,7 @@ import RecipeForm from "@/components/RecipeForm";
 import LoadingState from "@/components/LoadingState";
 import Cocotte from "@/components/cocotte/Cocotte";
 import { useTranslations } from "next-intl";
-
-const CARD_BG_COLORS = [
-  "bg-amber-50 dark:bg-amber-950/30",
-  "bg-rose-50 dark:bg-rose-950/30",
-  "bg-orange-50 dark:bg-orange-950/30",
-  "bg-emerald-50 dark:bg-emerald-950/30",
-  "bg-violet-50 dark:bg-violet-950/30",
-  "bg-sky-50 dark:bg-sky-950/30",
-];
-
-function cardBgColor(id: string): string {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
-  }
-  return CARD_BG_COLORS[hash % CARD_BG_COLORS.length];
-}
+import { cardBgColor } from "@/lib/card-colors";
 
 export default function RecipesPage() {
   const t = useTranslations("recipes");
@@ -104,7 +88,7 @@ export default function RecipesPage() {
             onPointerDown={() => { cancelPressedRef.current = true; }}
             onPointerCancel={() => { cancelPressedRef.current = false; }}
             onClick={handleCancel}
-            className={`overflow-hidden transition-all duration-200 shrink-0 text-[#007AFF] dark:text-blue-400 text-sm font-medium whitespace-nowrap ${
+            className={`overflow-hidden transition-all duration-200 shrink-0 text-primary text-sm font-medium whitespace-nowrap ${
               searchFocused
                 ? "max-w-[72px] opacity-100"
                 : "max-w-0 opacity-0 pointer-events-none"
@@ -129,7 +113,7 @@ export default function RecipesPage() {
             <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
             <button
               onClick={() => setShowAddSheet(true)}
-              className="mt-2 px-5 py-2.5 rounded-full bg-green-600 text-white text-sm font-semibold active:scale-95 transition-transform"
+              className="mt-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
             >
               {t("emptyAddFirstRecipe")}
             </button>
@@ -189,7 +173,7 @@ export default function RecipesPage() {
     <button
       onClick={() => setShowAddSheet(true)}
       aria-label={t("newRecipe")}
-      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-green-600 text-white shadow-lg flex items-center justify-center active:scale-95 transition-transform"
+      className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom)+1rem)] right-4 z-30 w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center active:scale-95 transition-transform"
     >
       <Plus size={26} strokeWidth={2.5} />
     </button>

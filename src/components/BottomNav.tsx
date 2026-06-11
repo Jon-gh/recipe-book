@@ -23,7 +23,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-stone-50 border-t border-stone-200 dark:bg-stone-900 dark:border-stone-700 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-20 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-16">
         {tabs.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
@@ -32,7 +32,7 @@ export default function BottomNav() {
               key={href}
               href={href}
               className={`flex flex-1 flex-col items-center justify-center gap-1 text-xs transition-colors active:opacity-70 ${
-                active ? "text-green-600" : "text-muted-foreground"
+                active ? "text-primary" : "text-muted-foreground"
               }`}
             >
               <Icon size={22} strokeWidth={active ? 2.5 : 1.5} />
@@ -44,7 +44,7 @@ export default function BottomNav() {
         <Link
           href="/settings"
           className={`flex flex-1 flex-col items-center justify-center gap-1 text-xs transition-colors active:opacity-70 ${
-            pathname.startsWith("/settings") ? "text-green-600" : "text-muted-foreground"
+            pathname.startsWith("/settings") ? "text-primary" : "text-muted-foreground"
           }`}
         >
           {session?.user?.image ? (
