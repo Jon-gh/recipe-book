@@ -8,6 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Minus, Plus, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
+import BottomSheet from "@/components/BottomSheet";
+import LoadingState from "@/components/LoadingState";
+import EmptyState from "@/components/EmptyState";
 import { useTranslations, useLocale } from "next-intl";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
 
@@ -57,10 +60,12 @@ function formatWeekRange(from: string, to: string, locale: string) {
 export default function SchedulePage() {
   const t = useTranslations("schedule");
   const tCommon = useTranslations("common");
+  const tPlan = useTranslations("mealPlan");
   const locale = useLocale();
   const {
     data: entries,
     isLoading: loadingEntries,
+    error: entriesError,
     mutate: mutateEntries,
   } = useSWR<MealPlanEntry[]>("/api/meal-plan", fetcher);
 
@@ -177,19 +182,27 @@ export default function SchedulePage() {
         </div>
 
         {loadingEntries ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState message={t("loading")} />
+        ) : entriesError ? (
+          <EmptyState
+            pose="shrug"
+            title={tCommon("errorTitle")}
+            subtext={tCommon("errorSubtext")}
+          />
         ) : !hasWeek ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-5xl mb-4">📅</p>
-            <p className="font-medium text-foreground">{t("noRecipes")}</p>
-            <p className="text-sm mt-1">{t("noRecipesHint")}</p>
-          </div>
+          <EmptyState
+            pose="shrug"
+            title={t("noWeekTitle")}
+            subtext={t("noWeekHint")}
+            action={{ label: tPlan("newWeek"), href: "/meal-plan" }}
+          />
         ) : (entries ?? []).length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <p className="text-5xl mb-4">📅</p>
-            <p className="font-medium text-foreground">{t("noRecipes")}</p>
-            <p className="text-sm mt-1">{t("noRecipesHint")}</p>
-          </div>
+          <EmptyState
+            pose="wave"
+            title={t("noEntriesTitle")}
+            subtext={t("noEntriesHint")}
+            action={{ label: tPlan("emptyBrowseRecipes"), href: "/recipes" }}
+          />
         ) : (
           <div className="space-y-3">
             {days.map((day) => {
@@ -270,120 +283,108 @@ export default function SchedulePage() {
     </PullToRefresh>
 
     {/* Add slot sheet */}
-    {slotDate && slotMealType && (
-      <div
-        className="fixed inset-0 z-50 flex items-end bg-black/40"
-        onClick={() => setSlotDate(null)}
-      >
-        <div
-          className="w-full bg-background rounded-t-2xl p-5 shadow-xl max-h-[80vh] overflow-y-auto"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="font-semibold">
-              {formatDay(slotDate, locale)} · {slotMealType === "lunch" ? "☀️ " + t("lunch") : "🌙 " + t("dinner")}
-            </h3>
-            <button
-              onClick={() => setSlotDate(null)}
-              className="text-muted-foreground p-2.5 -m-1.5"
-              aria-label={tCommon("close")}
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <p className="text-sm text-muted-foreground mb-4">
-            {t("pickRecipeOrNote")}
-          </p>
+    <BottomSheet
+      open={!!(slotDate && slotMealType)}
+      onClose={() => { setSlotDate(null); setSlotMealType(null); }}
+      title={
+        slotDate && slotMealType
+          ? `${formatDay(slotDate, locale)} · ${slotMealType === "lunch" ? "☀️ " + t("lunch") : "🌙 " + t("dinner")}`
+          : ""
+      }
+    >
+      <div className="px-5 pb-8 pt-4">
+        <p className="text-sm text-muted-foreground mb-4">
+          {t("pickRecipeOrNote")}
+        </p>
 
-          {(entries ?? []).length > 0 && (
-            <div className="border rounded-xl divide-y overflow-hidden mb-4">
-              {(entries ?? []).map((entry) => {
-                const allocated = allocatedForEntry(entry.id);
-                const remaining = entry.targetServings - allocated;
-                const disabled = remaining <= 0;
-                return (
-                  <button
-                    key={entry.id}
-                    disabled={disabled}
-                    onClick={() => {
-                      if (disabled) return;
-                      setSlotEntryId(entry.id);
-                      setSlotServings(Math.min(2, remaining));
-                      setSlotNote("");
-                      setSlotError(null);
-                    }}
-                    className={`w-full text-left px-4 py-3 transition-colors ${
-                      slotEntryId === entry.id
-                        ? "bg-primary/10"
-                        : "hover:bg-muted active:bg-muted"
-                    } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
-                  >
-                    <div className="font-medium text-sm">{entry.recipe.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t("servingsRemaining", { remaining, total: entry.targetServings })}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {slotEntryId && (
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-sm flex-1">{t("servings")}</span>
-              <div className="flex items-center gap-2">
+        {(entries ?? []).length > 0 && (
+          <div className="border rounded-xl divide-y overflow-hidden mb-4">
+            {(entries ?? []).map((entry) => {
+              const allocated = allocatedForEntry(entry.id);
+              const remaining = entry.targetServings - allocated;
+              const disabled = remaining <= 0;
+              return (
                 <button
-                  onClick={() => setSlotServings((s) => Math.max(1, s - 1))}
-                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="text-sm font-semibold w-8 text-center tabular-nums">
-                  {slotServings}
-                </span>
-                <button
+                  key={entry.id}
+                  disabled={disabled}
                   onClick={() => {
-                    const entry = entries?.find((e) => e.id === slotEntryId);
-                    if (!entry) return;
-                    const remaining = entry.targetServings - allocatedForEntry(entry.id);
-                    setSlotServings((s) => Math.min(s + 1, remaining));
+                    if (disabled) return;
+                    setSlotEntryId(entry.id);
+                    setSlotServings(Math.min(2, remaining));
+                    setSlotNote("");
+                    setSlotError(null);
                   }}
-                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+                  className={`w-full text-left px-4 py-3 transition-colors ${
+                    slotEntryId === entry.id
+                      ? "bg-primary/10"
+                      : "hover:bg-muted active:bg-muted"
+                  } ${disabled ? "opacity-40 pointer-events-none" : ""}`}
                 >
-                  <Plus size={14} />
+                  <div className="font-medium text-sm">{entry.recipe.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("servingsRemaining", { remaining, total: entry.targetServings })}
+                  </div>
                 </button>
-              </div>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <label className="text-xs font-medium text-muted-foreground block mb-1.5">
-              {(entries ?? []).length > 0 ? t("orCustomNote") : t("customNote")}
-            </label>
-            <Input
-              placeholder={t("customNotePlaceholder")}
-              value={slotNote}
-              onChange={(e) => {
-                setSlotNote(e.target.value);
-                if (e.target.value) setSlotEntryId(null);
-              }}
-            />
+              );
+            })}
           </div>
+        )}
 
-          {slotError && (
-            <p className="text-sm text-destructive mb-3">{slotError}</p>
-          )}
+        {slotEntryId && (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-sm flex-1">{t("servings")}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSlotServings((s) => Math.max(1, s - 1))}
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="text-sm font-semibold w-8 text-center tabular-nums">
+                {slotServings}
+              </span>
+              <button
+                onClick={() => {
+                  const entry = entries?.find((e) => e.id === slotEntryId);
+                  if (!entry) return;
+                  const remaining = entry.targetServings - allocatedForEntry(entry.id);
+                  setSlotServings((s) => Math.min(s + 1, remaining));
+                }}
+                className="w-8 h-8 rounded-full bg-muted flex items-center justify-center active:scale-95 transition-transform"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
-          <Button
-            className="w-full active:scale-95 transition-transform"
-            disabled={(!slotEntryId && !slotNote.trim()) || addingSlot}
-            onClick={confirmAddSlot}
-          >
-            {addingSlot ? tCommon("adding") : tCommon("confirm")}
-          </Button>
+        <div className="mb-4">
+          <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+            {(entries ?? []).length > 0 ? t("orCustomNote") : t("customNote")}
+          </label>
+          <Input
+            placeholder={t("customNotePlaceholder")}
+            value={slotNote}
+            onChange={(e) => {
+              setSlotNote(e.target.value);
+              if (e.target.value) setSlotEntryId(null);
+            }}
+          />
         </div>
+
+        {slotError && (
+          <p className="text-sm text-destructive mb-3">{slotError}</p>
+        )}
+
+        <Button
+          className="w-full active:scale-95 transition-transform"
+          disabled={(!slotEntryId && !slotNote.trim()) || addingSlot}
+          onClick={confirmAddSlot}
+        >
+          {addingSlot ? tCommon("adding") : tCommon("confirm")}
+        </Button>
       </div>
-    )}
+    </BottomSheet>
     </>
   );
 }

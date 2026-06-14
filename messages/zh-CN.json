@@ -195,6 +195,11 @@
   },
   "schedule": {
     "title": "日程",
+    "loading": "规划您的本周日程…",
+    "noWeekTitle": "尚未规划本周",
+    "noWeekHint": "请从计划标签页开始新的一周",
+    "noEntriesTitle": "本周尚未安排餐食",
+    "noEntriesHint": "前往食谱选择本周要烹饪的菜肴",
     "noRecipes": "您的计划中还没有食谱",
     "noRecipesHint": "请先在计划标签页添加食谱",
     "addMeal": "添加餐食",
@@ -213,6 +218,9 @@
   },
   "products": {
     "title": "我的物品",
+    "loading": "正在获取您的物品…",
+    "emptyTitle": "暂无内容",
+    "emptySubtext": "您添加到购物清单的物品将显示在这里",
     "noItems": "暂无个人物品。将物品添加到购物清单后，它们将显示在这里。",
     "editItem": "编辑物品",
     "deleteConfirmTitle": "删除物品？",

@@ -13,6 +13,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import LoadingState from "@/components/LoadingState";
 import Cocotte from "@/components/cocotte/Cocotte";
+import EmptyState from "@/components/EmptyState";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -46,7 +47,7 @@ export default function GroceryListPage() {
   const tCat = useTranslations("categories");
   const { show: showToast } = useToast();
 
-  const { data: shoppingListItems, isLoading, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
+  const { data: shoppingListItems, isLoading, error: slError, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
     "/api/shopping-list",
     noCacheFetcher
   );
@@ -216,6 +217,12 @@ export default function GroceryListPage() {
 
         {isLoading ? (
           <LoadingState message={t("loading")} />
+        ) : slError ? (
+          <EmptyState
+            pose="shrug"
+            title={tCommon("errorTitle")}
+            subtext={tCommon("errorSubtext")}
+          />
         ) : (
           <div className="space-y-4">
             {items.length === 0 && showAllDone && (

@@ -51,7 +51,7 @@ beforeEach(() => {
 describe("ProductsPage", () => {
   it("shows loading state", () => {
     renderPage();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Fetching your items…")).toBeInTheDocument();
   });
 
   it("lists all user products after loading", async () => {
@@ -79,7 +79,15 @@ describe("ProductsPage", () => {
     setupFetch([]);
     renderPage();
     await waitFor(() =>
-      expect(screen.getByText(/No personal items yet/)).toBeInTheDocument()
+      expect(screen.getByText("Nothing here yet")).toBeInTheDocument()
+    );
+  });
+
+  it("shows error state when fetch fails", async () => {
+    mockFetch.mockImplementation(() => Promise.reject(new Error("Network error")));
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getByText("Something got burnt.")).toBeInTheDocument()
     );
   });
 
