@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Camera, ImageIcon, Link2, Pencil } from "lucide-react";
+import NativeSelect from "@/components/ui/native-select";
 import { CATEGORY_NAMES } from "@/lib/categories";
 import { useTranslations } from "next-intl";
 
@@ -256,7 +257,7 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
 
       {/* URL import inline panel */}
       {urlMode && (
-        <div className="border rounded-lg p-4 space-y-3 bg-muted/40">
+        <div className="border rounded-xl p-4 space-y-3 bg-muted/40">
           <p className="text-sm font-medium">{t("importFromUrl")}</p>
           <Input
             placeholder="https://…"
@@ -392,17 +393,16 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
                     className="flex-1"
                   />
                 </div>
-                <select
+                <NativeSelect
                   value={ing.category}
                   onChange={(e) => setIngredient(i, "category", e.target.value)}
-                  className="w-full text-sm rounded-md border border-input bg-background px-3 py-1.5 text-foreground"
                 >
                   {CATEGORY_NAMES.map((name) => (
                     <option key={name} value={name}>
                       {tCat(name)}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
             ))}
           </div>
@@ -455,7 +455,7 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
               <button
                 type="button"
                 onClick={() => cameraRef.current?.click()}
-                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
                 <Camera size={22} className="text-primary shrink-0" />
                 <div>
@@ -466,7 +466,7 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
               <button
                 type="button"
                 onClick={() => galleryRef.current?.click()}
-                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
                 <ImageIcon size={22} className="text-primary shrink-0" />
                 <div>
@@ -477,7 +477,7 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
               <button
                 type="button"
                 onClick={() => setUrlMode(true)}
-                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-xl bg-muted/50 text-left active:bg-muted transition-colors min-h-[56px]"
               >
                 <Link2 size={22} className="text-primary shrink-0" />
                 <div>
@@ -493,7 +493,7 @@ export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
               <button
                 type="button"
                 onClick={() => setShowManualForm(true)}
-                className="flex items-center gap-4 w-full px-4 py-4 rounded-2xl border text-left active:bg-muted transition-colors min-h-[56px]"
+                className="flex items-center gap-4 w-full px-4 py-4 rounded-xl border text-left active:bg-muted transition-colors min-h-[56px]"
               >
                 <Pencil size={20} className="text-muted-foreground shrink-0" />
                 <div>

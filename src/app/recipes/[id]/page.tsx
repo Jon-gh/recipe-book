@@ -8,7 +8,7 @@ import { Recipe, ShoppingListItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Minus, MoreHorizontal, Plus } from "lucide-react";
+import { ChevronLeft, Minus, MoreHorizontal, Plus, Star } from "lucide-react";
 import { fetcher, noCacheFetcher } from "@/lib/fetcher";
 import { haptic } from "@/lib/haptics";
 import BottomSheet from "@/components/BottomSheet";
@@ -23,17 +23,11 @@ import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/Toast";
 
-const STEP_NUMBERS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
-
 function splitInstructions(text: string): string[] {
   // Prefer double-newline paragraph splits; fall back to single-newline for older recipes
   const doubled = text.split(/\n\n+/).map((s) => s.trim()).filter(Boolean);
   if (doubled.length > 1) return doubled;
   return text.split(/\n/).map((s) => s.trim()).filter(Boolean);
-}
-
-function stepLabel(i: number): string {
-  return i < STEP_NUMBERS.length ? STEP_NUMBERS[i] : `(${i + 1})`;
 }
 
 export default function RecipeDetailPage() {
@@ -174,10 +168,13 @@ export default function RecipeDetailPage() {
         <h1 className="flex-1 text-xl font-bold leading-snug pt-1">{recipe.name}</h1>
         <button
           onClick={handleToggleFavourite}
-          className={`p-2.5 -m-1 mt-0.5 shrink-0 text-xl leading-none ${starPopped ? "animate-star-pop" : ""}`}
+          className={`p-2.5 -m-1 mt-0.5 shrink-0 ${starPopped ? "animate-star-pop" : ""}`}
           aria-label={recipe.favourite ? t("removeFromFavourites") : t("addToFavourites")}
         >
-          {recipe.favourite ? "★" : "☆"}
+          <Star
+            size={20}
+            className={recipe.favourite ? "text-amber-400 fill-amber-400" : "text-muted-foreground"}
+          />
         </button>
         <button
           onClick={() => setShowActionsSheet(true)}
@@ -236,8 +233,8 @@ export default function RecipeDetailPage() {
         <ol className="space-y-3">
           {instructionSteps.map((step, i) => (
             <li key={i} className="flex gap-3 text-sm leading-relaxed">
-              <span className="shrink-0 text-base font-semibold text-primary mt-0.5">
-                {stepLabel(i)}
+              <span className="shrink-0 w-6 h-6 mt-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center">
+                {i + 1}
               </span>
               <span className="whitespace-pre-wrap">{step}</span>
             </li>

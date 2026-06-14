@@ -7,14 +7,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
-import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
-
-const LOCALE_LABELS: Record<Locale, string> = {
-  en: "English",
-  fr: "Français",
-  "zh-CN": "中文",
-  es: "Español",
-};
+import { SUPPORTED_LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/config";
+import NativeSelect from "@/components/ui/native-select";
 
 export default function SettingsPage() {
   const t = useTranslations("settings");
@@ -71,18 +65,17 @@ export default function SettingsPage() {
 
         <div className="space-y-2">
           <label className="text-sm font-medium">{tLang("label")}</label>
-          <select
+          <NativeSelect
             value={locale}
             onChange={(e) => handleLocaleChange(e.target.value as Locale)}
             disabled={saving}
-            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
           >
             {SUPPORTED_LOCALES.map((loc) => (
               <option key={loc} value={loc}>
                 {LOCALE_LABELS[loc]}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           {saved && <p className="text-xs text-muted-foreground">{t("saved")}</p>}
         </div>
 

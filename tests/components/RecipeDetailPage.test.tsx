@@ -218,22 +218,60 @@ describe("RecipeDetailPage — visual refresh", () => {
     expect(screen.getByText("🥚")).toBeInTheDocument();
   });
 
-  it("renders instructions as numbered step chips", async () => {
+  it("renders instructions as numbered step badges", async () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
-    expect(screen.getByText("①")).toBeInTheDocument();
+    const stepBadge = document.querySelector(".rounded-full.bg-primary\\/10");
+    expect(stepBadge).toBeInTheDocument();
+    expect(stepBadge?.textContent).toBe("1");
   });
 
-  it("renders multi-paragraph instructions as multiple numbered steps", async () => {
+  it("renders multi-paragraph instructions as multiple numbered step badges", async () => {
     mockFetch.mockImplementation((url: string) => {
       if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
       return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, instructions: "Step one.\n\nStep two.\n\nStep three." }) });
     });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
-    expect(screen.getByText("①")).toBeInTheDocument();
-    expect(screen.getByText("②")).toBeInTheDocument();
-    expect(screen.getByText("③")).toBeInTheDocument();
+    const stepBadges = document.querySelectorAll(".rounded-full.bg-primary\\/10");
+    expect(stepBadges).toHaveLength(3);
+    expect(stepBadges[0].textContent).toBe("1");
+    expect(stepBadges[1].textContent).toBe("2");
+    expect(stepBadges[2].textContent).toBe("3");
+  });
+
+  it("renders more than 20 step badges correctly", async () => {
+    const manySteps = Array.from({ length: 22 }, (_, i) => `Step ${i + 1}.`).join("\n\n");
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, instructions: manySteps }) });
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    const stepBadges = document.querySelectorAll(".rounded-full.bg-primary\\/10");
+    expect(stepBadges).toHaveLength(22);
+    expect(stepBadges[20].textContent).toBe("21");
+    expect(stepBadges[21].textContent).toBe("22");
+  });
+
+  it("favourite star has filled class when recipe is a favourite", async () => {
+    mockFetch.mockImplementation((url: string) => {
+      if (url === "/api/shopping-list") return Promise.resolve({ ok: true, json: async () => [] });
+      return Promise.resolve({ ok: true, json: async () => ({ ...mockRecipe, favourite: true }) });
+    });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    const btn = screen.getByRole("button", { name: "Remove from favourites" });
+    const svg = btn.querySelector("svg");
+    expect(svg?.className.baseVal).toContain("fill-amber-400");
+  });
+
+  it("favourite star has no fill class when recipe is not a favourite", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    const btn = screen.getByRole("button", { name: "Add to favourites" });
+    const svg = btn.querySelector("svg");
+    expect(svg?.className.baseVal).not.toContain("fill-amber-400");
   });
 });
 

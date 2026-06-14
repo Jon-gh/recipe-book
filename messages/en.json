@@ -79,7 +79,7 @@
   "recipes": {
     "title": "Recipes",
     "searchPlaceholder": "Search by name, tag or ingredient…",
-    "favourites": "★ Favourites",
+    "favourites": "Favourites",
     "loading": "Checking the recipe box…",
     "noRecipes": "No recipes found.",
     "addOne": "Add one!",

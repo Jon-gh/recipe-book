@@ -14,6 +14,7 @@ import ActionSheet from "@/components/ActionSheet";
 import LoadingState from "@/components/LoadingState";
 import EmptyState from "@/components/EmptyState";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import NativeSelect from "@/components/ui/native-select";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/Toast";
 
@@ -148,17 +149,16 @@ export default function ProductsPage() {
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">{tCommon("category")}</label>
-            <select
+            <NativeSelect
               value={editCategory}
               onChange={(e) => setEditCategory(e.target.value)}
-              className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
             >
               {CATEGORY_NAMES.map((cat) => (
                 <option key={cat} value={cat}>
                   {tCat(cat)}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium">{tCommon("defaultUnit")}</label>

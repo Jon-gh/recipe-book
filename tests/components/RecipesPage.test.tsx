@@ -91,14 +91,20 @@ describe("RecipesPage", () => {
     });
   });
 
-  it("shows favourite star on favourite recipes", async () => {
+  it("shows favourite star icon on favourite recipes", async () => {
     mockFetch.mockResolvedValue({ ok: true, json: async () => mockRecipes });
-    renderPage();
+    const { container } = renderPage();
 
-    await waitFor(() => {
-      const stars = screen.getAllByText("★");
-      expect(stars).toHaveLength(1);
-    });
+    // Wait for recipes to load
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    // One recipe is a favourite — its card should have a star SVG
+    const stars = container.querySelectorAll("svg.lucide-star");
+    // The favourites filter button also has a star, so there are at least 2;
+    // only 1 recipe is favourite so the card-star count (inside recipe cards) is 1
+    const cardStars = Array.from(stars).filter(
+      (s) => s.closest("a") !== null
+    );
+    expect(cardStars).toHaveLength(1);
   });
 
   it("displays serving count and ingredient count", async () => {
@@ -149,7 +155,7 @@ describe("RecipesPage", () => {
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
-    await userEvent.click(screen.getByRole("button", { name: "★ Favourites" }));
+    await userEvent.click(screen.getByRole("button", { name: "Favourites" }));
 
     await waitFor(() => {
       const calls = mockFetch.mock.calls;
@@ -234,7 +240,7 @@ describe("RecipesPage", () => {
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1));
 
-    const favBtn = screen.getByRole("button", { name: "★ Favourites" });
+    const favBtn = screen.getByRole("button", { name: "Favourites" });
     await userEvent.click(favBtn);
     await userEvent.click(favBtn);
 

@@ -79,7 +79,7 @@
   "recipes": {
     "title": "食谱",
     "searchPlaceholder": "按名称、标签或食材搜索…",
-    "favourites": "★ 收藏",
+    "favourites": "收藏",
     "noRecipes": "未找到食谱。",
     "addOne": "添加一个！",
     "loading": "正在查找食谱…",

@@ -79,7 +79,7 @@
   "recipes": {
     "title": "Recetas",
     "searchPlaceholder": "Buscar por nombre, etiqueta o ingrediente…",
-    "favourites": "★ Favoritos",
+    "favourites": "Favoritos",
     "noRecipes": "No se encontraron recetas.",
     "addOne": "¡Añade una!",
     "loading": "Revisando el recetario…",
