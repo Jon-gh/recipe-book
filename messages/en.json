@@ -195,6 +195,11 @@
   },
   "schedule": {
     "title": "Schedule",
+    "loading": "Plotting your week…",
+    "noWeekTitle": "No week planned yet",
+    "noWeekHint": "Start a new week from the Plan tab",
+    "noEntriesTitle": "Nothing scheduled this week",
+    "noEntriesHint": "Head to Recipes to pick what you're cooking",
     "noRecipes": "No recipes in your plan yet",
     "noRecipesHint": "Add recipes in the Plan tab first",
     "addMeal": "Add meal",
@@ -213,6 +218,9 @@
   },
   "products": {
     "title": "My Items",
+    "loading": "Fetching your items…",
+    "emptyTitle": "Nothing here yet",
+    "emptySubtext": "Items you add to the shopping list appear here",
     "noItems": "No personal items yet. Add items to your shopping list and they will appear here.",
     "editItem": "Edit Item",
     "deleteConfirmTitle": "Delete item?",

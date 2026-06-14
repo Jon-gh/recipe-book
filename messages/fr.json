@@ -195,6 +195,11 @@
   },
   "schedule": {
     "title": "Planning",
+    "loading": "Tracé de votre semaine…",
+    "noWeekTitle": "Aucune semaine planifiée",
+    "noWeekHint": "Démarrez une nouvelle semaine depuis l'onglet Plan",
+    "noEntriesTitle": "Rien de planifié cette semaine",
+    "noEntriesHint": "Rendez-vous dans Recettes pour choisir vos repas",
     "noRecipes": "Aucune recette dans votre plan",
     "noRecipesHint": "Ajoutez des recettes dans l'onglet Plan d'abord",
     "addMeal": "Ajouter un repas",
@@ -213,6 +218,9 @@
   },
   "products": {
     "title": "Mes articles",
+    "loading": "Récupération de vos articles…",
+    "emptyTitle": "Rien ici pour l'instant",
+    "emptySubtext": "Les articles ajoutés à la liste de courses apparaissent ici",
     "noItems": "Aucun article personnel. Ajoutez des articles à votre liste de courses et ils apparaîtront ici.",
     "editItem": "Modifier l'article",
     "deleteConfirmTitle": "Supprimer l'article ?",

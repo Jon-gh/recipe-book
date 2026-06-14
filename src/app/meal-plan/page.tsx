@@ -17,7 +17,7 @@ import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import PullToRefresh from "@/components/PullToRefresh";
 import StartNewWeekWizard from "@/components/StartNewWeekWizard";
 import LoadingState from "@/components/LoadingState";
-import Cocotte from "@/components/cocotte/Cocotte";
+import EmptyState from "@/components/EmptyState";
 import { useTranslations } from "next-intl";
 import { cardBgColor } from "@/lib/card-colors";
 import { useToast } from "@/components/Toast";
@@ -31,6 +31,7 @@ export default function MealPlanPage() {
   const {
     data: entries,
     isLoading: loadingEntries,
+    error: entriesError,
     mutate: mutateEntries,
   } = useSWR<MealPlanEntry[]>("/api/meal-plan", fetcher);
 
@@ -273,18 +274,19 @@ export default function MealPlanPage() {
         {/* Entries list */}
         {loadingEntries ? (
           <LoadingState message={t("loading")} />
+        ) : entriesError ? (
+          <EmptyState
+            pose="shrug"
+            title={tCommon("errorTitle")}
+            subtext={tCommon("errorSubtext")}
+          />
         ) : (entries ?? []).length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <Cocotte pose="wave" size={140} />
-            <p className="font-bold text-lg">{t("emptyTitle")}</p>
-            <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
-            <Link
-              href="/recipes"
-              className="mt-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
-            >
-              {t("emptyBrowseRecipes")}
-            </Link>
-          </div>
+          <EmptyState
+            pose="wave"
+            title={t("emptyTitle")}
+            subtext={t("emptySubtext")}
+            action={{ label: t("emptyBrowseRecipes"), href: "/recipes" }}
+          />
         ) : (
           <>
             <p className="text-sm text-muted-foreground mb-3">

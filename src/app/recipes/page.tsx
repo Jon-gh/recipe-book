@@ -14,7 +14,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
 import RecipeForm from "@/components/RecipeForm";
 import LoadingState from "@/components/LoadingState";
-import Cocotte from "@/components/cocotte/Cocotte";
+import EmptyState from "@/components/EmptyState";
 import { useTranslations } from "next-intl";
 import { cardBgColor } from "@/lib/card-colors";
 
@@ -101,23 +101,18 @@ export default function RecipesPage() {
         {isLoading ? (
           <LoadingState message={t("loading")} />
         ) : error ? (
-          <div className="flex flex-col items-center gap-2 py-16 text-center">
-            <Cocotte pose="shrug" size={120} />
-            <p className="font-semibold">{tCommon("errorTitle")}</p>
-            <p className="text-sm text-muted-foreground">{tCommon("errorSubtext")}</p>
-          </div>
+          <EmptyState
+            pose="shrug"
+            title={tCommon("errorTitle")}
+            subtext={tCommon("errorSubtext")}
+          />
         ) : (recipes ?? []).length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <Cocotte pose="wave" size={140} />
-            <p className="font-bold text-lg">{t("emptyTitle")}</p>
-            <p className="text-sm text-muted-foreground max-w-xs">{t("emptySubtext")}</p>
-            <button
-              onClick={() => setShowAddSheet(true)}
-              className="mt-2 px-5 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold active:scale-95 transition-transform"
-            >
-              {t("emptyAddFirstRecipe")}
-            </button>
-          </div>
+          <EmptyState
+            pose="wave"
+            title={t("emptyTitle")}
+            subtext={t("emptySubtext")}
+            action={{ label: t("emptyAddFirstRecipe"), onClick: () => setShowAddSheet(true) }}
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {(recipes ?? []).map((recipe) => (

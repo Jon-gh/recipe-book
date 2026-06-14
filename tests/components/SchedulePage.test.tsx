@@ -82,22 +82,32 @@ describe("SchedulePage", () => {
   it("shows loading state initially", () => {
     setupFetch();
     renderPage();
-    expect(screen.getByText("Loading…")).toBeInTheDocument();
+    expect(screen.getByText("Plotting your week…")).toBeInTheDocument();
   });
 
-  it("shows empty state when no session week is set", async () => {
+  it("shows 'no week' empty state when no session week is set", async () => {
     setupFetch({ session: { checkedKeys: [], weekStart: null, weekEnd: null } });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
+      expect(screen.getByText("No week planned yet")).toBeInTheDocument();
+      expect(screen.getByText("Start a new week from the Plan tab")).toBeInTheDocument();
     });
   });
 
-  it("shows empty state when no entries in plan", async () => {
+  it("shows 'no entries' empty state when week is set but plan is empty", async () => {
     setupFetch({ entries: [] });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByText("No recipes in your plan yet")).toBeInTheDocument();
+      expect(screen.getByText("Nothing scheduled this week")).toBeInTheDocument();
+      expect(screen.getByText("Head to Recipes to pick what you're cooking")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error state when fetch fails", async () => {
+    mockFetch.mockImplementation(() => Promise.reject(new Error("Network error")));
+    renderPage();
+    await waitFor(() => {
+      expect(screen.getByText("Something got burnt.")).toBeInTheDocument();
     });
   });
 
@@ -169,7 +179,7 @@ describe("SchedulePage", () => {
     });
   });
 
-  it("closes slot picker when clicking X", async () => {
+  it("closes slot picker on Escape key", async () => {
     setupFetch();
     renderPage();
     await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
@@ -177,10 +187,22 @@ describe("SchedulePage", () => {
     await userEvent.click(screen.getAllByText(/Add meal/)[0]);
     await waitFor(() => expect(screen.getByText("Pick a recipe or add a custom note")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.keyboard("{Escape}");
 
     await waitFor(() => {
       expect(screen.queryByText("Pick a recipe or add a custom note")).not.toBeInTheDocument();
+    });
+  });
+
+  it("slot picker opens as a dialog", async () => {
+    setupFetch();
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText(/Add meal/).length).toBeGreaterThan(0));
+
+    await userEvent.click(screen.getAllByText(/Add meal/)[0]);
+
+    await waitFor(() => {
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
     });
   });
 

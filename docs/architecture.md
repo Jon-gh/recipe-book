@@ -63,6 +63,7 @@ Browser
 | `src/components/cocotte/Cocotte.tsx` | App mascot: accepts `pose` (`wave`\|`stir`\|`hold-basket`\|`cheer`\|`shrug`), `size`, `className`, `label`, and optional `topper` (overrides seasonal auto-select); CSS keyframe animations gated behind `prefers-reduced-motion` |
 | `src/components/BottomNav.tsx` | Fixed bottom tab bar (Recipes / Plan / Schedule / Grocery / Sign-out); uses `usePathname` for active state; respects `env(safe-area-inset-bottom)` |
 | `src/components/LoadingState.tsx` | Reusable full-page loading indicator: Cocotte `stir` pose + localised message string; accepts `{ message }` only (no emoji prop); used on recipe list, recipe detail, meal plan, and grocery list pages |
+| `src/components/EmptyState.tsx` | Shared empty/error state: Cocotte pose + bold title + muted subtext + optional CTA (link or button); used across all pages for error, empty, and distinct empty conditions |
 | `src/components/RecipeForm.tsx` | Shared form for new + edit pages; camera-first action sheet import (photo, library, URL, manual); manual form hidden by default for new recipes |
 | `src/components/ui/` | shadcn/ui primitives: Button, Card, Badge, Input, etc. |
 | `prisma/schema.prisma` | DB schema: `User`, `account`, `session`, `verification` (Better Auth), `Recipe`, `Ingredient`, `RecipeIngredient`, `MealPlanEntry`, `ScheduledMeal`, `ShoppingListItem`, `Product`, `ShoppingSession` |

@@ -11,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import BottomSheet from "@/components/BottomSheet";
 import ActionSheet from "@/components/ActionSheet";
+import LoadingState from "@/components/LoadingState";
+import EmptyState from "@/components/EmptyState";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/Toast";
@@ -20,7 +22,7 @@ export default function ProductsPage() {
   const tCommon = useTranslations("common");
   const tCat = useTranslations("categories");
   const { show: showToast } = useToast();
-  const { data: products, isLoading, mutate } = useSWR<Product[]>(
+  const { data: products, isLoading, error: productsError, mutate } = useSWR<Product[]>(
     "/api/products?source=user",
     noCacheFetcher
   );
@@ -80,11 +82,19 @@ export default function ProductsPage() {
         </div>
 
         {isLoading ? (
-          <p className="text-muted-foreground">{tCommon("loading")}</p>
+          <LoadingState message={t("loading")} />
+        ) : productsError ? (
+          <EmptyState
+            pose="shrug"
+            title={tCommon("errorTitle")}
+            subtext={tCommon("errorSubtext")}
+          />
         ) : !products?.length ? (
-          <p className="text-muted-foreground">
-            {t("noItems")}
-          </p>
+          <EmptyState
+            pose="hold-basket"
+            title={t("emptyTitle")}
+            subtext={t("emptySubtext")}
+          />
         ) : (
           <Card>
             <CardContent className="pt-4">

@@ -195,6 +195,11 @@
   },
   "schedule": {
     "title": "Horario",
+    "loading": "Trazando tu semana…",
+    "noWeekTitle": "Aún no hay semana planificada",
+    "noWeekHint": "Empieza una nueva semana desde la pestaña Plan",
+    "noEntriesTitle": "Nada programado esta semana",
+    "noEntriesHint": "Ve a Recetas para elegir qué vas a cocinar",
     "noRecipes": "No hay recetas en tu plan todavía",
     "noRecipesHint": "Añade recetas en la pestaña Plan primero",
     "addMeal": "Añadir comida",
@@ -213,6 +218,9 @@
   },
   "products": {
     "title": "Mis artículos",
+    "loading": "Buscando tus artículos…",
+    "emptyTitle": "Nada aquí todavía",
+    "emptySubtext": "Los artículos que añadas a la lista de la compra aparecen aquí",
     "noItems": "Aún no hay artículos personales. Añade artículos a tu lista de la compra y aparecerán aquí.",
     "editItem": "Editar artículo",
     "deleteConfirmTitle": "¿Eliminar artículo?",
