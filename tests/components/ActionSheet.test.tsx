@@ -50,6 +50,14 @@ describe("ActionSheet", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("renders translated cancel label from common.cancel", async () => {
+    render(
+      <ActionSheet open={true} onClose={vi.fn()} actions={defaultActions} />
+    );
+    // The mock translates common.cancel → "Cancel" (en.json value)
+    expect(screen.getByText("Cancel")).toBeInTheDocument();
+  });
+
   it("calls onClose when Cancel is clicked", async () => {
     const onClose = vi.fn();
     render(
@@ -77,5 +85,21 @@ describe("ActionSheet", () => {
     );
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("sets aria-labelledby when title is provided", () => {
+    render(
+      <ActionSheet
+        open={true}
+        onClose={vi.fn()}
+        actions={defaultActions}
+        title="Confirm action"
+      />
+    );
+    const dialog = screen.getByRole("dialog");
+    const labelledById = dialog.getAttribute("aria-labelledby");
+    expect(labelledById).toBeTruthy();
+    const titleEl = document.getElementById(labelledById!);
+    expect(titleEl?.textContent).toBe("Confirm action");
   });
 });

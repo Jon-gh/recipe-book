@@ -334,8 +334,8 @@ export default function MealPlanPage() {
                       <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
                         <button
                           onClick={() => updateServings(entry.id, Math.max(1, entry.targetServings - 1))}
-                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
-                          aria-label="Decrease servings"
+                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform p-2 -m-2"
+                          aria-label={tCommon("decreaseServings")}
                         >
                           <Minus size={13} />
                         </button>
@@ -344,8 +344,8 @@ export default function MealPlanPage() {
                         </span>
                         <button
                           onClick={() => updateServings(entry.id, entry.targetServings + 1)}
-                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
-                          aria-label="Increase servings"
+                          className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform p-2 -m-2"
+                          aria-label={tCommon("increaseServings")}
                         >
                           <Plus size={13} />
                         </button>
@@ -356,8 +356,8 @@ export default function MealPlanPage() {
                           optimisticHide: () => mutateEntries(entries?.filter((e) => e.id !== entry.id), { revalidate: false }),
                           message: t("removedFromPlan", { name: entry.recipe.name }),
                         })}
-                        className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform mt-0.5"
-                        aria-label="Remove from plan"
+                        className="text-muted-foreground hover:text-destructive shrink-0 p-2.5 -m-1.5 active:scale-95 transition-transform mt-0.5"
+                        aria-label={t("removeFromPlan")}
                       >
                         <Trash2 size={16} />
                       </button>

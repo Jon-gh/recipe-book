@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { categoryIsStaple } from "@/lib/categories";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 type StapleAddition = { productId: number; name: string; qty: string; unit: string };
 
@@ -46,18 +46,18 @@ function daysInRange(from: string, to: string): string[] {
   return days;
 }
 
-function formatDay(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-GB", {
+function formatDay(dateStr: string, locale: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
 }
 
-function formatDayShort(dateStr: string) {
+function formatDayShort(dateStr: string, locale: string) {
   const d = new Date(dateStr + "T00:00:00");
   return {
-    weekday: d.toLocaleDateString("en-GB", { weekday: "short" }),
+    weekday: d.toLocaleDateString(locale, { weekday: "short" }),
     date: d.getDate(),
   };
 }
@@ -139,6 +139,7 @@ export default function StartNewWeekWizard({
   const t = useTranslations("wizard");
   const tCommon = useTranslations("common");
   const tSchedule = useTranslations("schedule");
+  const locale = useLocale();
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
 
   // Step 1 — consumed portions
@@ -632,7 +633,7 @@ export default function StartNewWeekWizard({
         >
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold text-sm">
-              {formatDay(pickerDate)} · {pickerMealType === "lunch" ? "☀️" : "🌙"} {pickerMealType}
+              {formatDay(pickerDate, locale)} · {pickerMealType === "lunch" ? "☀️" : "🌙"} {pickerMealType}
             </h3>
             <button onClick={closePicker} className="text-muted-foreground p-1">
               <X size={18} />
@@ -809,6 +810,7 @@ function Step2({
   onShiftWeek: (n: number) => void;
 }) {
   const t = useTranslations("wizard");
+  const locale = useLocale();
   const today = todayStr();
   const days = weekStart && weekEnd ? daysInRange(weekStart, weekEnd) : [];
 
@@ -828,7 +830,7 @@ function Step2({
 
         <div className="flex-1 flex items-center justify-center gap-1">
           {days.map((day) => {
-            const { weekday, date } = formatDayShort(day);
+            const { weekday, date } = formatDayShort(day, locale);
             const isToday = day === today;
             return (
               <div
@@ -856,7 +858,7 @@ function Step2({
       </div>
 
       <p className="text-xs text-center text-muted-foreground">
-        {weekStart && weekEnd ? `${formatDay(weekStart)} – ${formatDay(weekEnd)}` : ""}
+        {weekStart && weekEnd ? `${formatDay(weekStart, locale)} – ${formatDay(weekEnd, locale)}` : ""}
       </p>
     </div>
   );
@@ -887,6 +889,7 @@ function Step3({
 }) {
   const t = useTranslations("wizard");
   const tSchedule = useTranslations("schedule");
+  const locale = useLocale();
   const today = todayStr();
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
@@ -932,7 +935,7 @@ function Step3({
           <p className="text-xs font-medium text-muted-foreground mb-2">Per-day exceptions</p>
           <div className="flex gap-1.5 flex-wrap">
             {scheduleDays.map((day) => {
-              const { weekday, date } = formatDayShort(day);
+              const { weekday, date } = formatDayShort(day, locale);
               const hasException = !!exceptions[day];
               const isToday = day === today;
               const isExpanded = expandedDay === day;
@@ -1194,6 +1197,7 @@ function Step5({
   const t = useTranslations("wizard");
   const tCommon = useTranslations("common");
   const tSchedule = useTranslations("schedule");
+  const locale = useLocale();
   const today = todayStr();
 
   return (
@@ -1242,11 +1246,11 @@ function Step5({
             >
               <div className={`px-4 py-2 flex items-center gap-2 ${isToday ? "bg-amber-50 dark:bg-amber-950/20" : "bg-muted/50"}`}>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  {formatDay(day)}
+                  {formatDay(day, locale)}
                 </p>
                 {isToday && (
                   <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
-                    Today
+                    {tSchedule("today")}
                   </span>
                 )}
               </div>
@@ -1417,6 +1421,7 @@ function Step7({
   error: string | null;
 }) {
   const t = useTranslations("wizard");
+  const locale = useLocale();
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step7Title")}</h3>
@@ -1425,7 +1430,7 @@ function Step7({
       <div className="border rounded-xl divide-y overflow-hidden mb-6 text-sm">
         <div className="flex justify-between px-4 py-3">
           <span className="text-muted-foreground">{t("weekLabel")}</span>
-          <span className="font-medium">{formatDay(weekStart)} → {formatDay(weekEnd)}</span>
+          <span className="font-medium">{formatDay(weekStart, locale)} → {formatDay(weekEnd, locale)}</span>
         </div>
         <div className="flex justify-between px-4 py-3">
           <span className="text-muted-foreground">{t("leftoverPortions")}</span>

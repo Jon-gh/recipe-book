@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
 
 const REVEAL_WIDTH = 72;
 
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default function SwipeableRow({ onEdit, children }: Props) {
+  const tCommon = useTranslations("common");
   const [offset, setOffset] = useState(0);
   const rowRef = useRef<HTMLDivElement>(null);
   const offsetRef = useRef(0);
@@ -81,7 +83,7 @@ export default function SwipeableRow({ onEdit, children }: Props) {
           onClick={() => { snap(0); onEdit(); }}
           tabIndex={offset >= REVEAL_WIDTH ? 0 : -1}
         >
-          Edit
+          {tCommon("edit")}
         </button>
       </div>
       <div

@@ -26,7 +26,11 @@
     "errorTitle": "出了点问题。",
     "errorSubtext": "下拉刷新重试。",
     "undo": "撤销",
-    "mutationError": "未能保存 — 请检查网络连接后重试。"
+    "mutationError": "未能保存 — 请检查网络连接后重试。",
+    "edit": "编辑",
+    "close": "关闭",
+    "decreaseServings": "减少份量",
+    "increaseServings": "增加份量"
   },
   "languages": {
     "en": "English",
@@ -158,7 +162,8 @@
     "undo": "撤销",
     "stapleReviewBanner": "您有常备品待确认",
     "stapleReviewAction": "确认",
-    "dismiss": "忽略"
+    "dismiss": "忽略",
+    "manageItems": "管理我的物品"
   },
   "stapleCheckin": {
     "title": "检查您的储藏柜",
@@ -185,7 +190,8 @@
     "ready": "可以烹饪",
     "servingsScheduled": "{allocated}/{total} 份已安排",
     "recipeSummary": "{recipeCount, plural, other {# 个食谱}} · {totalServings, plural, other {# 份总计}}",
-    "removedFromPlan": "已移除 {name}"
+    "removedFromPlan": "已移除 {name}",
+    "removeFromPlan": "从计划中移除"
   },
   "schedule": {
     "title": "日程",
@@ -201,7 +207,9 @@
     "failedToAdd": "添加失败",
     "servings": "份量",
     "servingsRemaining": "{total} 份中剩余 {remaining} 份",
-    "removedMeal": "餐食已从日程中移除"
+    "removedMeal": "餐食已从日程中移除",
+    "today": "今天",
+    "removeMeal": "删除餐食"
   },
   "products": {
     "title": "我的物品",
@@ -209,7 +217,9 @@
     "editItem": "编辑物品",
     "deleteConfirmTitle": "删除物品？",
     "deleteConfirmMessage": "此物品将不再出现在购物建议中。",
-    "deleteAction": "删除"
+    "deleteAction": "删除",
+    "editAriaLabel": "编辑{name}",
+    "deleteAriaLabel": "删除{name}"
   },
   "wizard": {
     "title": "新的一周",

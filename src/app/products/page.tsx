@@ -101,15 +101,15 @@ export default function ProductsPage() {
                       </div>
                       <button
                         onClick={() => openEdit(product)}
-                        aria-label={`Edit ${product.name}`}
-                        className="text-muted-foreground hover:text-foreground p-1 shrink-0"
+                        aria-label={t("editAriaLabel", { name: product.name })}
+                        className="text-muted-foreground hover:text-foreground p-2.5 -m-1.5 shrink-0"
                       >
                         <Pencil size={16} />
                       </button>
                       <button
                         onClick={() => setDeleteTarget(product)}
-                        aria-label={`Delete ${product.name}`}
-                        className="text-muted-foreground hover:text-destructive p-1 shrink-0"
+                        aria-label={t("deleteAriaLabel", { name: product.name })}
+                        className="text-muted-foreground hover:text-destructive p-2.5 -m-1.5 shrink-0"
                       >
                         <Trash2 size={16} />
                       </button>

@@ -177,7 +177,7 @@ describe("SchedulePage", () => {
     await userEvent.click(screen.getAllByText(/Add meal/)[0]);
     await waitFor(() => expect(screen.getByText("Pick a recipe or add a custom note")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Close slot picker" }));
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
 
     await waitFor(() => {
       expect(screen.queryByText("Pick a recipe or add a custom note")).not.toBeInTheDocument();
@@ -244,7 +244,7 @@ describe("SchedulePage", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove meal" }));
 
     // Optimistic removal: meal disappears immediately; DELETE is deferred
     await waitFor(() => expect(screen.queryByText("Pasta Carbonara")).not.toBeInTheDocument());
