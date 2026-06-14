@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import RecipesPage from "@/app/recipes/page";
@@ -172,6 +172,60 @@ describe("RecipesPage", () => {
     await userEvent.click(cancelBtn);
 
     expect(searchInput).toHaveValue("");
+  });
+
+  it("shows clear-× button when search has text and clears on click", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    const searchInput = screen.getByPlaceholderText("Search by name, tag or ingredient…");
+    await userEvent.type(searchInput, "pasta");
+
+    const clearBtn = screen.getByRole("button", { name: "Clear search" });
+    expect(clearBtn).toBeInTheDocument();
+    await userEvent.click(clearBtn);
+
+    expect(searchInput).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Clear search" })).not.toBeInTheDocument();
+  });
+
+  it("shows discard ActionSheet when closing a dirty recipe form", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole("button", { name: "New Recipe" }));
+
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getAllByText("New Recipe").length).toBeGreaterThan(0);
+
+    await userEvent.click(within(dialog).getByText("Type manually"));
+    await userEvent.type(within(dialog).getByLabelText("Name"), "My Recipe");
+
+    // Click the form's Cancel button (scoped to the dialog)
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.getByText("Discard changes?")).toBeInTheDocument();
+  });
+
+  it("closes the sheet after confirming discard", async () => {
+    mockFetch.mockResolvedValue({ ok: true, json: async () => [] });
+    renderPage();
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalled());
+
+    await userEvent.click(screen.getByRole("button", { name: "New Recipe" }));
+    const dialog = screen.getByRole("dialog");
+    await userEvent.click(within(dialog).getByText("Type manually"));
+    await userEvent.type(within(dialog).getByLabelText("Name"), "My Recipe");
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await userEvent.click(screen.getByRole("button", { name: "Discard changes" }));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    });
   });
 
   it("toggles favourite filter off when clicked again", async () => {

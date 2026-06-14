@@ -30,7 +30,8 @@
     "edit": "Edit",
     "close": "Close",
     "decreaseServings": "Decrease servings",
-    "increaseServings": "Increase servings"
+    "increaseServings": "Increase servings",
+    "clearSearch": "Clear search"
   },
   "languages": {
     "en": "English",
@@ -55,7 +56,9 @@
     "alreadyHaveAccount": "Already have an account? Sign in",
     "signupFailed": "Sign up failed",
     "invalidCredentials": "Invalid email or password",
-    "somethingWentWrong": "Something went wrong. Please try again."
+    "somethingWentWrong": "Something went wrong. Please try again.",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password"
   },
   "resetPassword": {
     "title": "Reset password",
@@ -135,7 +138,10 @@
     "importFromUrlSub": "Paste a link to any recipe page",
     "typeManually": "Type manually",
     "typeManuallySubt": "Enter the recipe yourself",
-    "copySuffix": " (copy)"
+    "copySuffix": " (copy)",
+    "discardTitle": "Discard changes?",
+    "discardMessage": "You have unsaved changes.",
+    "discardAction": "Discard changes"
   },
   "grocery": {
     "title": "Grocery List",

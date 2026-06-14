@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "swr";
 import { Recipe, RecipeFormData } from "@/types";
@@ -16,6 +16,7 @@ import { useTranslations } from "next-intl";
 type Props = {
   initial?: Recipe;
   onClose?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 };
 
 const emptyIngredient = () => ({ name: "", quantity: 0, unit: "", preparation: "", category: "other" });
@@ -34,6 +35,10 @@ function importedToForm(data: Partial<RecipeFormData>): RecipeFormData {
         ? data.ingredients.map((i) => ({ ...i, category: i.category ?? "other" }))
         : [emptyIngredient()],
   };
+}
+
+function formSnapshot(form: RecipeFormData, tagsInput: string): string {
+  return JSON.stringify({ form, tagsInput });
 }
 
 async function resizeImage(file: File): Promise<File> {
@@ -64,28 +69,29 @@ async function resizeImage(file: File): Promise<File> {
   });
 }
 
-export default function RecipeForm({ initial, onClose }: Props) {
+export default function RecipeForm({ initial, onClose, onDirtyChange }: Props) {
   const t = useTranslations("recipeForm");
   const tCat = useTranslations("categories");
   const tCommon = useTranslations("common");
   const router = useRouter();
   const isEdit = !!initial;
 
-  const [form, setForm] = useState<RecipeFormData>(
-    initial
-      ? {
-          ...initial,
-          ingredients: initial.ingredients.map((i) => ({
-            name: i.product.name,
-            quantity: i.quantity,
-            unit: i.unit,
-            preparation: i.preparation,
-            category: i.product.category,
-          })),
-        }
-      : importedToForm({})
-  );
-  const [tagsInput, setTagsInput] = useState(initial?.tags.join(", ") ?? "");
+  const initialForm = initial
+    ? {
+        ...initial,
+        ingredients: initial.ingredients.map((i) => ({
+          name: i.product.name,
+          quantity: i.quantity,
+          unit: i.unit,
+          preparation: i.preparation,
+          category: i.product.category,
+        })),
+      }
+    : importedToForm({});
+  const initialTagsInput = initial?.tags.join(", ") ?? "";
+
+  const [form, setForm] = useState<RecipeFormData>(initialForm);
+  const [tagsInput, setTagsInput] = useState(initialTagsInput);
   const [saving, setSaving] = useState(false);
 
   const [urlMode, setUrlMode] = useState(false);
@@ -95,8 +101,19 @@ export default function RecipeForm({ initial, onClose }: Props) {
 
   const [showManualForm, setShowManualForm] = useState(isEdit);
 
+  const baselineRef = useRef(formSnapshot(initialForm, initialTagsInput));
+  const isDirtyRef = useRef(false);
+
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const dirty = formSnapshot(form, tagsInput) !== baselineRef.current;
+    if (dirty !== isDirtyRef.current) {
+      isDirtyRef.current = dirty;
+      onDirtyChange?.(dirty);
+    }
+  }, [form, tagsInput, onDirtyChange]);
 
   function setField<K extends keyof RecipeFormData>(key: K, value: RecipeFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -135,9 +152,12 @@ export default function RecipeForm({ initial, onClose }: Props) {
         return;
       }
       const data: RecipeFormData = await res.json();
-      setForm(importedToForm(data));
-      setTagsInput((data.tags ?? []).join(", "));
+      const imported = importedToForm(data);
+      const importedTags = (data.tags ?? []).join(", ");
+      setForm(imported);
+      setTagsInput(importedTags);
       setShowManualForm(true);
+      // An AI-imported recipe is dirty from baseline (empty form), so no snapshot reset needed.
     } catch {
       setImportError(t("importFailed"));
     }
@@ -160,8 +180,10 @@ export default function RecipeForm({ initial, onClose }: Props) {
         return;
       }
       const data: RecipeFormData = await res.json();
-      setForm(importedToForm(data));
-      setTagsInput((data.tags ?? []).join(", "));
+      const imported = importedToForm(data);
+      const importedTags = (data.tags ?? []).join(", ");
+      setForm(imported);
+      setTagsInput(importedTags);
       setUrlMode(false);
       setImportValue("");
       setShowManualForm(true);
@@ -195,6 +217,10 @@ export default function RecipeForm({ initial, onClose }: Props) {
       body: JSON.stringify(body),
     });
     const saved = await res.json();
+    // Reset dirty before closing so the guard doesn't fire on save
+    baselineRef.current = formSnapshot(form, tagsInput);
+    isDirtyRef.current = false;
+    onDirtyChange?.(false);
     mutate(`/api/recipes/${saved.id}`, saved, { revalidate: false });
     mutate((key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"), undefined, { revalidate: true });
     if (isEdit && onClose) {
@@ -278,6 +304,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
               <Input
                 id="servings"
                 type="number"
+                inputMode="numeric"
                 min={1}
                 required
                 value={form.servings || ""}
@@ -341,6 +368,7 @@ export default function RecipeForm({ initial, onClose }: Props) {
                 <div className="flex gap-2">
                   <Input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="any"
                     required

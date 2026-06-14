@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const tLang = useTranslations("languages");
   const router = useRouter();
+  const { data: session } = authClient.useSession();
   const [locale, setLocale] = useState<Locale>("en");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -59,6 +60,15 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6 max-w-sm">
+        {session?.user && (
+          <div className="space-y-0.5">
+            {session.user.name && (
+              <p className="text-sm font-medium">{session.user.name}</p>
+            )}
+            <p className="text-sm text-muted-foreground">{session.user.email}</p>
+          </div>
+        )}
+
         <div className="space-y-2">
           <label className="text-sm font-medium">{tLang("label")}</label>
           <select

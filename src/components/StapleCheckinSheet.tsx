@@ -95,6 +95,7 @@ export default function StapleCheckinSheet({
                   <span className="flex-1 font-medium text-sm">{s.name}</span>
                   <Input
                     type="number"
+                    inputMode="decimal"
                     min={0}
                     step="any"
                     value={row.qty}

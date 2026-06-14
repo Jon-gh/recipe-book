@@ -20,6 +20,9 @@ const mockSignOut = vi.fn();
 vi.mock("@/lib/auth-client", () => ({
   authClient: {
     signOut: (...args: unknown[]) => mockSignOut(...args),
+    useSession: () => ({
+      data: { user: { name: "Test User", email: "test@example.com" } },
+    }),
   },
 }));
 
@@ -92,5 +95,11 @@ describe("SettingsPage", () => {
   it("has a sign out button", async () => {
     render(<SettingsPage />);
     expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+  });
+
+  it("shows the signed-in user name and email", () => {
+    render(<SettingsPage />);
+    expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
   });
 });

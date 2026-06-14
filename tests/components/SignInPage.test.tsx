@@ -33,6 +33,30 @@ beforeEach(() => {
   mockFetch.mockResolvedValue({ ok: true, json: async () => ({}) });
 });
 
+describe("SignInPage — password visibility toggle", () => {
+  it("password field starts as type=password", () => {
+    render(<SignInPage />);
+    const passwordInput = screen.getByPlaceholderText("Password") as HTMLInputElement;
+    expect(passwordInput.type).toBe("password");
+  });
+
+  it("toggles to type=text when show-password button is clicked", async () => {
+    render(<SignInPage />);
+    const passwordInput = screen.getByPlaceholderText("Password") as HTMLInputElement;
+    const toggleBtn = screen.getByRole("button", { name: "Show password" });
+    await userEvent.click(toggleBtn);
+    expect(passwordInput.type).toBe("text");
+  });
+
+  it("toggles back to type=password when clicked again", async () => {
+    render(<SignInPage />);
+    const passwordInput = screen.getByPlaceholderText("Password") as HTMLInputElement;
+    await userEvent.click(screen.getByRole("button", { name: "Show password" }));
+    await userEvent.click(screen.getByRole("button", { name: "Hide password" }));
+    expect(passwordInput.type).toBe("password");
+  });
+});
+
 describe("SignInPage — language picker on sign up", () => {
   it("shows language picker only in sign-up mode", async () => {
     render(<SignInPage />);

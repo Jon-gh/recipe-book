@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
 import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
@@ -24,6 +25,7 @@ export default function SignInPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState("");
   const [locale, setLocale] = useState<Locale>("en");
   const [loading, setLoading] = useState(false);
@@ -96,20 +98,33 @@ export default function SignInPage() {
           )}
           <Input
             type="email"
+            inputMode="email"
             placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
+            autoFocus
           />
-          <Input
-            type="password"
-            placeholder={t("auth.passwordPlaceholder")}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-          />
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              placeholder={t("auth.passwordPlaceholder")}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              className="pr-10"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? t("auth.hidePassword") : t("auth.showPassword")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors p-0.5"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
 
           {mode === "signup" && (
             <div className="space-y-1">

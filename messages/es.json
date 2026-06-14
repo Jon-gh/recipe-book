@@ -30,7 +30,8 @@
     "edit": "Editar",
     "close": "Cerrar",
     "decreaseServings": "Disminuir porciones",
-    "increaseServings": "Aumentar porciones"
+    "increaseServings": "Aumentar porciones",
+    "clearSearch": "Borrar búsqueda"
   },
   "languages": {
     "en": "English",
@@ -55,7 +56,9 @@
     "alreadyHaveAccount": "¿Ya tienes cuenta? Inicia sesión",
     "signupFailed": "Error al registrarse",
     "invalidCredentials": "Correo o contraseña incorrectos",
-    "somethingWentWrong": "Algo salió mal. Por favor, inténtalo de nuevo."
+    "somethingWentWrong": "Algo salió mal. Por favor, inténtalo de nuevo.",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña"
   },
   "resetPassword": {
     "title": "Restablecer contraseña",
@@ -135,7 +138,10 @@
     "importFromUrlSub": "Pega un enlace a cualquier página de recetas",
     "typeManually": "Escribir manualmente",
     "typeManuallySubt": "Introduce la receta tú mismo",
-    "copySuffix": " (copia)"
+    "copySuffix": " (copia)",
+    "discardTitle": "¿Descartar cambios?",
+    "discardMessage": "Tienes cambios sin guardar.",
+    "discardAction": "Descartar cambios"
   },
   "grocery": {
     "title": "Lista de la compra",

@@ -8,7 +8,7 @@ import { MealPlanEntry, Recipe, ShoppingListItem } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { CalendarPlus, Minus, Plus, Search, Trash2 } from "lucide-react";
+import { CalendarPlus, Minus, Plus, Search, Trash2, X } from "lucide-react";
 import { fetcher, noCacheFetcher } from "@/lib/fetcher";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
 
@@ -205,8 +205,19 @@ export default function MealPlanPage() {
                 }}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={handleBlur}
-                className="pl-9"
+                className="pl-9 pr-9"
+                enterKeyHint="search"
               />
+              {search && !selectedRecipe && (
+                <button
+                  type="button"
+                  onClick={() => { setSearch(""); inputRef.current?.focus(); }}
+                  aria-label={tCommon("clearSearch")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 -m-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
             <button
               onPointerDown={() => { cancelPressedRef.current = true; }}
