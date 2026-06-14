@@ -169,7 +169,8 @@
     "stapleReviewBanner": "Vous avez des essentiels à vérifier",
     "stapleReviewAction": "Vérifier",
     "dismiss": "Ignorer",
-    "manageItems": "Gérer mes articles"
+    "manageItems": "Gérer mes articles",
+    "markBought": "Marquer {name} comme acheté"
   },
   "stapleCheckin": {
     "title": "Vérifiez votre garde-manger",

@@ -169,7 +169,8 @@
     "stapleReviewBanner": "Tienes básicos por revisar",
     "stapleReviewAction": "Revisar",
     "dismiss": "Ignorar",
-    "manageItems": "Gestionar mis artículos"
+    "manageItems": "Gestionar mis artículos",
+    "markBought": "Marcar {name} como comprado"
   },
   "stapleCheckin": {
     "title": "Revisa tu despensa",

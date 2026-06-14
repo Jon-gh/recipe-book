@@ -47,7 +47,7 @@ Browser
 | `src/app/recipes/[id]/edit/` | Edit recipe page |
 | `src/app/recipes/new/` | New recipe page |
 | `src/app/meal-plan/` | Meal plan page (add recipes with serving count, remove entries) |
-| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category; meal-plan staple items excluded (handled via check-in flow); shopping mode with session persistence; persistent shopping list extras via DB; `needsStapleReview` banner |
+| `src/app/grocery-list/` | Grocery list page — grouped by ingredient category; each row shows a leading checkbox circle; tap triggers a 400ms visual check (circle fills, name gets line-through) then the existing undo-delete path fires; user-product rows are swipeable to edit; `needsStapleReview` banner |
 | `src/components/StapleCheckinSheet.tsx` | Reusable bottom sheet for the staple check-in flow — shown after "Add to Meal Plan" and as step 6 of the new-week wizard; lets user choose which staples to buy with purchase quantities; adds them to the shopping list |
 | `src/app/api/shopping-list/` | REST: list/add/delete persistent shopping list items |
 | `src/app/api/scheduled-meals/` | REST: list/schedule/patch/delete `ScheduledMeal` entries — assigns meal plan entries to specific dates and meal slots |
