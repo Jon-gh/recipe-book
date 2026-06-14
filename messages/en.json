@@ -24,7 +24,9 @@
     "servings": "{count, plural, one {# serving} other {# servings}}",
     "ingredients": "{count, plural, one {# ingredient} other {# ingredients}}",
     "errorTitle": "Something got burnt.",
-    "errorSubtext": "Pull down to try again."
+    "errorSubtext": "Pull down to try again.",
+    "undo": "Undo",
+    "mutationError": "That didn't save — check your connection and try again."
   },
   "languages": {
     "en": "English",
@@ -182,7 +184,8 @@
     "noRecipesFound": "No recipes found.",
     "ready": "Ready",
     "servingsScheduled": "{allocated}/{total} servings scheduled",
-    "recipeSummary": "{recipeCount, plural, one {# recipe} other {# recipes}} · {totalServings, plural, one {# total serving} other {# total servings}}"
+    "recipeSummary": "{recipeCount, plural, one {# recipe} other {# recipes}} · {totalServings, plural, one {# total serving} other {# total servings}}",
+    "removedFromPlan": "Removed {name}"
   },
   "schedule": {
     "title": "Schedule",
@@ -197,12 +200,16 @@
     "customNotePlaceholder": "e.g. Eating outside, Dinner with friends…",
     "failedToAdd": "Failed to add",
     "servings": "Servings",
-    "servingsRemaining": "{remaining} of {total} servings remaining"
+    "servingsRemaining": "{remaining} of {total} servings remaining",
+    "removedMeal": "Meal removed from schedule"
   },
   "products": {
     "title": "My Items",
     "noItems": "No personal items yet. Add items to your shopping list and they will appear here.",
-    "editItem": "Edit Item"
+    "editItem": "Edit Item",
+    "deleteConfirmTitle": "Delete item?",
+    "deleteConfirmMessage": "This item will disappear from shopping suggestions.",
+    "deleteAction": "Delete"
   },
   "wizard": {
     "title": "New Week",

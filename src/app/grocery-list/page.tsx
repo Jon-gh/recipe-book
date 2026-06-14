@@ -16,6 +16,8 @@ import Cocotte from "@/components/cocotte/Cocotte";
 import SwipeableRow from "@/components/SwipeableRow";
 import { PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
+import { useToast } from "@/components/Toast";
 
 function groupByCategory(
   items: ShoppingListItem[]
@@ -42,6 +44,7 @@ export default function GroceryListPage() {
   const t = useTranslations("grocery");
   const tCommon = useTranslations("common");
   const tCat = useTranslations("categories");
+  const { show: showToast } = useToast();
 
   const { data: shoppingListItems, isLoading, mutate: mutateSl } = useSWR<ShoppingListItem[]>(
     "/api/shopping-list",
@@ -50,13 +53,18 @@ export default function GroceryListPage() {
 
   const { mutate: globalMutate } = useSWRConfig();
 
-  const pendingDeleteRef = useRef<{
-    item: ShoppingListItem;
-    timerId: ReturnType<typeof setTimeout>;
-  } | null>(null);
-  const [pendingDeleteItem, setPendingDeleteItem] = useState<ShoppingListItem | null>(null);
   // track whether the list ever had items this session, to show the cheer state on completion
   const [wasEverNonEmpty, setWasEverNonEmpty] = useState(false);
+
+  const { remove: tapItem } = useUndoableDelete<ShoppingListItem>({
+    commit: async (item) => {
+      const res = await fetch(`/api/shopping-list/${item.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+    },
+    onRevert: () => mutateSl(),
+    delayMs: 6000,
+    undoLabel: tCommon("undo"),
+  });
 
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -117,47 +125,6 @@ export default function GroceryListPage() {
     }
   }, [newItemName, suggestions, globalMutate]);
 
-  useEffect(() => {
-    return () => {
-      if (pendingDeleteRef.current) {
-        clearTimeout(pendingDeleteRef.current.timerId);
-        fetch(`/api/shopping-list/${pendingDeleteRef.current.item.id}`, { method: "DELETE" });
-      }
-    };
-  }, []);
-
-  function tapItem(item: ShoppingListItem) {
-    if (pendingDeleteRef.current) {
-      clearTimeout(pendingDeleteRef.current.timerId);
-      fetch(`/api/shopping-list/${pendingDeleteRef.current.item.id}`, { method: "DELETE" });
-      pendingDeleteRef.current = null;
-      setPendingDeleteItem(null);
-    }
-
-    mutateSl(
-      (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.id),
-      { revalidate: false }
-    );
-
-    const timerId = setTimeout(() => {
-      fetch(`/api/shopping-list/${item.id}`, { method: "DELETE" });
-      pendingDeleteRef.current = null;
-      setPendingDeleteItem(null);
-      mutateSl();
-    }, 10000);
-
-    pendingDeleteRef.current = { item, timerId };
-    setPendingDeleteItem(item);
-  }
-
-  function undoDelete() {
-    if (!pendingDeleteRef.current) return;
-    clearTimeout(pendingDeleteRef.current.timerId);
-    pendingDeleteRef.current = null;
-    setPendingDeleteItem(null);
-    mutateSl();
-  }
-
   function openAddSheet() {
     setNewItemName("");
     setNewItemQty("1");
@@ -182,23 +149,30 @@ export default function GroceryListPage() {
     const name = newItemName.trim();
     if (!name) return;
     setShowAddSheet(false);
-    await fetch("/api/shopping-list", {
+    const res = await fetch("/api/shopping-list", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, quantity: parseFloat(newItemQty) || 1, unit: newItemUnit, category: newItemCategory }),
     });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+    }
     mutateSl();
   }
 
   async function saveEdit() {
     if (!editingProduct) return;
     setEditSaving(true);
-    await fetch(`/api/products/${editingProduct.id}`, {
+    const res = await fetch(`/api/products/${editingProduct.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName, category: editCategory, defaultUnit: editUnit }),
     });
     setEditSaving(false);
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+      return;
+    }
     setEditingProduct(null);
     mutateSl();
   }
@@ -280,7 +254,13 @@ export default function GroceryListPage() {
                             <div className="flex items-center gap-2 py-3 min-h-[44px]">
                               <button
                                 className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
-                                onClick={() => tapItem(item)}
+                                onClick={() => tapItem(item, {
+                                  optimisticHide: () => mutateSl(
+                                    (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.id),
+                                    { revalidate: false }
+                                  ),
+                                  message: t("removed", { name: item.product.name }),
+                                })}
                               >
                                 <span className="font-medium">{item.product.name}</span>
                                 <span className="text-sm ml-auto text-muted-foreground">
@@ -387,19 +367,6 @@ export default function GroceryListPage() {
         </Button>
       </div>
     </BottomSheet>
-
-    {/* Undo toast */}
-    {pendingDeleteItem && (
-      <div className="fixed top-[calc(env(safe-area-inset-top)+0.5rem)] left-4 right-4 z-50 flex items-center justify-between bg-foreground text-background rounded-xl px-4 py-3 shadow-lg">
-        <span className="text-sm">{t("removed", { name: pendingDeleteItem.product.name })}</span>
-        <button
-          onClick={undoDelete}
-          className="text-sm font-semibold ml-4 shrink-0"
-        >
-          {t("undo")}
-        </button>
-      </div>
-    )}
 
     {/* Edit product sheet */}
     <BottomSheet

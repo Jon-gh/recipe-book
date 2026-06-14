@@ -9,6 +9,7 @@ import { Minus, Plus, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import { useTranslations } from "next-intl";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
 
 // ── date helpers ──────────────────────────────────────────────────────────────
 
@@ -144,13 +145,14 @@ export default function SchedulePage() {
     setAddingSlot(false);
   }
 
-  async function removeSlot(id: number) {
-    await mutateSchedule(scheduledMeals?.filter((m) => m.id !== id), {
-      revalidate: false,
-    });
-    await fetch(`/api/scheduled-meals/${id}`, { method: "DELETE" });
-    await Promise.all([mutateSchedule(), mutateEntries()]);
-  }
+  const { remove: removeSlot } = useUndoableDelete<ScheduledMeal>({
+    commit: async (meal) => {
+      const res = await fetch(`/api/scheduled-meals/${meal.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+    },
+    onRevert: () => Promise.all([mutateSchedule(), mutateEntries()]),
+    undoLabel: tCommon("undo"),
+  });
 
   async function handleRefresh() {
     await Promise.all([mutateEntries(), mutateSchedule()]);
@@ -233,7 +235,13 @@ export default function SchedulePage() {
                                 )}
                               </div>
                               <button
-                                onClick={() => removeSlot(meal.id)}
+                                onClick={() => removeSlot(meal, {
+                                  optimisticHide: () => mutateSchedule(
+                                    scheduledMeals?.filter((m) => m.id !== meal.id),
+                                    { revalidate: false }
+                                  ),
+                                  message: t("removedMeal"),
+                                })}
                                 className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
                                 aria-label="Remove"
                               >

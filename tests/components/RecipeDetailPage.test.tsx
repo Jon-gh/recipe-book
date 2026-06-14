@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { ToastProvider } from "@/components/Toast";
 
 const mockVibrate = vi.fn();
 Object.defineProperty(navigator, "vibrate", {
@@ -65,7 +66,9 @@ const mockRecipe = {
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <RecipeDetailPage />
+      <ToastProvider>
+        <RecipeDetailPage />
+      </ToastProvider>
     </SWRConfig>
   );
 }

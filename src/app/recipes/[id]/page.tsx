@@ -21,6 +21,7 @@ import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { getIngredientEmoji } from "@/lib/ingredient-emoji";
 import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
+import { useToast } from "@/components/Toast";
 
 const STEP_NUMBERS = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩","⑪","⑫","⑬","⑭","⑮","⑯","⑰","⑱","⑲","⑳"];
 
@@ -38,6 +39,7 @@ function stepLabel(i: number): string {
 export default function RecipeDetailPage() {
   const t = useTranslations("recipeDetail");
   const tCommon = useTranslations("common");
+  const { show: showToast } = useToast();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [showActionsSheet, setShowActionsSheet] = useState(false);
@@ -67,11 +69,15 @@ export default function RecipeDetailPage() {
     setTimeout(() => setStarPopped(false), 200);
     const updated = { ...recipe, favourite: !recipe.favourite };
     mutateRecipe(updated, false);
-    await fetch(`/api/recipes/${id}`, {
+    const res = await fetch(`/api/recipes/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ favourite: updated.favourite }),
     });
+    if (!res.ok) {
+      mutateRecipe(recipe, false);
+      showToast(tCommon("mutationError"), { variant: "error" });
+    }
     mutate(
       (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes?"),
       undefined,
@@ -81,7 +87,11 @@ export default function RecipeDetailPage() {
 
   async function handleDelete() {
     haptic([10, 50, 10]);
-    await fetch(`/api/recipes/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/recipes/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+      return;
+    }
     mutate(
       (key: unknown) => typeof key === "string" && key.startsWith("/api/recipes"),
       undefined,
@@ -92,6 +102,10 @@ export default function RecipeDetailPage() {
 
   async function handleDuplicate() {
     const res = await fetch(`/api/recipes/${id}/duplicate`, { method: "POST" });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+      return;
+    }
     const copy = await res.json();
     mutate(`/api/recipes/${copy.id}`, copy, { revalidate: false });
     mutate(
@@ -105,11 +119,16 @@ export default function RecipeDetailPage() {
   async function handleAddToPlan() {
     if (!recipe) return;
     setAddingToPlan(true);
-    await fetch("/api/meal-plan", {
+    const res = await fetch("/api/meal-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId: id, targetServings: planServings }),
     });
+    if (!res.ok) {
+      setAddingToPlan(false);
+      showToast(tCommon("mutationError"), { variant: "error" });
+      return;
+    }
     haptic();
     setAddingToPlan(false);
     setShowPlanSheet(false);

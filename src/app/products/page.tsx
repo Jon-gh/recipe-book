@@ -10,13 +10,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { noCacheFetcher } from "@/lib/fetcher";
 import BottomSheet from "@/components/BottomSheet";
+import ActionSheet from "@/components/ActionSheet";
 import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useToast } from "@/components/Toast";
 
 export default function ProductsPage() {
   const t = useTranslations("products");
   const tCommon = useTranslations("common");
   const tCat = useTranslations("categories");
+  const { show: showToast } = useToast();
   const { data: products, isLoading, mutate } = useSWR<Product[]>(
     "/api/products?source=user",
     noCacheFetcher
@@ -27,7 +30,7 @@ export default function ProductsPage() {
   const [editCategory, setEditCategory] = useState("other");
   const [editUnit, setEditUnit] = useState("");
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   function openEdit(product: Product) {
     setEditingProduct(product);
@@ -36,22 +39,30 @@ export default function ProductsPage() {
     setEditUnit(product.defaultUnit);
   }
 
-  async function deleteProduct(id: number) {
-    setDeletingId(id);
-    await fetch(`/api/products/${id}`, { method: "DELETE" });
-    setDeletingId(null);
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    const res = await fetch(`/api/products/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+    }
     mutate();
   }
 
   async function saveEdit() {
     if (!editingProduct) return;
     setSaving(true);
-    await fetch(`/api/products/${editingProduct.id}`, {
+    const res = await fetch(`/api/products/${editingProduct.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: editName, category: editCategory, defaultUnit: editUnit }),
     });
     setSaving(false);
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+      return;
+    }
     setEditingProduct(null);
     mutate();
   }
@@ -96,10 +107,9 @@ export default function ProductsPage() {
                         <Pencil size={16} />
                       </button>
                       <button
-                        onClick={() => deleteProduct(product.id)}
+                        onClick={() => setDeleteTarget(product)}
                         aria-label={`Delete ${product.name}`}
-                        disabled={deletingId === product.id}
-                        className="text-muted-foreground hover:text-destructive p-1 shrink-0 disabled:opacity-40"
+                        className="text-muted-foreground hover:text-destructive p-1 shrink-0"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -157,6 +167,14 @@ export default function ProductsPage() {
           </Button>
         </div>
       </BottomSheet>
+
+      <ActionSheet
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title={t("deleteConfirmTitle")}
+        message={t("deleteConfirmMessage")}
+        actions={[{ label: t("deleteAction"), onClick: confirmDelete, destructive: true }]}
+      />
     </>
   );
 }

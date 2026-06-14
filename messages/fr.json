@@ -24,7 +24,9 @@
     "servings": "{count, plural, one {# portion} other {# portions}}",
     "ingredients": "{count, plural, one {# ingrédient} other {# ingrédients}}",
     "errorTitle": "Quelque chose a brûlé.",
-    "errorSubtext": "Tirez vers le bas pour réessayer."
+    "errorSubtext": "Tirez vers le bas pour réessayer.",
+    "undo": "Annuler",
+    "mutationError": "Ça n'a pas été enregistré — vérifiez votre connexion et réessayez."
   },
   "languages": {
     "en": "English",
@@ -182,7 +184,8 @@
     "noRecipesFound": "Aucune recette trouvée.",
     "ready": "Prêt",
     "servingsScheduled": "{allocated}/{total} portions planifiées",
-    "recipeSummary": "{recipeCount, plural, one {# recette} other {# recettes}} · {totalServings, plural, one {# portion au total} other {# portions au total}}"
+    "recipeSummary": "{recipeCount, plural, one {# recette} other {# recettes}} · {totalServings, plural, one {# portion au total} other {# portions au total}}",
+    "removedFromPlan": "{name} retiré(e)"
   },
   "schedule": {
     "title": "Planning",
@@ -197,12 +200,16 @@
     "customNotePlaceholder": "ex. Repas à l'extérieur, Dîner avec des amis…",
     "failedToAdd": "Échec de l'ajout",
     "servings": "Portions",
-    "servingsRemaining": "{remaining} sur {total} portions restantes"
+    "servingsRemaining": "{remaining} sur {total} portions restantes",
+    "removedMeal": "Repas retiré du planning"
   },
   "products": {
     "title": "Mes articles",
     "noItems": "Aucun article personnel. Ajoutez des articles à votre liste de courses et ils apparaîtront ici.",
-    "editItem": "Modifier l'article"
+    "editItem": "Modifier l'article",
+    "deleteConfirmTitle": "Supprimer l'article ?",
+    "deleteConfirmMessage": "Cet article n'apparaîtra plus dans les suggestions.",
+    "deleteAction": "Supprimer"
   },
   "wizard": {
     "title": "Nouvelle semaine",

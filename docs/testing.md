@@ -97,6 +97,22 @@ vi.mock("next/navigation", () => ({
 }));
 ```
 
+### `vi.useFakeTimers()` — call before `userEvent.setup()`, use `fireEvent` in the same test
+
+`userEvent.click()` hangs under fake timers even with `advanceTimers` wired up. Use `fireEvent` (synchronous) for the test that needs to advance the clock, and call `vi.useFakeTimers()` before `userEvent.setup()` in any test that combines the two. Always restore with `afterEach(() => vi.useRealTimers())` as a safety net.
+
+```ts
+afterEach(() => vi.useRealTimers());
+
+it("auto-dismisses", () => {
+  vi.useFakeTimers();
+  render(<MyComponent />);
+  act(() => { fireEvent.click(screen.getByRole("button")); });
+  act(() => vi.advanceTimersByTime(1400));
+  expect(screen.queryByText("message")).not.toBeInTheDocument();
+});
+```
+
 ### `waitFor` is required for async state
 After rendering a component that fires a `fetch` or `useEffect`, assertions on the resulting state must be wrapped in `waitFor`:
 

@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import ProductsPage from "@/app/products/page";
+import { ToastProvider } from "@/components/Toast";
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: React.ReactNode }) => (
@@ -35,7 +36,9 @@ function setupFetch(products = userProducts as object[]) {
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <ProductsPage />
+      <ToastProvider>
+        <ProductsPage />
+      </ToastProvider>
     </SWRConfig>
   );
 }

@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import SchedulePage from "@/app/schedule/page";
+import { ToastProvider } from "@/components/Toast";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -66,7 +67,9 @@ function setupFetch({
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <SchedulePage />
+      <ToastProvider>
+        <SchedulePage />
+      </ToastProvider>
     </SWRConfig>
   );
 }
@@ -243,8 +246,9 @@ describe("SchedulePage", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remove" }));
 
-    await waitFor(() => {
-      expect(mockFetch).toHaveBeenCalledWith("/api/scheduled-meals/10", { method: "DELETE" });
-    });
+    // Optimistic removal: meal disappears immediately; DELETE is deferred
+    await waitFor(() => expect(screen.queryByText("Pasta Carbonara")).not.toBeInTheDocument());
+    // DELETE is not called immediately — only after undo window
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/scheduled-meals/10", { method: "DELETE" });
   });
 });
