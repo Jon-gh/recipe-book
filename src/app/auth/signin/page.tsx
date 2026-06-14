@@ -8,16 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useTranslations } from "next-intl";
-import { SUPPORTED_LOCALES, type Locale } from "@/i18n/config";
+import { SUPPORTED_LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/config";
+import NativeSelect from "@/components/ui/native-select";
 
 type Mode = "signin" | "signup";
-
-const LOCALE_LABELS: Record<Locale, string> = {
-  en: "English",
-  fr: "Français",
-  "zh-CN": "中文",
-  es: "Español",
-};
 
 export default function SignInPage() {
   const t = useTranslations();
@@ -131,17 +125,16 @@ export default function SignInPage() {
               <label className="text-sm font-medium text-muted-foreground">
                 {t("languages.label")}
               </label>
-              <select
+              <NativeSelect
                 value={locale}
                 onChange={(e) => setLocale(e.target.value as Locale)}
-                className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
               >
                 {SUPPORTED_LOCALES.map((loc) => (
                   <option key={loc} value={loc}>
                     {LOCALE_LABELS[loc]}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
           )}
 

@@ -7,7 +7,7 @@ import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, List, Plus, Search, X } from "lucide-react";
+import { Users, List, Plus, Search, X, Star } from "lucide-react";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
@@ -113,8 +113,9 @@ export default function RecipesPage() {
             <Button
               variant={filterFavourite ? "default" : "outline"}
               onClick={() => setFilterFavourite((f) => !f)}
-              className="active:scale-95 transition-transform shrink-0 whitespace-nowrap"
+              className="active:scale-95 transition-transform shrink-0 whitespace-nowrap flex items-center gap-1.5"
             >
+              <Star size={12} className={filterFavourite ? "fill-current" : ""} aria-hidden="true" />
               {t("favourites")}
             </Button>
           </div>
@@ -164,9 +165,7 @@ export default function RecipesPage() {
                       {recipe.name}
                     </h2>
                     {recipe.favourite && (
-                      <span className="text-yellow-500 shrink-0 text-lg leading-none">
-                        ★
-                      </span>
+                      <Star size={14} className="text-amber-400 fill-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
                     )}
                   </div>
                   <div>

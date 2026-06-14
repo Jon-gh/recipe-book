@@ -55,7 +55,8 @@ Browser
 | `src/app/api/user/locale/` | GET/PATCH — read and update the user's preferred locale; sets `NEXT_LOCALE` cookie |
 | `src/app/schedule/` | Weekly calendar view — schedule meal plan entries on specific dates and meal slots |
 | `src/app/settings/` | User settings page — language/locale preference |
-| `src/i18n/config.ts` | Supported locales list (`en`, `fr`, `es`, `zh-CN`) and `isValidLocale()` helper |
+| `src/i18n/config.ts` | Supported locales list (`en`, `fr`, `es`, `zh-CN`), `isValidLocale()` helper, and `LOCALE_LABELS` — single source of truth for locale display names used by signin and settings pages |
+| `src/components/ui/native-select.tsx` | `NativeSelect` — styled `<select>` wrapper matching `Input` (same height, border, radius, focus ring) with a lucide `ChevronDown` chevron; used everywhere a category/locale dropdown appears; native picker preserved for correct mobile behaviour |
 | `src/i18n/request.ts` | next-intl request config — resolves locale from `NEXT_LOCALE` cookie |
 | `src/app/manifest.ts` | PWA web app manifest (name, icons, theme, PNG icon entries) |
 | `src/components/cocotte/seasonal.ts` | `CocotteTopper` type (`"sprout"\|"santa"\|"pumpkin"\|"flower"`) and `getSeasonalTopper()` — returns the topper for the current month (santa=Dec, pumpkin=Oct 20–Nov 2, flower=Mar 20–May 15, else sprout) |

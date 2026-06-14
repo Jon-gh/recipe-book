@@ -16,6 +16,7 @@ import Cocotte from "@/components/cocotte/Cocotte";
 import EmptyState from "@/components/EmptyState";
 import SwipeableRow from "@/components/SwipeableRow";
 import { Check, PencilLine, Plus } from "lucide-react";
+import NativeSelect from "@/components/ui/native-select";
 import { useTranslations } from "next-intl";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
 import { useToast } from "@/components/Toast";
@@ -380,17 +381,16 @@ export default function GroceryListPage() {
 
         <div className="space-y-1">
           <label className="text-sm font-medium">{tCommon("category")}</label>
-          <select
+          <NativeSelect
             value={newItemCategory}
             onChange={(e) => setNewItemCategory(e.target.value)}
-            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
           >
             {CATEGORY_NAMES.map((cat) => (
               <option key={cat} value={cat}>
                 {tCat(cat)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
 
         <Button
@@ -420,17 +420,16 @@ export default function GroceryListPage() {
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">{tCommon("category")}</label>
-          <select
+          <NativeSelect
             value={editCategory}
             onChange={(e) => setEditCategory(e.target.value)}
-            className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background"
           >
             {CATEGORY_NAMES.map((cat) => (
               <option key={cat} value={cat}>
                 {tCat(cat)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium">{tCommon("defaultUnit")}</label>
