@@ -7,11 +7,12 @@ import { Recipe } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Users, List, Plus, Search } from "lucide-react";
+import { Users, List, Plus, Search, X } from "lucide-react";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
 import BottomSheet from "@/components/BottomSheet";
+import ActionSheet from "@/components/ActionSheet";
 import RecipeForm from "@/components/RecipeForm";
 import LoadingState from "@/components/LoadingState";
 import EmptyState from "@/components/EmptyState";
@@ -21,10 +22,13 @@ import { cardBgColor } from "@/lib/card-colors";
 export default function RecipesPage() {
   const t = useTranslations("recipes");
   const tCommon = useTranslations("common");
+  const tForm = useTranslations("recipeForm");
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterFavourite, setFilterFavourite] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [showDiscardSheet, setShowDiscardSheet] = useState(false);
+  const [formDirty, setFormDirty] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const cancelPressedRef = useRef(false);
@@ -34,6 +38,25 @@ export default function RecipesPage() {
     setSearch("");
     setSearchFocused(false);
     inputRef.current?.blur();
+  }
+
+  function handleClearSearch() {
+    setSearch("");
+    inputRef.current?.focus();
+  }
+
+  function handleCloseAddSheet() {
+    if (formDirty) {
+      setShowDiscardSheet(true);
+    } else {
+      setShowAddSheet(false);
+      setFormDirty(false);
+    }
+  }
+
+  function handleDiscard() {
+    setShowAddSheet(false);
+    setFormDirty(false);
   }
 
   useEffect(() => {
@@ -68,8 +91,19 @@ export default function RecipesPage() {
               onChange={(e) => setSearch(e.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => { if (!cancelPressedRef.current) setSearchFocused(false); }}
-              className="pl-9"
+              className="pl-9 pr-9"
+              enterKeyHint="search"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                aria-label={tCommon("clearSearch")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 -m-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div
             className={`overflow-hidden transition-all duration-200 shrink-0 ${
@@ -175,13 +209,30 @@ export default function RecipesPage() {
 
     <BottomSheet
       open={showAddSheet}
-      onClose={() => setShowAddSheet(false)}
+      onClose={handleCloseAddSheet}
       title={t("newRecipe")}
     >
       <div className="px-4 pb-8">
-        <RecipeForm onClose={() => setShowAddSheet(false)} />
+        <RecipeForm
+          onClose={handleCloseAddSheet}
+          onDirtyChange={setFormDirty}
+        />
       </div>
     </BottomSheet>
+
+    <ActionSheet
+      open={showDiscardSheet}
+      onClose={() => setShowDiscardSheet(false)}
+      title={tForm("discardTitle")}
+      message={tForm("discardMessage")}
+      actions={[
+        {
+          label: tForm("discardAction"),
+          destructive: true,
+          onClick: handleDiscard,
+        },
+      ]}
+    />
     </>
   );
 }

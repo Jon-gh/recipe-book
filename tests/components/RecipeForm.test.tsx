@@ -146,6 +146,65 @@ describe("RecipeForm — edit recipe", () => {
   });
 });
 
+describe("RecipeForm — dirty tracking", () => {
+  it("calls onDirtyChange(true) when a field is typed into", async () => {
+    const onDirtyChange = vi.fn();
+    render(<RecipeForm onDirtyChange={onDirtyChange} />);
+    await userEvent.click(screen.getByText("Type manually"));
+    await userEvent.type(screen.getByLabelText("Name"), "A");
+    expect(onDirtyChange).toHaveBeenCalledWith(true);
+  });
+
+  it("reports dirty after URL import populates the form", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        name: "Imported Recipe",
+        servings: 2,
+        instructions: "Mix.",
+        tags: [],
+        favourite: false,
+        notes: "",
+        ingredients: [{ name: "Flour", quantity: 200, unit: "g", preparation: "", category: "baking & sweeteners" }],
+      }),
+    });
+
+    const onDirtyChange = vi.fn();
+    render(<RecipeForm onDirtyChange={onDirtyChange} />);
+    await userEvent.click(screen.getByText("Import from URL"));
+    await userEvent.type(screen.getByPlaceholderText("https://…"), "https://example.com");
+    await userEvent.click(screen.getByRole("button", { name: "Import" }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Name")).toHaveValue("Imported Recipe");
+    });
+    expect(onDirtyChange).toHaveBeenCalledWith(true);
+  });
+
+  it("calls onDirtyChange(false) after successful save resets dirty state", async () => {
+    mockFetch.mockResolvedValue({
+      json: async () => ({ id: "new-id" }),
+    });
+
+    const onDirtyChange = vi.fn();
+    render(<RecipeForm onDirtyChange={onDirtyChange} />);
+    await userEvent.click(screen.getByText("Type manually"));
+    await userEvent.type(screen.getByLabelText("Name"), "My Recipe");
+    await userEvent.type(screen.getByLabelText("Instructions"), "Step 1");
+    const nameInputs = screen.getAllByPlaceholderText("Ingredient name");
+    await userEvent.type(nameInputs[0], "Sugar");
+    const qtyInputs = screen.getAllByPlaceholderText("Qty");
+    await userEvent.type(qtyInputs[0], "100");
+
+    await userEvent.click(screen.getByRole("button", { name: "Create Recipe" }));
+
+    await waitFor(() => {
+      const calls = onDirtyChange.mock.calls.map((c) => c[0]);
+      expect(calls).toContain(false);
+    });
+  });
+});
+
 describe("RecipeForm — AI import panel", () => {
   it("shows action sheet immediately for new recipes", () => {
     render(<RecipeForm />);

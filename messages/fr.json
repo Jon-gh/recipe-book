@@ -30,7 +30,8 @@
     "edit": "Modifier",
     "close": "Fermer",
     "decreaseServings": "Diminuer les portions",
-    "increaseServings": "Augmenter les portions"
+    "increaseServings": "Augmenter les portions",
+    "clearSearch": "Effacer la recherche"
   },
   "languages": {
     "en": "English",
@@ -55,7 +56,9 @@
     "alreadyHaveAccount": "Déjà un compte ? Connectez-vous",
     "signupFailed": "Échec de l'inscription",
     "invalidCredentials": "Email ou mot de passe invalide",
-    "somethingWentWrong": "Une erreur s'est produite. Veuillez réessayer."
+    "somethingWentWrong": "Une erreur s'est produite. Veuillez réessayer.",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe"
   },
   "resetPassword": {
     "title": "Réinitialiser le mot de passe",
@@ -135,7 +138,10 @@
     "importFromUrlSub": "Collez un lien vers une page de recette",
     "typeManually": "Saisir manuellement",
     "typeManuallySubt": "Entrez la recette vous-même",
-    "copySuffix": " (copie)"
+    "copySuffix": " (copie)",
+    "discardTitle": "Abandonner les modifications ?",
+    "discardMessage": "Vous avez des modifications non enregistrées.",
+    "discardAction": "Abandonner les modifications"
   },
   "grocery": {
     "title": "Liste de courses",

@@ -320,6 +320,7 @@ export default function GroceryListPage() {
             value={newItemName}
             onChange={(e) => { isSelectedRef.current = false; setNewItemName(e.target.value); }}
             onKeyDown={(e) => e.key === "Enter" && addItem()}
+            enterKeyHint="done"
             autoFocus
           />
           <datalist id="ingredient-suggestions">
@@ -334,6 +335,7 @@ export default function GroceryListPage() {
             <label className="text-sm font-medium">{t("quantityLabel")}</label>
             <Input
               type="number"
+              inputMode="decimal"
               min={0}
               step="any"
               value={newItemQty}

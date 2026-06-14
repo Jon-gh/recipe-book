@@ -39,12 +39,15 @@ function stepLabel(i: number): string {
 export default function RecipeDetailPage() {
   const t = useTranslations("recipeDetail");
   const tCommon = useTranslations("common");
+  const tForm = useTranslations("recipeForm");
   const { show: showToast } = useToast();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [showActionsSheet, setShowActionsSheet] = useState(false);
   const [starPopped, setStarPopped] = useState(false);
   const [showEditSheet, setShowEditSheet] = useState(false);
+  const [showDiscardEditSheet, setShowDiscardEditSheet] = useState(false);
+  const [editFormDirty, setEditFormDirty] = useState(false);
   const [showDeleteSheet, setShowDeleteSheet] = useState(false);
   const [showPlanSheet, setShowPlanSheet] = useState(false);
   const [planServings, setPlanServings] = useState(2);
@@ -282,13 +285,50 @@ export default function RecipeDetailPage() {
       {/* Edit sheet */}
       <BottomSheet
         open={showEditSheet}
-        onClose={() => setShowEditSheet(false)}
+        onClose={() => {
+          if (editFormDirty) {
+            setShowDiscardEditSheet(true);
+          } else {
+            setShowEditSheet(false);
+            setEditFormDirty(false);
+          }
+        }}
         title={t("editRecipe")}
       >
         <div className="px-4 pb-8">
-          <RecipeForm initial={recipe} onClose={() => setShowEditSheet(false)} />
+          <RecipeForm
+            initial={recipe}
+            onClose={() => {
+              if (editFormDirty) {
+                setShowDiscardEditSheet(true);
+              } else {
+                setShowEditSheet(false);
+                setEditFormDirty(false);
+              }
+            }}
+            onDirtyChange={setEditFormDirty}
+          />
         </div>
       </BottomSheet>
+
+      {/* Discard edit confirmation */}
+      <ActionSheet
+        open={showDiscardEditSheet}
+        onClose={() => setShowDiscardEditSheet(false)}
+        title={tForm("discardTitle")}
+        message={tForm("discardMessage")}
+        actions={[
+          {
+            label: tForm("discardAction"),
+            destructive: true,
+            onClick: () => {
+              setShowEditSheet(false);
+              setEditFormDirty(false);
+              setShowDiscardEditSheet(false);
+            },
+          },
+        ]}
+      />
 
       {/* Delete action sheet */}
       <ActionSheet
