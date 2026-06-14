@@ -26,7 +26,11 @@
     "errorTitle": "Algo se quemó.",
     "errorSubtext": "Desliza hacia abajo para reintentar.",
     "undo": "Deshacer",
-    "mutationError": "No se guardó — revisa tu conexión e inténtalo de nuevo."
+    "mutationError": "No se guardó — revisa tu conexión e inténtalo de nuevo.",
+    "edit": "Editar",
+    "close": "Cerrar",
+    "decreaseServings": "Disminuir porciones",
+    "increaseServings": "Aumentar porciones"
   },
   "languages": {
     "en": "English",
@@ -158,7 +162,8 @@
     "undo": "Deshacer",
     "stapleReviewBanner": "Tienes básicos por revisar",
     "stapleReviewAction": "Revisar",
-    "dismiss": "Ignorar"
+    "dismiss": "Ignorar",
+    "manageItems": "Gestionar mis artículos"
   },
   "stapleCheckin": {
     "title": "Revisa tu despensa",
@@ -185,7 +190,8 @@
     "ready": "Listo",
     "servingsScheduled": "{allocated}/{total} porciones programadas",
     "recipeSummary": "{recipeCount, plural, one {# receta} other {# recetas}} · {totalServings, plural, one {# porción en total} other {# porciones en total}}",
-    "removedFromPlan": "{name} eliminado/a"
+    "removedFromPlan": "{name} eliminado/a",
+    "removeFromPlan": "Quitar del plan"
   },
   "schedule": {
     "title": "Horario",
@@ -201,7 +207,9 @@
     "failedToAdd": "Error al añadir",
     "servings": "Porciones",
     "servingsRemaining": "{remaining} de {total} porciones restantes",
-    "removedMeal": "Comida eliminada del horario"
+    "removedMeal": "Comida eliminada del horario",
+    "today": "Hoy",
+    "removeMeal": "Eliminar comida"
   },
   "products": {
     "title": "Mis artículos",
@@ -209,7 +217,9 @@
     "editItem": "Editar artículo",
     "deleteConfirmTitle": "¿Eliminar artículo?",
     "deleteConfirmMessage": "Este artículo no aparecerá más en las sugerencias.",
-    "deleteAction": "Eliminar"
+    "deleteAction": "Eliminar",
+    "editAriaLabel": "Editar {name}",
+    "deleteAriaLabel": "Eliminar {name}"
   },
   "wizard": {
     "title": "Nueva semana",

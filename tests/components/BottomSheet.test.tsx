@@ -38,7 +38,6 @@ describe("BottomSheet", () => {
         <p>content</p>
       </BottomSheet>
     );
-    // The backdrop is the first div inside the dialog
     const dialog = screen.getByRole("dialog");
     const backdrop = dialog.firstChild as HTMLElement;
     fireEvent.click(backdrop);
@@ -54,5 +53,38 @@ describe("BottomSheet", () => {
     );
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("sets aria-labelledby when title is provided", () => {
+    render(
+      <BottomSheet open={true} onClose={vi.fn()} title="Labelled Sheet">
+        <p>content</p>
+      </BottomSheet>
+    );
+    const dialog = screen.getByRole("dialog");
+    const labelledById = dialog.getAttribute("aria-labelledby");
+    expect(labelledById).toBeTruthy();
+    const titleEl = document.getElementById(labelledById!);
+    expect(titleEl?.textContent).toBe("Labelled Sheet");
+  });
+
+  it("sets aria-label when no title is provided", () => {
+    render(
+      <BottomSheet open={true} onClose={vi.fn()} aria-label="Custom label">
+        <p>content</p>
+      </BottomSheet>
+    );
+    const dialog = screen.getByRole("dialog");
+    expect(dialog.getAttribute("aria-label")).toBe("Custom label");
+    expect(dialog.getAttribute("aria-labelledby")).toBeNull();
+  });
+
+  it("moves focus into the sheet panel on open", () => {
+    render(
+      <BottomSheet open={true} onClose={vi.fn()}>
+        <button>First button</button>
+      </BottomSheet>
+    );
+    expect(document.activeElement?.textContent).toBe("First button");
   });
 });

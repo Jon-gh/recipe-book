@@ -199,7 +199,7 @@ export default function GroceryListPage() {
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           <div className="flex items-center gap-2">
-            <Link href="/products" aria-label="Manage my items">
+            <Link href="/products" aria-label={t("manageItems")}>
               <Button variant="ghost" size="icon" className="text-muted-foreground h-9 w-9">
                 <PencilLine size={18} />
               </Button>

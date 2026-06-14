@@ -163,7 +163,7 @@ export default function RecipeDetailPage() {
       <div className="flex items-start gap-1 mb-2 -mx-1.5">
         <Link
           href="/recipes"
-          className="p-1.5 mt-0.5 rounded-lg text-muted-foreground active:bg-muted transition-colors shrink-0"
+          className="p-2.5 -m-1 mt-0.5 rounded-lg text-muted-foreground active:bg-muted transition-colors shrink-0"
           aria-label={t("backToRecipes")}
         >
           <ChevronLeft size={22} />
@@ -171,14 +171,14 @@ export default function RecipeDetailPage() {
         <h1 className="flex-1 text-xl font-bold leading-snug pt-1">{recipe.name}</h1>
         <button
           onClick={handleToggleFavourite}
-          className={`p-1.5 mt-0.5 shrink-0 text-xl leading-none ${starPopped ? "animate-star-pop" : ""}`}
+          className={`p-2.5 -m-1 mt-0.5 shrink-0 text-xl leading-none ${starPopped ? "animate-star-pop" : ""}`}
           aria-label={recipe.favourite ? t("removeFromFavourites") : t("addToFavourites")}
         >
           {recipe.favourite ? "★" : "☆"}
         </button>
         <button
           onClick={() => setShowActionsSheet(true)}
-          className="p-1.5 mt-0.5 rounded-lg active:bg-muted transition-colors shrink-0"
+          className="p-2.5 -m-1 mt-0.5 rounded-lg active:bg-muted transition-colors shrink-0"
           aria-label={t("moreOptions")}
         >
           <MoreHorizontal size={20} />
@@ -313,7 +313,7 @@ export default function RecipeDetailPage() {
             <button
               onClick={() => setPlanServings((s) => Math.max(1, s - 1))}
               className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
-              aria-label={tCommon("cancel")}
+              aria-label={tCommon("decreaseServings")}
             >
               <Minus size={18} />
             </button>
@@ -323,7 +323,7 @@ export default function RecipeDetailPage() {
             <button
               onClick={() => setPlanServings((s) => s + 1)}
               className="w-11 h-11 rounded-full border-2 flex items-center justify-center active:bg-muted transition-colors"
-              aria-label={tCommon("add")}
+              aria-label={tCommon("increaseServings")}
             >
               <Plus size={18} />
             </button>

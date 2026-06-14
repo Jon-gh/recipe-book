@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Minus, Plus, X } from "lucide-react";
 import { fetcher } from "@/lib/fetcher";
 import PullToRefresh from "@/components/PullToRefresh";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
 
 // ── date helpers ──────────────────────────────────────────────────────────────
@@ -36,19 +36,19 @@ function daysInRange(from: string, to: string): string[] {
   return days;
 }
 
-function formatDay(dateStr: string) {
-  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-GB", {
+function formatDay(dateStr: string, locale: string) {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString(locale, {
     weekday: "short",
     day: "numeric",
     month: "short",
   });
 }
 
-function formatWeekRange(from: string, to: string) {
+function formatWeekRange(from: string, to: string, locale: string) {
   const start = new Date(from + "T00:00:00");
   const end = new Date(to + "T00:00:00");
-  const startStr = start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
-  const endStr = end.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const startStr = start.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
+  const endStr = end.toLocaleDateString(locale, { weekday: "short", day: "numeric", month: "short" });
   return `${startStr} – ${endStr}`;
 }
 
@@ -57,6 +57,7 @@ function formatWeekRange(from: string, to: string) {
 export default function SchedulePage() {
   const t = useTranslations("schedule");
   const tCommon = useTranslations("common");
+  const locale = useLocale();
   const {
     data: entries,
     isLoading: loadingEntries,
@@ -170,7 +171,7 @@ export default function SchedulePage() {
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           {hasWeek && (
             <p className="text-sm text-muted-foreground mt-0.5">
-              {formatWeekRange(scheduleFrom!, scheduleTo!)}
+              {formatWeekRange(scheduleFrom!, scheduleTo!, locale)}
             </p>
           )}
         </div>
@@ -200,11 +201,11 @@ export default function SchedulePage() {
                 >
                   <div className={`px-4 py-2 flex items-center gap-2 ${isToday ? "bg-amber-50 dark:bg-amber-950/20" : "bg-muted/50"}`}>
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      {formatDay(day)}
+                      {formatDay(day, locale)}
                     </p>
                     {isToday && (
                       <span className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded-full">
-                        Today
+                        {t("today")}
                       </span>
                     )}
                   </div>
@@ -242,8 +243,8 @@ export default function SchedulePage() {
                                   ),
                                   message: t("removedMeal"),
                                 })}
-                                className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
-                                aria-label="Remove"
+                                className="text-muted-foreground hover:text-destructive shrink-0 p-2.5 -m-1.5 active:scale-95 transition-transform"
+                                aria-label={t("removeMeal")}
                               >
                                 <X size={14} />
                               </button>
@@ -280,12 +281,12 @@ export default function SchedulePage() {
         >
           <div className="flex items-center justify-between mb-1">
             <h3 className="font-semibold">
-              {formatDay(slotDate)} · {slotMealType === "lunch" ? "☀️ " + t("lunch") : "🌙 " + t("dinner")}
+              {formatDay(slotDate, locale)} · {slotMealType === "lunch" ? "☀️ " + t("lunch") : "🌙 " + t("dinner")}
             </h3>
             <button
               onClick={() => setSlotDate(null)}
-              className="text-muted-foreground p-1"
-              aria-label="Close slot picker"
+              className="text-muted-foreground p-2.5 -m-1.5"
+              aria-label={tCommon("close")}
             >
               <X size={18} />
             </button>

@@ -26,7 +26,11 @@
     "errorTitle": "Quelque chose a brûlé.",
     "errorSubtext": "Tirez vers le bas pour réessayer.",
     "undo": "Annuler",
-    "mutationError": "Ça n'a pas été enregistré — vérifiez votre connexion et réessayez."
+    "mutationError": "Ça n'a pas été enregistré — vérifiez votre connexion et réessayez.",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "decreaseServings": "Diminuer les portions",
+    "increaseServings": "Augmenter les portions"
   },
   "languages": {
     "en": "English",
@@ -158,7 +162,8 @@
     "undo": "Annuler",
     "stapleReviewBanner": "Vous avez des essentiels à vérifier",
     "stapleReviewAction": "Vérifier",
-    "dismiss": "Ignorer"
+    "dismiss": "Ignorer",
+    "manageItems": "Gérer mes articles"
   },
   "stapleCheckin": {
     "title": "Vérifiez votre garde-manger",
@@ -185,7 +190,8 @@
     "ready": "Prêt",
     "servingsScheduled": "{allocated}/{total} portions planifiées",
     "recipeSummary": "{recipeCount, plural, one {# recette} other {# recettes}} · {totalServings, plural, one {# portion au total} other {# portions au total}}",
-    "removedFromPlan": "{name} retiré(e)"
+    "removedFromPlan": "{name} retiré(e)",
+    "removeFromPlan": "Retirer du plan"
   },
   "schedule": {
     "title": "Planning",
@@ -201,7 +207,9 @@
     "failedToAdd": "Échec de l'ajout",
     "servings": "Portions",
     "servingsRemaining": "{remaining} sur {total} portions restantes",
-    "removedMeal": "Repas retiré du planning"
+    "removedMeal": "Repas retiré du planning",
+    "today": "Aujourd'hui",
+    "removeMeal": "Supprimer le repas"
   },
   "products": {
     "title": "Mes articles",
@@ -209,7 +217,9 @@
     "editItem": "Modifier l'article",
     "deleteConfirmTitle": "Supprimer l'article ?",
     "deleteConfirmMessage": "Cet article n'apparaîtra plus dans les suggestions.",
-    "deleteAction": "Supprimer"
+    "deleteAction": "Supprimer",
+    "editAriaLabel": "Modifier {name}",
+    "deleteAriaLabel": "Supprimer {name}"
   },
   "wizard": {
     "title": "Nouvelle semaine",

@@ -40,4 +40,5 @@ vi.mock("next-intl", () => ({
   getTranslations: async (namespace?: string) => (key: string, params?: Record<string, unknown>) =>
     resolveMessage(namespace, key, params),
   NextIntlClientProvider: ({ children }: { children: React.ReactNode }) => children,
+  useLocale: () => "en",
 }));

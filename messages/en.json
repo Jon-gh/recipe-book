@@ -26,7 +26,11 @@
     "errorTitle": "Something got burnt.",
     "errorSubtext": "Pull down to try again.",
     "undo": "Undo",
-    "mutationError": "That didn't save — check your connection and try again."
+    "mutationError": "That didn't save — check your connection and try again.",
+    "edit": "Edit",
+    "close": "Close",
+    "decreaseServings": "Decrease servings",
+    "increaseServings": "Increase servings"
   },
   "languages": {
     "en": "English",
@@ -158,7 +162,8 @@
     "undo": "Undo",
     "stapleReviewBanner": "You have staples to check",
     "stapleReviewAction": "Review",
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "manageItems": "Manage my items"
   },
   "stapleCheckin": {
     "title": "Check your pantry",
@@ -185,7 +190,8 @@
     "ready": "Ready",
     "servingsScheduled": "{allocated}/{total} servings scheduled",
     "recipeSummary": "{recipeCount, plural, one {# recipe} other {# recipes}} · {totalServings, plural, one {# total serving} other {# total servings}}",
-    "removedFromPlan": "Removed {name}"
+    "removedFromPlan": "Removed {name}",
+    "removeFromPlan": "Remove from plan"
   },
   "schedule": {
     "title": "Schedule",
@@ -201,7 +207,9 @@
     "failedToAdd": "Failed to add",
     "servings": "Servings",
     "servingsRemaining": "{remaining} of {total} servings remaining",
-    "removedMeal": "Meal removed from schedule"
+    "removedMeal": "Meal removed from schedule",
+    "today": "Today",
+    "removeMeal": "Remove meal"
   },
   "products": {
     "title": "My Items",
@@ -209,7 +217,9 @@
     "editItem": "Edit Item",
     "deleteConfirmTitle": "Delete item?",
     "deleteConfirmMessage": "This item will disappear from shopping suggestions.",
-    "deleteAction": "Delete"
+    "deleteAction": "Delete",
+    "editAriaLabel": "Edit {name}",
+    "deleteAriaLabel": "Delete {name}"
   },
   "wizard": {
     "title": "New Week",

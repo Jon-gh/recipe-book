@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 export interface ActionSheetAction {
   label: string;
@@ -23,8 +25,12 @@ export default function ActionSheet({
   message,
   actions,
 }: Props) {
+  const tCommon = useTranslations("common");
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const titleId = useRef(`action-sheet-title-${Math.random().toString(36).slice(2)}`).current;
+
+  const panelRef = useFocusTrap(open && mounted);
 
   useEffect(() => {
     if (open) {
@@ -54,6 +60,7 @@ export default function ActionSheet({
       className="fixed inset-0 z-50 flex flex-col justify-end p-3 gap-2"
       aria-modal="true"
       role="dialog"
+      aria-labelledby={title ? titleId : undefined}
     >
       {/* Backdrop */}
       <div
@@ -65,6 +72,7 @@ export default function ActionSheet({
 
       {/* Actions card */}
       <div
+        ref={panelRef}
         className={`relative bg-background rounded-2xl overflow-hidden shadow-2xl transition-transform duration-300 ${
           visible ? "translate-y-0" : "translate-y-full"
         }`}
@@ -72,7 +80,7 @@ export default function ActionSheet({
         {(title || message) && (
           <div className="px-4 py-3 text-center border-b">
             {title && (
-              <p className="text-sm font-semibold text-foreground">{title}</p>
+              <p id={titleId} className="text-sm font-semibold text-foreground">{title}</p>
             )}
             {message && (
               <p className="text-xs text-muted-foreground mt-0.5">{message}</p>
@@ -102,7 +110,7 @@ export default function ActionSheet({
           visible ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        Cancel
+        {tCommon("cancel")}
       </button>
     </div>
   );

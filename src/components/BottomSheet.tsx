@@ -1,21 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
+  "aria-label"?: string;
 }
 
-export default function BottomSheet({ open, onClose, children, title }: Props) {
+export default function BottomSheet({ open, onClose, children, title, "aria-label": ariaLabel }: Props) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
   const [dragY, setDragY] = useState(0);
   const isDragging = useRef(false);
   const dragStartY = useRef(0);
   const contentRef = useRef<HTMLDivElement>(null);
+  const titleId = useRef(`bottom-sheet-title-${Math.random().toString(36).slice(2)}`).current;
+
+  const panelRef = useFocusTrap(open && mounted);
 
   useEffect(() => {
     if (open) {
@@ -78,6 +83,8 @@ export default function BottomSheet({ open, onClose, children, title }: Props) {
       className="fixed inset-0 z-50 flex flex-col justify-end"
       aria-modal="true"
       role="dialog"
+      aria-labelledby={title ? titleId : undefined}
+      aria-label={!title ? ariaLabel : undefined}
     >
       {/* Backdrop */}
       <div
@@ -89,6 +96,7 @@ export default function BottomSheet({ open, onClose, children, title }: Props) {
 
       {/* Sheet panel */}
       <div
+        ref={panelRef}
         className={`relative bg-background rounded-t-2xl max-h-[92dvh] flex flex-col shadow-2xl transition-transform duration-300 ${
           visible ? "translate-y-0" : "translate-y-full"
         }`}
@@ -104,7 +112,7 @@ export default function BottomSheet({ open, onClose, children, title }: Props) {
 
         {title && (
           <div className="px-4 pb-3 border-b shrink-0">
-            <h2 className="text-base font-semibold text-center">{title}</h2>
+            <h2 id={titleId} className="text-base font-semibold text-center">{title}</h2>
           </div>
         )}
 
