@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, waitFor, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { fireEvent } from "@testing-library/react";
 import { SWRConfig } from "swr";
 import GroceryListPage from "@/app/grocery-list/page";
 import { ToastProvider } from "@/components/Toast";
@@ -77,6 +78,11 @@ beforeEach(() => {
   setupFetch();
 });
 
+afterEach(() => {
+  vi.clearAllTimers();
+  vi.useRealTimers();
+});
+
 describe("GroceryListPage", () => {
   it("shows loading state initially", () => {
     renderPage();
@@ -92,12 +98,14 @@ describe("GroceryListPage", () => {
   });
 
   it("shows all-done state (cheer) after tapping the last item away", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     setupFetch({ shoppingList: [mockShoppingItems[0]] });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    // tap the only item — optimistic remove leaves list empty after it was non-empty
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+    // advance past the 400ms check delay — optimistic remove fires
+    act(() => vi.advanceTimersByTime(400));
 
     await waitFor(() => {
       expect(screen.getByText("That's everything — go eat!")).toBeInTheDocument();
@@ -135,32 +143,67 @@ describe("GroceryListPage", () => {
   });
 });
 
-describe("GroceryListPage — tap to remove (uniform behaviour)", () => {
-  it("tapping any item shows undo toast immediately", async () => {
+describe("GroceryListPage — tap to check and remove", () => {
+  it("tapping an item shows its checked state immediately (circle + line-through) with item still in DOM", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+
+    // item is still in the DOM while checking (400ms window)
+    expect(screen.getByText("Pasta")).toBeInTheDocument();
+    // undo toast has NOT appeared yet — we're still in the check window
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+  });
+
+  it("undo toast appears after the 400ms check delay", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+    act(() => vi.advanceTimersByTime(400));
 
     await waitFor(() => expect(screen.getByText("Pasta removed")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
   });
 
-  it("tapped item disappears from list optimistically", async () => {
+  it("tapped item disappears from list after the 400ms check delay", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+    // still in DOM during check window
+    expect(screen.getByText("Pasta")).toBeInTheDocument();
 
+    act(() => vi.advanceTimersByTime(400));
+    // removed after check delay
     expect(screen.queryByText("Pasta")).not.toBeInTheDocument();
     expect(screen.getByText("Eggs")).toBeInTheDocument();
   });
 
-  it("DELETE is not called immediately — only after undo window", async () => {
+  it("double-tap during the 400ms window is ignored (no duplicate delete)", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     renderPage();
     await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: /Pasta/ }));
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
+    act(() => vi.advanceTimersByTime(400));
+
+    await waitFor(() => expect(screen.getByText("Pasta removed")).toBeInTheDocument());
+    // only one toast message — not two
+    expect(screen.getAllByText("Pasta removed")).toHaveLength(1);
+  });
+
+  it("DELETE is not called immediately — only after undo window", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta")).toBeInTheDocument());
+
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Pasta/ })); });
 
     expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/1", { method: "DELETE" });
   });
@@ -171,40 +214,46 @@ describe("GroceryListPage — tap to remove (uniform behaviour)", () => {
     renderPage();
     await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
-    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Butter/ })); });
+    act(() => vi.advanceTimersByTime(400));
     await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
 
     vi.runAllTimers();
-    vi.useRealTimers();
 
     await waitFor(() =>
       expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" })
     );
   });
 
-  it("tapping Undo cancels the delete", async () => {
+  it("tapping Undo after the check delay cancels the delete", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     setupFetch({ shoppingList: [mockUserShoppingItem] });
     renderPage();
     await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
-    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Butter/ })); });
+    act(() => vi.advanceTimersByTime(400));
     await waitFor(() => expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument());
 
-    await userEvent.click(screen.getByRole("button", { name: "Undo" }));
+    act(() => { fireEvent.click(screen.getByRole("button", { name: "Undo" })); });
 
     await waitFor(() => expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument());
     expect(mockFetch).not.toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
   });
 
-  it("DELETE is called immediately when component unmounts with a pending delete", async () => {
+  it("DELETE is called immediately when component unmounts while undo window is open", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     setupFetch({ shoppingList: [mockUserShoppingItem] });
     const { unmount } = renderPage();
     await waitFor(() => expect(screen.getByText("Butter")).toBeInTheDocument());
 
-    await userEvent.click(screen.getAllByRole("button", { name: /Butter/ })[0]);
+    act(() => { fireEvent.click(screen.getByRole("button", { name: /Butter/ })); });
+    // advance past the 400ms check delay so tapItem is called and undo window starts
+    act(() => vi.advanceTimersByTime(400));
     await waitFor(() => expect(screen.getByText("Butter removed")).toBeInTheDocument());
 
     unmount();
+    vi.useRealTimers();
 
     expect(mockFetch).toHaveBeenCalledWith("/api/shopping-list/99", { method: "DELETE" });
   });

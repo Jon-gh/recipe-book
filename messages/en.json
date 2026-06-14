@@ -169,7 +169,8 @@
     "stapleReviewBanner": "You have staples to check",
     "stapleReviewAction": "Review",
     "dismiss": "Dismiss",
-    "manageItems": "Manage my items"
+    "manageItems": "Manage my items",
+    "markBought": "Mark {name} as bought"
   },
   "stapleCheckin": {
     "title": "Check your pantry",

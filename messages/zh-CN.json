@@ -169,7 +169,8 @@
     "stapleReviewBanner": "您有常备品待确认",
     "stapleReviewAction": "确认",
     "dismiss": "忽略",
-    "manageItems": "管理我的物品"
+    "manageItems": "管理我的物品",
+    "markBought": "将{name}标记为已购买"
   },
   "stapleCheckin": {
     "title": "检查您的储藏柜",

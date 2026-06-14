@@ -15,7 +15,7 @@ import LoadingState from "@/components/LoadingState";
 import Cocotte from "@/components/cocotte/Cocotte";
 import EmptyState from "@/components/EmptyState";
 import SwipeableRow from "@/components/SwipeableRow";
-import { PencilLine, Plus } from "lucide-react";
+import { Check, PencilLine, Plus } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useUndoableDelete } from "@/lib/use-undoable-delete";
 import { useToast } from "@/components/Toast";
@@ -66,6 +66,27 @@ export default function GroceryListPage() {
     delayMs: 6000,
     undoLabel: tCommon("undo"),
   });
+
+  const [checkingIds, setCheckingIds] = useState<Set<number>>(new Set());
+
+  function handleItemTap(item: ShoppingListItem) {
+    if (checkingIds.has(item.id)) return;
+    setCheckingIds((prev) => new Set(prev).add(item.id));
+    setTimeout(() => {
+      setCheckingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+      tapItem(item, {
+        optimisticHide: () => mutateSl(
+          (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.id),
+          { revalidate: false }
+        ),
+        message: t("removed", { name: item.product.name }),
+      });
+    }, 400);
+  }
 
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [newItemName, setNewItemName] = useState("");
@@ -256,28 +277,33 @@ export default function GroceryListPage() {
                     <ul className="divide-y">
                       {catItems.map((item) => {
                         const isUserProduct = item.product.source === "user";
+                        const isChecking = checkingIds.has(item.id);
                         const row = (
                           <li key={item.id}>
-                            <div className="flex items-center gap-2 py-3 min-h-[44px]">
-                              <button
-                                className="flex-1 flex items-baseline gap-2 text-left active:bg-muted transition-colors"
-                                onClick={() => tapItem(item, {
-                                  optimisticHide: () => mutateSl(
-                                    (current?: ShoppingListItem[]) => (current ?? []).filter((i) => i.id !== item.id),
-                                    { revalidate: false }
-                                  ),
-                                  message: t("removed", { name: item.product.name }),
-                                })}
+                            <button
+                              className="w-full flex items-center gap-3 py-3 min-h-[44px] text-left active:bg-muted transition-colors"
+                              aria-label={t("markBought", { name: item.product.name })}
+                              onClick={() => handleItemTap(item)}
+                            >
+                              <span
+                                className={`w-[22px] h-[22px] rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                                  isChecking
+                                    ? "bg-primary border-primary"
+                                    : "border-muted-foreground/40"
+                                }`}
                               >
-                                <span className="font-medium">{item.product.name}</span>
-                                <span className="text-sm ml-auto text-muted-foreground">
-                                  {item.quantity % 1 === 0
-                                    ? item.quantity
-                                    : item.quantity.toFixed(1)}
-                                  {item.unit ? ` ${item.unit}` : ""}
-                                </span>
-                              </button>
-                            </div>
+                                {isChecking && <Check size={14} className="text-primary-foreground" />}
+                              </span>
+                              <span className={`font-medium ${isChecking ? "line-through text-muted-foreground" : ""}`}>
+                                {item.product.name}
+                              </span>
+                              <span className={`text-sm ml-auto ${isChecking ? "text-muted-foreground/50" : "text-muted-foreground"}`}>
+                                {item.quantity % 1 === 0
+                                  ? item.quantity
+                                  : item.quantity.toFixed(1)}
+                                {item.unit ? ` ${item.unit}` : ""}
+                              </span>
+                            </button>
                           </li>
                         );
                         return isUserProduct ? (
