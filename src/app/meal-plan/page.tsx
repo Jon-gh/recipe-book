@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { CalendarPlus, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { fetcher, noCacheFetcher } from "@/lib/fetcher";
+import { useUndoableDelete } from "@/lib/use-undoable-delete";
 
 import { categoryIsStaple } from "@/lib/categories";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
@@ -19,10 +20,12 @@ import LoadingState from "@/components/LoadingState";
 import Cocotte from "@/components/cocotte/Cocotte";
 import { useTranslations } from "next-intl";
 import { cardBgColor } from "@/lib/card-colors";
+import { useToast } from "@/components/Toast";
 
 export default function MealPlanPage() {
   const t = useTranslations("mealPlan");
   const tCommon = useTranslations("common");
+  const { show: showToast } = useToast();
   const router = useRouter();
 
   const {
@@ -112,23 +115,30 @@ export default function MealPlanPage() {
   async function addEntry() {
     if (!selectedRecipe) return;
     setAdding(true);
-    await fetch("/api/meal-plan", {
+    const res = await fetch("/api/meal-plan", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId: selectedRecipe.id, targetServings: servings }),
     });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+    } else {
+      setSelectedRecipe(null);
+      setSearch("");
+      setServings(2);
+    }
     await mutateEntries();
-    setSelectedRecipe(null);
-    setSearch("");
-    setServings(2);
     setAdding(false);
   }
 
-  async function removeEntry(id: number) {
-    await mutateEntries(entries?.filter((e) => e.id !== id), { revalidate: false });
-    await fetch(`/api/meal-plan/${id}`, { method: "DELETE" });
-    await mutateEntries();
-  }
+  const { remove: removeEntry } = useUndoableDelete<MealPlanEntry>({
+    commit: async (entry) => {
+      const res = await fetch(`/api/meal-plan/${entry.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed");
+    },
+    onRevert: () => mutateEntries(),
+    undoLabel: tCommon("undo"),
+  });
 
   async function updateServings(entryId: number, newServings: number) {
     await mutateEntries(
@@ -137,11 +147,14 @@ export default function MealPlanPage() {
       ),
       { revalidate: false }
     );
-    await fetch(`/api/meal-plan/${entryId}`, {
+    const res = await fetch(`/api/meal-plan/${entryId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ targetServings: newServings }),
     });
+    if (!res.ok) {
+      showToast(tCommon("mutationError"), { variant: "error" });
+    }
     await mutateEntries();
   }
 
@@ -339,7 +352,10 @@ export default function MealPlanPage() {
                       </div>
 
                       <button
-                        onClick={() => removeEntry(entry.id)}
+                        onClick={() => removeEntry(entry, {
+                          optimisticHide: () => mutateEntries(entries?.filter((e) => e.id !== entry.id), { revalidate: false }),
+                          message: t("removedFromPlan", { name: entry.recipe.name }),
+                        })}
                         className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform mt-0.5"
                         aria-label="Remove from plan"
                       >

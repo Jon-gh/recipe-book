@@ -1,6 +1,7 @@
 "use client";
 
 import { SWRConfig } from "swr";
+import { ToastProvider } from "@/components/Toast";
 
 const swrConfig = {
   onError: (error: Error) => {
@@ -11,5 +12,9 @@ const swrConfig = {
 };
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  return <SWRConfig value={swrConfig}>{children}</SWRConfig>;
+  return (
+    <SWRConfig value={swrConfig}>
+      <ToastProvider>{children}</ToastProvider>
+    </SWRConfig>
+  );
 }

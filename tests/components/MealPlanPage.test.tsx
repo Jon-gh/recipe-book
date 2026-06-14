@@ -4,6 +4,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SWRConfig } from "swr";
 import MealPlanPage from "@/app/meal-plan/page";
+import { ToastProvider } from "@/components/Toast";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -79,7 +80,9 @@ function setupFetch({
 function renderPage() {
   return render(
     <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
-      <MealPlanPage />
+      <ToastProvider>
+        <MealPlanPage />
+      </ToastProvider>
     </SWRConfig>
   );
 }
@@ -143,7 +146,10 @@ describe("MealPlanPage — Plan tab", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Remove from plan" }));
 
-    expect(mockFetch).toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
+    // Optimistic removal: item disappears immediately; DELETE is deferred
+    await waitFor(() => expect(screen.queryByText("Pasta")).not.toBeInTheDocument());
+    // DELETE is not called immediately — only after undo window
+    expect(mockFetch).not.toHaveBeenCalledWith("/api/meal-plan/1", { method: "DELETE" });
   });
 
   it("adds entry when selecting a recipe and clicking Add", async () => {

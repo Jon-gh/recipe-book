@@ -24,7 +24,9 @@
     "servings": "{count, plural, one {# porción} other {# porciones}}",
     "ingredients": "{count, plural, one {# ingrediente} other {# ingredientes}}",
     "errorTitle": "Algo se quemó.",
-    "errorSubtext": "Desliza hacia abajo para reintentar."
+    "errorSubtext": "Desliza hacia abajo para reintentar.",
+    "undo": "Deshacer",
+    "mutationError": "No se guardó — revisa tu conexión e inténtalo de nuevo."
   },
   "languages": {
     "en": "English",
@@ -182,7 +184,8 @@
     "noRecipesFound": "No se encontraron recetas.",
     "ready": "Listo",
     "servingsScheduled": "{allocated}/{total} porciones programadas",
-    "recipeSummary": "{recipeCount, plural, one {# receta} other {# recetas}} · {totalServings, plural, one {# porción en total} other {# porciones en total}}"
+    "recipeSummary": "{recipeCount, plural, one {# receta} other {# recetas}} · {totalServings, plural, one {# porción en total} other {# porciones en total}}",
+    "removedFromPlan": "{name} eliminado/a"
   },
   "schedule": {
     "title": "Horario",
@@ -197,12 +200,16 @@
     "customNotePlaceholder": "ej. Comiendo fuera, Cena con amigos…",
     "failedToAdd": "Error al añadir",
     "servings": "Porciones",
-    "servingsRemaining": "{remaining} de {total} porciones restantes"
+    "servingsRemaining": "{remaining} de {total} porciones restantes",
+    "removedMeal": "Comida eliminada del horario"
   },
   "products": {
     "title": "Mis artículos",
     "noItems": "Aún no hay artículos personales. Añade artículos a tu lista de la compra y aparecerán aquí.",
-    "editItem": "Editar artículo"
+    "editItem": "Editar artículo",
+    "deleteConfirmTitle": "¿Eliminar artículo?",
+    "deleteConfirmMessage": "Este artículo no aparecerá más en las sugerencias.",
+    "deleteAction": "Eliminar"
   },
   "wizard": {
     "title": "Nueva semana",

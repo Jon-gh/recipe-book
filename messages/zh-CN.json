@@ -24,7 +24,9 @@
     "servings": "{count, plural, other {# 份}}",
     "ingredients": "{count, plural, other {# 种食材}}",
     "errorTitle": "出了点问题。",
-    "errorSubtext": "下拉刷新重试。"
+    "errorSubtext": "下拉刷新重试。",
+    "undo": "撤销",
+    "mutationError": "未能保存 — 请检查网络连接后重试。"
   },
   "languages": {
     "en": "English",
@@ -182,7 +184,8 @@
     "noRecipesFound": "未找到食谱。",
     "ready": "可以烹饪",
     "servingsScheduled": "{allocated}/{total} 份已安排",
-    "recipeSummary": "{recipeCount, plural, other {# 个食谱}} · {totalServings, plural, other {# 份总计}}"
+    "recipeSummary": "{recipeCount, plural, other {# 个食谱}} · {totalServings, plural, other {# 份总计}}",
+    "removedFromPlan": "已移除 {name}"
   },
   "schedule": {
     "title": "日程",
@@ -197,12 +200,16 @@
     "customNotePlaceholder": "例：外出就餐、与朋友共进晚餐…",
     "failedToAdd": "添加失败",
     "servings": "份量",
-    "servingsRemaining": "{total} 份中剩余 {remaining} 份"
+    "servingsRemaining": "{total} 份中剩余 {remaining} 份",
+    "removedMeal": "餐食已从日程中移除"
   },
   "products": {
     "title": "我的物品",
     "noItems": "暂无个人物品。将物品添加到购物清单后，它们将显示在这里。",
-    "editItem": "编辑物品"
+    "editItem": "编辑物品",
+    "deleteConfirmTitle": "删除物品？",
+    "deleteConfirmMessage": "此物品将不再出现在购物建议中。",
+    "deleteAction": "删除"
   },
   "wizard": {
     "title": "新的一周",

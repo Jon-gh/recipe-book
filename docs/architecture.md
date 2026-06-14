@@ -30,7 +30,9 @@ Browser
 | `src/lib/extract-recipe.ts` | `extractRecipeFromText()`, `extractRecipeFromImage()` — Claude API calls for AI import |
 | `src/lib/url-import.ts` | `tryJsonLd()`, `mapJsonLdRecipe()`, `parseIngredientString()` — URL import with JSON-LD parsing and Claude fallback |
 | `src/middleware.ts` | Better Auth middleware — redirects unauthenticated requests to `/auth/signin`; excludes `/auth/*`, `/api/auth/*`, and static assets |
-| `src/components/Providers.tsx` | `SWRConfig` — redirects to `/auth/signin` on any 401 response (no SessionProvider needed with Better Auth) |
+| `src/components/Providers.tsx` | `SWRConfig` — redirects to `/auth/signin` on any 401 response; wraps `ToastProvider` so all pages can call `useToast()` |
+| `src/components/Toast.tsx` | `ToastProvider` (React context) + `useToast()` hook — single global toast; variants `"default"` and `"error"`; positioned above tab bar; `aria-live="polite"` for screen readers |
+| `src/lib/use-undoable-delete.ts` | `useUndoableDelete<T>()` — generic deferred-delete hook: hides item optimistically, shows undo toast, commits to the API after delay (default 6 s); second remove commits immediately; reverts on undo or commit failure |
 | `src/app/api/auth/[...all]/` | Better Auth catch-all route (sign-in, sign-out, OAuth callback, password reset) |
 | `src/app/auth/reset-password/` | Password reset request page (enter email) |
 | `src/app/auth/reset-password/confirm/` | Password reset confirm page (enter new password via token) |
