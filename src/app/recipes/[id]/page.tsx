@@ -289,16 +289,25 @@ export default function RecipeDetailPage() {
 
       <Separator className="my-4" />
 
-      <Button
-        variant="outline"
-        className="min-h-[44px] active:scale-95 transition-transform"
-        onClick={() => {
-          setPlanServings(recipe.servings);
-          setShowPlanSheet(true);
-        }}
-      >
-        {t("addToMealPlan")}
-      </Button>
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          className="min-h-[44px] active:scale-95 transition-transform"
+          onClick={() => {
+            setPlanServings(recipe.servings);
+            setShowPlanSheet(true);
+          }}
+        >
+          {t("addToMealPlan")}
+        </Button>
+        <Link
+          href={`/recipes/${id}/cook`}
+          className="inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 min-h-[44px] text-sm font-medium active:scale-95 transition-transform"
+          aria-label={t("startCookMode")}
+        >
+          {t("startCookMode")}
+        </Link>
+      </div>
 
       {/* Actions sheet (⋯ menu) */}
       <ActionSheet
