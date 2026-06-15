@@ -104,7 +104,10 @@
     "addToFavourites": "Ajouter aux favoris",
     "removeFromFavourites": "Retirer des favoris",
     "moreOptions": "Plus d'options",
-    "howManyServings": "De combien de portions avez-vous besoin ?"
+    "howManyServings": "De combien de portions avez-vous besoin ?",
+    "servingsScaler": "Ajuster les portions",
+    "resetServings": "Remettre aux portions d'origine",
+    "reset": "Réinitialiser"
   },
   "recipeForm": {
     "newRecipe": "Nouvelle recette",

@@ -104,7 +104,10 @@
     "addToFavourites": "添加到收藏",
     "removeFromFavourites": "取消收藏",
     "moreOptions": "更多选项",
-    "howManyServings": "您需要几份？"
+    "howManyServings": "您需要几份？",
+    "servingsScaler": "调整份量",
+    "resetServings": "重置为原始份量",
+    "reset": "重置"
   },
   "recipeForm": {
     "newRecipe": "新建食谱",
