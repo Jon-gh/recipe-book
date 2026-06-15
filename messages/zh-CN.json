@@ -302,6 +302,9 @@
     "next": "下一步",
     "goToStep": "跳转至第 {step} 步"
   },
+  "offline": {
+    "banner": "您已离线 — 显示上次缓存的数据"
+  },
   "categories": {
     "fruit & veg": "蔬果",
     "meat & fish": "肉类与海鲜",
