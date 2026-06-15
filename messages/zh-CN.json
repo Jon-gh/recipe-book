@@ -277,7 +277,15 @@
     "totalPlanned": "计划总量",
     "needed": "所需",
     "mealsScheduled": "已安排餐食",
-    "somethingWentWrong": "出现错误"
+    "somethingWentWrong": "出现错误",
+    "previousWeek": "上一周",
+    "nextWeek": "下一周",
+    "perDayExceptions": "按天例外设置",
+    "resetToDefault": "重置为默认",
+    "tallyLeftover": "{count} 份剩余 +",
+    "tallyNew": "{count} 份新的",
+    "tallyPortions": "/ {count} 份",
+    "removeItem": "移除 {name}"
   },
   "settings": {
     "title": "设置",

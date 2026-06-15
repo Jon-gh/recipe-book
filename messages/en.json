@@ -277,7 +277,15 @@
     "totalPlanned": "Total planned",
     "needed": "needed",
     "mealsScheduled": "Meals scheduled",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "perDayExceptions": "Per-day exceptions",
+    "resetToDefault": "Reset to default",
+    "tallyLeftover": "{count} leftover +",
+    "tallyNew": "{count} new",
+    "tallyPortions": "/ {count} portions",
+    "removeItem": "Remove {name}"
   },
   "settings": {
     "title": "Settings",
