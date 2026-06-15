@@ -107,7 +107,8 @@
     "howManyServings": "How many servings do you need?",
     "servingsScaler": "Adjust servings",
     "resetServings": "Reset servings to original",
-    "reset": "Reset"
+    "reset": "Reset",
+    "startCookMode": "Cook"
   },
   "recipeForm": {
     "newRecipe": "New Recipe",
@@ -283,6 +284,23 @@
     "languageSection": "Language",
     "saved": "Saved",
     "signOut": "Sign out"
+  },
+  "cookMode": {
+    "loading": "Heating up the kitchen…",
+    "notFound": "Recipe not found.",
+    "exitCookMode": "Exit cook mode",
+    "stepOf": "Step {step} of {total}",
+    "step": "Step",
+    "allDone": "All done!",
+    "done": "Done",
+    "markDone": "Mark as done",
+    "checkStep": "Mark step as done",
+    "uncheckStep": "Unmark step",
+    "previousStep": "Previous step",
+    "nextStep": "Next step",
+    "previous": "Previous",
+    "next": "Next",
+    "goToStep": "Go to step {step}"
   },
   "categories": {
     "fruit & veg": "Fruit & veg",

@@ -107,7 +107,8 @@
     "howManyServings": "¿Cuántas porciones necesitas?",
     "servingsScaler": "Ajustar porciones",
     "resetServings": "Restablecer porciones originales",
-    "reset": "Restablecer"
+    "reset": "Restablecer",
+    "startCookMode": "Cocinar"
   },
   "recipeForm": {
     "newRecipe": "Nueva receta",
@@ -283,6 +284,23 @@
     "languageSection": "Idioma",
     "saved": "Guardado",
     "signOut": "Cerrar sesión"
+  },
+  "cookMode": {
+    "loading": "Calentando la cocina…",
+    "notFound": "Receta no encontrada.",
+    "exitCookMode": "Salir del modo cocina",
+    "stepOf": "Paso {step} de {total}",
+    "step": "Paso",
+    "allDone": "¡Todo listo!",
+    "done": "Hecho",
+    "markDone": "Marcar como hecho",
+    "checkStep": "Marcar el paso como hecho",
+    "uncheckStep": "Desmarcar el paso",
+    "previousStep": "Paso anterior",
+    "nextStep": "Paso siguiente",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "goToStep": "Ir al paso {step}"
   },
   "categories": {
     "fruit & veg": "Frutas y verduras",
