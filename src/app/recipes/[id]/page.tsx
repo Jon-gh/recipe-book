@@ -22,6 +22,7 @@ import { getIngredientEmoji } from "@/lib/ingredient-emoji";
 import { categoryIsStaple } from "@/lib/categories";
 import { useTranslations } from "next-intl";
 import { useToast } from "@/components/Toast";
+import { scaleQuantity } from "@/lib/format-quantity";
 
 function splitInstructions(text: string): string[] {
   // Prefer double-newline paragraph splits; fall back to single-newline for older recipes
@@ -48,6 +49,7 @@ export default function RecipeDetailPage() {
   const [addingToPlan, setAddingToPlan] = useState(false);
   const [stapleCheckinItems, setStapleCheckinItems] = useState<StapleItem[]>([]);
   const [showStapleCheckin, setShowStapleCheckin] = useState(false);
+  const [scaledServings, setScaledServings] = useState<number | null>(null);
 
   const { data: recipe, isLoading, mutate: mutateRecipe } = useSWR<Recipe>(
     `/api/recipes/${id}`,
@@ -153,6 +155,7 @@ export default function RecipeDetailPage() {
 
   const recipeEmoji = getRecipeEmoji(recipe.ingredients.map((i) => i.product.name));
   const instructionSteps = splitInstructions(recipe.instructions);
+  const displayServings = scaledServings ?? recipe.servings;
 
   return (
     <div className="max-w-2xl">
@@ -188,10 +191,40 @@ export default function RecipeDetailPage() {
       {/* Emoji + meta row */}
       <div className="flex items-center gap-3 mb-3 pl-1">
         <span className="text-4xl" aria-hidden="true">{recipeEmoji}</span>
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {tCommon("servings", { count: recipe.servings })} · {tCommon("ingredients", { count: recipe.ingredients.length })}
-          </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1" role="group" aria-label={t("servingsScaler")}>
+              <button
+                onClick={() => setScaledServings((s) => Math.max(1, (s ?? recipe.servings) - 1))}
+                className="w-7 h-7 rounded-full border flex items-center justify-center active:bg-muted transition-colors text-muted-foreground"
+                aria-label={tCommon("decreaseServings")}
+              >
+                <Minus size={13} />
+              </button>
+              <span className="text-sm text-muted-foreground tabular-nums px-0.5">
+                {tCommon("servings", { count: displayServings })}
+              </span>
+              <button
+                onClick={() => setScaledServings((s) => (s ?? recipe.servings) + 1)}
+                className="w-7 h-7 rounded-full border flex items-center justify-center active:bg-muted transition-colors text-muted-foreground"
+                aria-label={tCommon("increaseServings")}
+              >
+                <Plus size={13} />
+              </button>
+              {scaledServings !== null && scaledServings !== recipe.servings && (
+                <button
+                  onClick={() => setScaledServings(null)}
+                  className="text-xs text-primary underline-offset-2 hover:underline ml-1"
+                  aria-label={t("resetServings")}
+                >
+                  {t("reset")}
+                </button>
+              )}
+            </div>
+            <span className="text-sm text-muted-foreground">
+              · {tCommon("ingredients", { count: recipe.ingredients.length })}
+            </span>
+          </div>
           {recipe.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1">
               {recipe.tags.map((tag) => (
@@ -215,7 +248,7 @@ export default function RecipeDetailPage() {
                 {getIngredientEmoji(ing.product.name, ing.product.category ?? "other")}
               </span>
               <span className="font-medium tabular-nums shrink-0">
-                {ing.quantity} {ing.unit}
+                {scaleQuantity(ing.quantity, recipe.servings, displayServings)} {ing.unit}
               </span>
               <span>
                 {ing.product.name}

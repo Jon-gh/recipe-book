@@ -391,3 +391,63 @@ describe("RecipeDetailPage — staple check-in after adding to plan", () => {
     );
   });
 });
+
+describe("RecipeDetailPage — servings scaler", () => {
+  it("shows the base quantity at default servings", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+    // recipe has 400g pasta at 4 servings — should show "400 g"
+    expect(screen.getByText(/400/)).toBeInTheDocument();
+  });
+
+  it("scales quantities down when servings are decreased", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    // click Decrease servings: 4 → 2
+    await userEvent.click(screen.getByRole("button", { name: "Decrease servings" }));
+    await userEvent.click(screen.getByRole("button", { name: "Decrease servings" }));
+
+    // 400g for 4 servings → 200g for 2 servings
+    expect(screen.getByText(/200/)).toBeInTheDocument();
+    // servings label updated
+    expect(screen.getByText(/2 serving/)).toBeInTheDocument();
+  });
+
+  it("scales quantities up when servings are increased", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    // click Increase servings: 4 → 8
+    for (let i = 0; i < 4; i++) {
+      await userEvent.click(screen.getByRole("button", { name: "Increase servings" }));
+    }
+
+    // 400g for 4 servings → 800g for 8 servings
+    expect(screen.getByText(/800/)).toBeInTheDocument();
+  });
+
+  it("cannot decrease below 1 serving", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    for (let i = 0; i < 10; i++) {
+      await userEvent.click(screen.getByRole("button", { name: "Decrease servings" }));
+    }
+
+    expect(screen.getByText(/1 serving/)).toBeInTheDocument();
+  });
+
+  it("shows Reset button when servings differ from base, hidden otherwise", async () => {
+    renderPage();
+    await waitFor(() => expect(screen.getByText("Pasta Carbonara")).toBeInTheDocument());
+
+    expect(screen.queryByRole("button", { name: "Reset servings to original" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Increase servings" }));
+    expect(screen.getByRole("button", { name: "Reset servings to original" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Reset servings to original" }));
+    expect(screen.queryByRole("button", { name: "Reset servings to original" })).not.toBeInTheDocument();
+  });
+});
