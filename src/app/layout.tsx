@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import BottomNav from "@/components/BottomNav";
+import SideNav from "@/components/SideNav";
 import Providers from "@/components/Providers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
@@ -44,7 +45,8 @@ export default async function RootLayout({
       <body className="antialiased bg-background text-foreground min-h-screen">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
-            <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+            <SideNav />
+            <main className="max-w-5xl mx-auto px-4 py-6 pb-[calc(4rem+env(safe-area-inset-bottom))] lg:ml-60 lg:pb-6">
               {children}
             </main>
             <BottomNav />
