@@ -273,7 +273,15 @@
     "totalPlanned": "Total planifié",
     "needed": "nécessaires",
     "mealsScheduled": "Repas planifiés",
-    "somethingWentWrong": "Une erreur s'est produite"
+    "somethingWentWrong": "Une erreur s'est produite",
+    "previousWeek": "Semaine précédente",
+    "nextWeek": "Semaine suivante",
+    "perDayExceptions": "Exceptions par jour",
+    "resetToDefault": "Réinitialiser",
+    "tallyLeftover": "{count} restes +",
+    "tallyNew": "{count} nouveau",
+    "tallyPortions": "/ {count} portions",
+    "removeItem": "Supprimer {name}"
   },
   "settings": {
     "title": "Paramètres",

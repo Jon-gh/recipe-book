@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { ChevronLeft, Minus, Plus, X } from "lucide-react";
 import { getRecipeEmoji } from "@/lib/recipe-emoji";
 import { categoryIsStaple } from "@/lib/categories";
+import { cardBgColor } from "@/lib/card-colors";
 import { useTranslations, useLocale } from "next-intl";
 
 type StapleAddition = { productId: number; name: string; qty: string; unit: string };
@@ -66,15 +67,6 @@ function todayStr() {
   return toDateStr(new Date());
 }
 
-const CARD_BG_COLORS = [
-  "bg-amber-50 dark:bg-amber-950/30",
-  "bg-rose-50 dark:bg-rose-950/30",
-  "bg-orange-50 dark:bg-orange-950/30",
-  "bg-emerald-50 dark:bg-emerald-950/30",
-  "bg-violet-50 dark:bg-violet-950/30",
-  "bg-sky-50 dark:bg-sky-950/30",
-];
-
 // ── types ─────────────────────────────────────────────────────────────────────
 
 type NewRecipeEntry = { recipe: Recipe; targetServings: number };
@@ -116,9 +108,9 @@ function ProgressBar({ step, total = 7 }: { step: number; total?: number }) {
           key={s}
           className={`h-1.5 rounded-full transition-all duration-300 ${
             s < step
-              ? "bg-green-500 flex-1"
+              ? "bg-primary flex-1"
               : s === step
-              ? "bg-green-500 flex-[1.5] ring-2 ring-green-500/25 ring-offset-1"
+              ? "bg-primary flex-[1.5] ring-2 ring-primary/25 ring-offset-1"
               : "bg-muted flex-1"
           }`}
         />
@@ -475,7 +467,7 @@ export default function StartNewWeekWizard({
           <button
             onClick={() => onClose()}
             className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground hover:bg-muted transition-colors"
-            aria-label="Close"
+            aria-label={tCommon("close")}
           >
             <X size={20} />
           </button>
@@ -740,6 +732,7 @@ function Step1({
   onConsumedChange: (id: number, val: number) => void;
 }) {
   const t = useTranslations("wizard");
+  const tCommon = useTranslations("common");
   return (
     <div>
       <h3 className="font-semibold text-base mb-1">{t("step1Title")}</h3>
@@ -749,10 +742,10 @@ function Step1({
         <p className="text-sm text-muted-foreground text-center py-6">{t("noRecipesInPlan")}</p>
       ) : (
         <div className="space-y-2 mb-6">
-          {entries.map((entry, index) => {
+          {entries.map((entry) => {
             const c = consumed[entry.id] ?? entry.targetServings;
             const leftover = entry.targetServings - c;
-            const cardBg = CARD_BG_COLORS[index % CARD_BG_COLORS.length];
+            const cardBg = cardBgColor(String(entry.id));
             return (
               <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
                 <div className="flex items-center gap-3">
@@ -777,6 +770,7 @@ function Step1({
                     <button
                       onClick={() => onConsumedChange(entry.id, Math.max(0, c - 1))}
                       className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label={tCommon("decreaseServings")}
                     >
                       <Minus size={13} />
                     </button>
@@ -784,6 +778,7 @@ function Step1({
                     <button
                       onClick={() => onConsumedChange(entry.id, Math.min(entry.targetServings, c + 1))}
                       className="w-7 h-7 rounded-full bg-background/60 flex items-center justify-center active:scale-95 transition-transform"
+                      aria-label={tCommon("increaseServings")}
                     >
                       <Plus size={13} />
                     </button>
@@ -823,7 +818,7 @@ function Step2({
         <button
           onClick={() => onShiftWeek(-7)}
           className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-transform text-sm font-medium"
-          aria-label="Previous week"
+          aria-label={t("previousWeek")}
         >
           ←
         </button>
@@ -837,8 +832,8 @@ function Step2({
                 key={day}
                 className={`flex flex-col items-center justify-center w-10 h-12 rounded-xl text-xs font-medium transition-colors ${
                   isToday
-                    ? "bg-green-500 text-white ring-2 ring-amber-400"
-                    : "bg-green-500 text-white"
+                    ? "bg-primary text-primary-foreground ring-2 ring-amber-400"
+                    : "bg-primary text-primary-foreground"
                 }`}
               >
                 <span className="opacity-75 text-[10px]">{weekday}</span>
@@ -851,7 +846,7 @@ function Step2({
         <button
           onClick={() => onShiftWeek(7)}
           className="w-9 h-9 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 active:scale-95 transition-transform text-sm font-medium"
-          aria-label="Next week"
+          aria-label={t("nextWeek")}
         >
           →
         </button>
@@ -932,7 +927,7 @@ function Step3({
       {/* Per-day exception chips */}
       {scheduleDays.length > 0 && (
         <div className="mb-4">
-          <p className="text-xs font-medium text-muted-foreground mb-2">Per-day exceptions</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">{t("perDayExceptions")}</p>
           <div className="flex gap-1.5 flex-wrap">
             {scheduleDays.map((day) => {
               const { weekday, date } = formatDayShort(day, locale);
@@ -945,7 +940,7 @@ function Step3({
                     onClick={() => setExpandedDay(isExpanded ? null : day)}
                     className={`relative flex flex-col items-center justify-center w-10 h-12 rounded-xl text-xs font-medium transition-colors ${
                       isExpanded
-                        ? "bg-green-500 text-white"
+                        ? "bg-primary text-primary-foreground"
                         : isToday
                         ? "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 border border-amber-300"
                         : "bg-muted text-muted-foreground"
@@ -991,7 +986,7 @@ function Step3({
                           onClick={() => onClearException(day)}
                           className="text-xs text-muted-foreground hover:text-foreground mt-1"
                         >
-                          Reset to default
+                          {t("resetToDefault")}
                         </button>
                       )}
                     </div>
@@ -1069,16 +1064,16 @@ function Step4({
       <p className="text-sm text-muted-foreground mb-1">{t("step4Subtitle")}</p>
 
       {/* Tally */}
-      <div className={`flex items-center justify-between rounded-xl px-4 py-3 mb-4 text-sm font-medium ${filled ? "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400" : "bg-muted/60"}`}>
+      <div className={`flex items-center justify-between rounded-xl px-4 py-3 mb-4 text-sm font-medium ${filled ? "bg-primary/10 text-primary" : "bg-muted/60"}`}>
         <span>
           {leftoverServings > 0 && (
-            <span className="text-muted-foreground font-normal mr-1">{leftoverServings} leftover +</span>
+            <span className="text-muted-foreground font-normal mr-1">{t("tallyLeftover", { count: leftoverServings })}</span>
           )}
-          {newRecipes.reduce((s, r) => s + r.targetServings, 0)} new
+          {t("tallyNew", { count: newRecipes.reduce((s, r) => s + r.targetServings, 0) })}
         </span>
         <span>
           <span className={`text-lg font-bold ${filled ? "" : "text-foreground"}`}>{totalPlanned}</span>
-          <span className="text-muted-foreground font-normal"> / {totalNeeded} portions</span>
+          <span className="text-muted-foreground font-normal">{t("tallyPortions", { count: totalNeeded })}</span>
         </span>
       </div>
 
@@ -1153,10 +1148,10 @@ function Step4({
       {/* Added recipes — pastel cards */}
       {newRecipes.length > 0 && (
         <div className="space-y-2 mb-4">
-          {newRecipes.map(({ recipe, targetServings }, index) => (
+          {newRecipes.map(({ recipe, targetServings }) => (
             <div
               key={recipe.id}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl ${CARD_BG_COLORS[index % CARD_BG_COLORS.length]}`}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl ${cardBgColor(recipe.id)}`}
             >
               <span className="text-xl shrink-0" aria-hidden="true">{getRecipeEmoji(recipe.ingredients.map((i) => i.product.name))}</span>
               <span className="flex-1 text-sm font-medium truncate">{recipe.name}</span>
@@ -1219,7 +1214,7 @@ function Step5({
             return (
               <div
                 key={i}
-                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${CARD_BG_COLORS[i % CARD_BG_COLORS.length]}`}
+                className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${cardBgColor(String(src.existingEntryId ?? src.newRecipeId ?? i))}`}
               >
                 <span className="truncate flex-1 mr-2">
                   <span className="mr-1.5" aria-hidden="true">{getRecipeEmoji(src.ingredientNames)}</span>
@@ -1278,7 +1273,7 @@ function Step5({
                           <button
                             onClick={() => onRemoveSlot(slot.id)}
                             className="text-muted-foreground hover:text-destructive shrink-0 p-1 active:scale-95 transition-transform"
-                            aria-label="Remove slot"
+                            aria-label={tSchedule("removeMeal")}
                           >
                             <X size={14} />
                           </button>
@@ -1353,7 +1348,7 @@ function Step6({
                 <button
                   onClick={() => onRemove(s.productId)}
                   className="text-muted-foreground hover:text-foreground px-1 text-base shrink-0"
-                  aria-label={`Remove ${s.name}`}
+                  aria-label={t("removeItem", { name: s.name })}
                 >
                   ×
                 </button>
