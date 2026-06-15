@@ -302,6 +302,9 @@
     "next": "Suivant",
     "goToStep": "Aller à l'étape {step}"
   },
+  "offline": {
+    "banner": "Vous êtes hors ligne — affichage de vos dernières données"
+  },
   "categories": {
     "fruit & veg": "Fruits & légumes",
     "meat & fish": "Viandes & poissons",
