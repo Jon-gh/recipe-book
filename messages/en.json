@@ -310,9 +310,6 @@
     "next": "Next",
     "goToStep": "Go to step {step}"
   },
-  "offline": {
-    "banner": "You're offline — showing your last cached data"
-  },
   "categories": {
     "fruit & veg": "Fruit & veg",
     "meat & fish": "Meat & fish",

@@ -2,7 +2,6 @@
 
 import { SWRConfig } from "swr";
 import { ToastProvider } from "@/components/Toast";
-import OfflineBanner from "@/components/OfflineBanner";
 
 const swrConfig = {
   onError: (error: Error) => {
@@ -16,7 +15,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SWRConfig value={swrConfig}>
       <ToastProvider>
-        <OfflineBanner />
         {children}
       </ToastProvider>
     </SWRConfig>
