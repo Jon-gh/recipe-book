@@ -750,7 +750,7 @@ function Step1({
               <div key={entry.id} className={`rounded-xl px-4 py-3.5 ${cardBg}`}>
                 <div className="flex items-center gap-3">
                   <span className="text-2xl shrink-0" aria-hidden="true">
-                    {getRecipeEmoji(entry.recipe.ingredients.map((i) => i.product.name))}
+                    {getRecipeEmoji(entry.recipe.name, entry.recipe.ingredients.map((i) => i.product.name))}
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{entry.recipe.name}</p>
@@ -1153,7 +1153,7 @@ function Step4({
               key={recipe.id}
               className={`flex items-center gap-3 px-4 py-3 rounded-xl ${cardBgColor(recipe.id)}`}
             >
-              <span className="text-xl shrink-0" aria-hidden="true">{getRecipeEmoji(recipe.ingredients.map((i) => i.product.name))}</span>
+              <span className="text-xl shrink-0" aria-hidden="true">{getRecipeEmoji(recipe.name, recipe.ingredients.map((i) => i.product.name))}</span>
               <span className="flex-1 text-sm font-medium truncate">{recipe.name}</span>
               <span className="text-xs text-muted-foreground shrink-0">{targetServings}p</span>
               <button
@@ -1217,7 +1217,7 @@ function Step5({
                 className={`flex items-center justify-between px-4 py-2.5 rounded-xl text-sm ${cardBgColor(String(src.existingEntryId ?? src.newRecipeId ?? i))}`}
               >
                 <span className="truncate flex-1 mr-2">
-                  <span className="mr-1.5" aria-hidden="true">{getRecipeEmoji(src.ingredientNames)}</span>
+                  <span className="mr-1.5" aria-hidden="true">{getRecipeEmoji(src.recipeName, src.ingredientNames)}</span>
                   {src.recipeName}
                 </span>
                 <span className={`text-xs shrink-0 font-medium ${allocated >= src.totalServings ? "text-primary" : "text-muted-foreground"}`}>

@@ -159,7 +159,7 @@ export default function RecipesPage() {
                 <div
                   className={`h-full rounded-xl shadow-sm ${cardBgColor(recipe.id)} p-4 flex flex-col gap-3 min-h-[160px]`}
                 >
-                  <div className="text-3xl leading-none">{getRecipeEmoji(recipe.ingredients.map((i) => i.product.name))}</div>
+                  <div className="text-3xl leading-none">{getRecipeEmoji(recipe.name, recipe.ingredients.map((i) => i.product.name))}</div>
                   <div className="flex items-start justify-between gap-2 flex-1">
                     <h2 className="text-base font-bold leading-snug">
                       {recipe.name}
