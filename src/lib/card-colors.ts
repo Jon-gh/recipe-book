@@ -2,12 +2,12 @@
  *  Colours are pastel backgrounds (light + dark variants co-located).
  *  Use `cardBgColor(id)` to get a stable colour for any entity by its id. */
 export const CARD_BG_COLORS = [
-  "bg-amber-50 dark:bg-amber-950/30",
-  "bg-rose-50 dark:bg-rose-950/30",
-  "bg-orange-50 dark:bg-orange-950/30",
-  "bg-emerald-50 dark:bg-emerald-950/30",
-  "bg-violet-50 dark:bg-violet-950/30",
-  "bg-sky-50 dark:bg-sky-950/30",
+  "bg-amber-100 dark:bg-amber-950/40",
+  "bg-rose-100 dark:bg-rose-950/40",
+  "bg-orange-100 dark:bg-orange-950/40",
+  "bg-emerald-100 dark:bg-emerald-950/40",
+  "bg-violet-100 dark:bg-violet-950/40",
+  "bg-sky-100 dark:bg-sky-950/40",
 ];
 
 export function cardBgColor(id: string): string {

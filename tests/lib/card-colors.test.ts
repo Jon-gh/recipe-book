@@ -24,4 +24,17 @@ describe("cardBgColor", () => {
     const results = new Set(["recipe-a", "recipe-b", "recipe-c", "recipe-d"].map(cardBgColor));
     expect(results.size).toBeGreaterThan(1);
   });
+
+  it("palette has 6 distinct entries", () => {
+    expect(CARD_BG_COLORS).toHaveLength(6);
+    expect(new Set(CARD_BG_COLORS).size).toBe(6);
+  });
+
+  it("uses a visible tint shade, never the near-white -50 step", () => {
+    // -50 is almost indistinguishable from white in light mode; the palette
+    // must use a stronger step so cards read as distinctly coloured.
+    for (const cls of CARD_BG_COLORS) {
+      expect(cls).not.toMatch(/-50\b/);
+    }
+  });
 });
