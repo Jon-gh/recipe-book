@@ -153,7 +153,7 @@ export default function RecipeDetailPage() {
   if (isLoading) return <LoadingState message={t("loading")} />;
   if (!recipe) return <p className="text-muted-foreground">{t("notFound")}</p>;
 
-  const recipeEmoji = getRecipeEmoji(recipe.ingredients.map((i) => i.product.name));
+  const recipeEmoji = getRecipeEmoji(recipe.name, recipe.ingredients.map((i) => i.product.name));
   const instructionSteps = splitInstructions(recipe.instructions);
   const displayServings = scaledServings ?? recipe.servings;
 
