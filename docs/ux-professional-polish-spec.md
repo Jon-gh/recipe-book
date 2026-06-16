@@ -680,9 +680,11 @@ hoc. Each needs its own user-approved proposal:
    rounding: 0.25 steps).
 2. **Cook mode** — full-screen step-by-step with `navigator.wakeLock` so the
    phone stays awake while cooking; step check-off.
-3. **Offline grace** — `navigator.onLine` listener + cached-data banner
-   ("You're offline — showing your last list"); the grocery list is the
-   killer use case (supermarket basements).
+3. **Offline grace** — ~~`navigator.onLine` listener + cached-data banner~~
+   _Implemented in Phase 8c then removed: the top banner was buggy/noisy and
+   not useful in practice. Do not reinstate the banner. If offline support is
+   revisited, do it silently (cache + graceful failure) without a global
+   banner._
 4. **Desktop layout pass** — the bottom tab bar on ≥1024px viewports reads as
    a stretched phone app; a left rail would fix it. Explicitly deferred.
 5. **Wizard UX review** — `StartNewWeekWizard.tsx` dedicated audit (flagged in
